@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme for dark mode -->
+    <style name="Theme.PennyWise" parent="Theme.Material3.DayNight">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary_light</item>
+        <item name="colorOnPrimary">@color/primary_dark</item>
+        <item name="colorPrimaryContainer">@color/primary</item>
+        <item name="colorOnPrimaryContainer">@color/text_primary_dark</item>
+        
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/secondary_light</item>
+        <item name="colorOnSecondary">@color/secondary_dark</item>
+        <item name="colorSecondaryContainer">@color/secondary</item>
+        <item name="colorOnSecondaryContainer">@color/text_primary_dark</item>
+        
+        <!-- Tertiary brand color -->
+        <item name="colorTertiary">@color/tertiary_light</item>
+        <item name="colorOnTertiary">@color/tertiary_dark</item>
+        <item name="colorTertiaryContainer">@color/tertiary</item>
+        <item name="colorOnTertiaryContainer">@color/text_primary_dark</item>
+        
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/primary_light</item>
+        
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/background_dark</item>
+        <item name="colorSurface">@color/surface_dark</item>
+        <item name="colorOnSurface">@color/text_primary_dark</item>
+        <item name="colorSurfaceVariant">@color/surface_dark</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary_dark</item>
+        
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/text_primary_dark</item>
+        <item name="android:textColorSecondary">@color/text_secondary_dark</item>
+        
+        <!-- Error colors -->
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/text_primary_dark</item>
+        <item name="colorErrorContainer">@color/error</item>
+        <item name="colorOnErrorContainer">@color/text_primary_dark</item>
+        
+        <!-- Shape -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.PennyWise.SmallComponent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.PennyWise.MediumComponent</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.PennyWise.LargeComponent</item>
+    </style>
+</resources>
+

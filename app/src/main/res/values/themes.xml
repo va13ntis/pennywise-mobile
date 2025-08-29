@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.PennyWise" parent="Theme.Material3.DayNight">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/text_primary_dark</item>
+        <item name="colorPrimaryContainer">@color/primary_light</item>
+        <item name="colorOnPrimaryContainer">@color/primary_dark</item>
+        
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/text_primary_dark</item>
+        <item name="colorSecondaryContainer">@color/secondary_light</item>
+        <item name="colorOnSecondaryContainer">@color/secondary_dark</item>
+        
+        <!-- Tertiary brand color -->
+        <item name="colorTertiary">@color/tertiary</item>
+        <item name="colorOnTertiary">@color/text_primary_dark</item>
+        <item name="colorTertiaryContainer">@color/tertiary_light</item>
+        <item name="colorOnTertiaryContainer">@color/tertiary_dark</item>
+        
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/primary</item>
+        
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/surface</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        
+        <!-- Error colors -->
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/text_primary_dark</item>
+        <item name="colorErrorContainer">@color/error</item>
+        <item name="colorOnErrorContainer">@color/text_primary_dark</item>
+        
+        <!-- Shape -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.PennyWise.SmallComponent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.PennyWise.MediumComponent</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.PennyWise.LargeComponent</item>
+    </style>
+    
+    <!-- Shape styles -->
+    <style name="ShapeAppearance.PennyWise.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+    
+    <style name="ShapeAppearance.PennyWise.MediumComponent" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+    
+    <style name="ShapeAppearance.PennyWise.LargeComponent" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+</resources>
