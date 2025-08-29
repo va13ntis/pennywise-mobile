@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.Box
 import com.pennywise.app.presentation.viewmodel.AuthViewModel
 import com.pennywise.app.presentation.viewmodel.LoginViewModel
 import com.pennywise.app.presentation.viewmodel.RegisterViewModel
+import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import com.pennywise.app.presentation.screens.LoginScreen
 import com.pennywise.app.presentation.screens.RegisterScreen
+import com.pennywise.app.presentation.screens.HomeScreen
 import com.pennywise.app.presentation.navigation.LOGIN_ROUTE
 import com.pennywise.app.presentation.navigation.REGISTER_ROUTE
 
@@ -87,8 +89,21 @@ fun AppNavigation() {
         
         // Main app content after authentication
         composable(MAIN_ROUTE) {
-            // TODO: Replace with actual main app content when implemented
-            MainPlaceholderScreen(
+            val homeViewModel = hiltViewModel<HomeViewModel>()
+            val currentUser = authViewModel.getCurrentUser()
+            
+            // Set the user ID for the HomeViewModel
+            currentUser?.let { user ->
+                homeViewModel.setUserId(user.id)
+            }
+            
+            HomeScreen(
+                onAddExpense = {
+                    // TODO: Navigate to add expense screen when implemented
+                },
+                onNavigateToSettings = {
+                    // TODO: Navigate to settings screen when implemented
+                },
                 onLogout = {
                     authViewModel.logout()
                 }
@@ -102,15 +117,4 @@ fun AppNavigation() {
  */
 const val MAIN_ROUTE = "main"
 
-/**
- * Placeholder main screen - will be replaced with actual implementation
- */
-@Composable
-private fun MainPlaceholderScreen(
-    onLogout: () -> Unit
-) {
-    Text(
-        text = "Main App Content - Coming Soon",
-        modifier = Modifier.fillMaxSize()
-    )
-}
+

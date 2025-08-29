@@ -25,7 +25,19 @@
     <string name="amount">Amount</string>
     <string name="balance">Balance</string>
     <string name="income">Income</string>
-    <string name="expense">Expense</string>
+    <string name="expenses">Expenses</string>
+    <string name="net_balance">Net Balance</string>
+    <string name="total_expenses">Total Expenses</string>
+    <string name="recurring_expenses">Recurring Expenses</string>
+    <string name="week_format">Week %d</string>
+    <string name="expand">Expand</string>
+    <string name="collapse">Collapse</string>
+    <string name="no_expenses_this_week">No expenses this week</string>
+    <string name="previous_month">Previous Month</string>
+    <string name="next_month">Next Month</string>
+    <string name="add_expense">Add Expense</string>
+    <string name="no_transactions_yet">No transactions yet</string>
+    <string name="add_your_first_expense">Add your first expense to get started</string>
     
     <!-- Authentication -->
     <string name="username">Username</string>
