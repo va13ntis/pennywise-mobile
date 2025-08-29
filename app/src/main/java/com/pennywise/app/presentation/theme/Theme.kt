@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
+val DarkColorScheme = darkColorScheme(
     primary = md_theme_dark_primary,
     onPrimary = md_theme_dark_onPrimary,
     primaryContainer = md_theme_dark_primaryContainer,
@@ -47,7 +47,7 @@ private val DarkColorScheme = darkColorScheme(
     scrim = md_theme_dark_scrim,
 )
 
-private val LightColorScheme = lightColorScheme(
+val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,
     primaryContainer = md_theme_light_primaryContainer,
@@ -109,5 +109,19 @@ fun PennyWiseTheme(
         typography = Typography,
         content = content
     )
+}
+
+/**
+ * Theme composable that uses ThemeManager to apply user-selected theme preferences
+ * This should be used as the root theme wrapper in the app
+ */
+@Composable
+fun PennyWiseThemeWithManager(
+    themeManager: ThemeManager,
+    content: @Composable () -> Unit
+) {
+    themeManager.ApplyTheme {
+        content()
+    }
 }
 

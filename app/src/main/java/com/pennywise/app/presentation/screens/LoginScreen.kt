@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.presentation.viewmodel.LoginViewModel
+import com.pennywise.app.presentation.viewmodel.TestDataViewModel
 
 /**
  * Login screen with enhanced form validation and user feedback
@@ -31,12 +32,18 @@ import com.pennywise.app.presentation.viewmodel.LoginViewModel
 fun LoginScreen(
     viewModel: LoginViewModel,
     onNavigateToRegister: () -> Unit,
-    onLoginSuccess: (User) -> Unit
+    onLoginSuccess: (User) -> Unit,
+    testDataViewModel: TestDataViewModel = hiltViewModel()
 ) {
     // For now, we'll disable biometric functionality to avoid injection issues
     // TODO: Implement proper biometric injection in future iteration
     val canUseBiometric = false
     val loginState by viewModel.loginState.collectAsState()
+    
+    // Test data states
+    val isSeeding by testDataViewModel.isSeeding.collectAsState()
+    val isClearing by testDataViewModel.isClearing.collectAsState()
+    val testMessage by testDataViewModel.message.collectAsState()
     
     // String resources
     val usernameRequiredText = stringResource(R.string.username_required)
@@ -54,6 +61,16 @@ fun LoginScreen(
     LaunchedEffect(loginState) {
         if (loginState is LoginViewModel.LoginState.Success) {
             onLoginSuccess((loginState as LoginViewModel.LoginState.Success).user)
+        }
+    }
+    
+    // Show test data messages
+    LaunchedEffect(testMessage) {
+        testMessage?.let { message ->
+            // For now, we'll just clear the message after a delay
+            // In a real app, you'd show this in a snackbar or dialog
+            kotlinx.coroutines.delay(3000)
+            testDataViewModel.clearMessage()
         }
     }
     
@@ -172,6 +189,88 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.create_account))
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Test data section
+        LoginTestDataSection(
+            onSeedTestData = { testDataViewModel.seedTestData() },
+            onClearTestData = { testDataViewModel.clearTestData() },
+            isSeeding = isSeeding,
+            isClearing = isClearing
+        )
+    }
+}
+
+/**
+ * Test data section for the login screen
+ */
+@Composable
+fun LoginTestDataSection(
+    modifier: Modifier = Modifier,
+    onSeedTestData: () -> Unit = {},
+    onClearTestData: () -> Unit = {},
+    isSeeding: Boolean = false,
+    isClearing: Boolean = false
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "🧪 Test Data",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Create test user and sample data",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = onSeedTestData,
+            enabled = !isSeeding && !isClearing,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isSeeding) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = if (isSeeding) "Creating Test Data..." else "Create Test Data"
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Button(
+            onClick = onClearTestData,
+            enabled = !isSeeding && !isClearing,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error
+            )
+        ) {
+            if (isClearing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    color = MaterialTheme.colorScheme.onError
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = if (isClearing) "Clearing Data..." else "Clear All Data"
+            )
         }
     }
 }

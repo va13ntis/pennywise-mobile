@@ -24,6 +24,8 @@ import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import com.pennywise.app.presentation.screens.LoginScreen
 import com.pennywise.app.presentation.screens.RegisterScreen
 import com.pennywise.app.presentation.screens.HomeScreen
+import com.pennywise.app.presentation.screens.AddExpenseScreen
+import com.pennywise.app.presentation.screens.SettingsScreen
 import com.pennywise.app.presentation.navigation.LOGIN_ROUTE
 import com.pennywise.app.presentation.navigation.REGISTER_ROUTE
 
@@ -93,20 +95,42 @@ fun AppNavigation() {
             val currentUser = authViewModel.getCurrentUser()
             
             // Set the user ID for the HomeViewModel
-            currentUser?.let { user ->
-                homeViewModel.setUserId(user.id)
+            LaunchedEffect(currentUser) {
+                currentUser?.let { user ->
+                    println("🔄 AppNavigation: Setting user ID ${user.id} for HomeViewModel")
+                    homeViewModel.setUserId(user.id)
+                } ?: run {
+                    println("❌ AppNavigation: No current user found!")
+                }
             }
             
             HomeScreen(
                 onAddExpense = {
-                    // TODO: Navigate to add expense screen when implemented
+                    navController.navigate(ADD_EXPENSE_ROUTE)
                 },
                 onNavigateToSettings = {
-                    // TODO: Navigate to settings screen when implemented
+                    navController.navigate(SETTINGS_ROUTE)
                 },
                 onLogout = {
                     authViewModel.logout()
                 }
+            )
+        }
+        
+        // Add Expense screen
+        composable(ADD_EXPENSE_ROUTE) {
+            AddExpenseScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onSaveExpense = { } // Not used, ViewModel handles saving
+            )
+        }
+        
+        // Settings screen
+        composable(SETTINGS_ROUTE) {
+            val settingsViewModel = hiltViewModel<com.pennywise.app.presentation.viewmodel.SettingsViewModel>()
+            SettingsScreen(
+                viewModel = settingsViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
@@ -116,5 +140,7 @@ fun AppNavigation() {
  * Navigation routes for the main app
  */
 const val MAIN_ROUTE = "main"
+const val ADD_EXPENSE_ROUTE = "add_expense"
+const val SETTINGS_ROUTE = "settings"
 
 

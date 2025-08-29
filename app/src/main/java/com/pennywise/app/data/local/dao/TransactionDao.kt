@@ -14,6 +14,9 @@ interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
     
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTransactions(transactions: List<TransactionEntity>)
+    
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
     
@@ -55,5 +58,8 @@ interface TransactionDao {
     
     @Query("SELECT COUNT(*) FROM transactions WHERE userId = :userId AND date BETWEEN :startDate AND :endDate")
     suspend fun getTransactionCountByDateRange(userId: Long, startDate: Date, endDate: Date): Int
+    
+    @Query("DELETE FROM transactions")
+    suspend fun deleteAllTransactions()
 }
 

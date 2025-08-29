@@ -69,13 +69,16 @@ class AuthManager @Inject constructor(
      */
     suspend fun saveAuthenticatedUser(user: User) {
         try {
+            println("🔄 AuthManager: Saving authenticated user ${user.username} (ID: ${user.id})")
             context.dataStore.edit { preferences ->
                 preferences[userIdKey] = user.id.toInt()
                 preferences[usernameKey] = user.username
                 preferences[isLoggedInKey] = true
             }
             _currentUser.value = user
+            println("✅ AuthManager: User saved successfully")
         } catch (e: Exception) {
+            println("❌ AuthManager: Error saving user: ${e.message}")
             // If there's an error saving preferences, still set the current user
             _currentUser.value = user
         }
@@ -101,7 +104,11 @@ class AuthManager @Inject constructor(
     /**
      * Get the current authenticated user
      */
-    fun getCurrentUser(): User? = _currentUser.value
+    fun getCurrentUser(): User? {
+        val user = _currentUser.value
+        println("🔄 AuthManager: getCurrentUser() called, returning: ${user?.username} (ID: ${user?.id})")
+        return user
+    }
     
     /**
      * Check if user is currently authenticated

@@ -1,0 +1,63 @@
+package com.pennywise.app.presentation.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+/**
+ * Example component demonstrating how to use the CustomDatePickerDialog
+ * This is for demonstration purposes and can be removed in production
+ */
+@Composable
+fun DatePickerExample() {
+    var showDatePicker by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    
+    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Selected Date: ${selectedDate?.format(dateFormatter) ?: "None"}"
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = { showDatePicker = true }
+        ) {
+            Text("Select Date")
+        }
+        
+        // CustomDatePickerDialog component
+        CustomDatePickerDialog(
+            showDialog = showDatePicker,
+            onDismiss = { showDatePicker = false },
+            onDateSelected = { date ->
+                selectedDate = date
+                showDatePicker = false
+            },
+            initialDate = selectedDate
+        )
+    }
+}

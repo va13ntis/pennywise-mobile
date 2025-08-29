@@ -7,6 +7,7 @@ import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.repository.TransactionRepositoryImpl
 import com.pennywise.app.data.repository.UserRepositoryImpl
 import com.pennywise.app.data.util.PasswordHasher
+import com.pennywise.app.data.util.DataSeeder
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.UserRepository
 import dagger.Module
@@ -80,5 +81,18 @@ object RepositoryModule {
         transactionDao: TransactionDao
     ): TransactionRepository {
         return TransactionRepositoryImpl(transactionDao)
+    }
+    
+    /**
+     * Provides the DataSeeder utility
+     */
+    @Provides
+    @Singleton
+    fun provideDataSeeder(
+        userDao: UserDao,
+        transactionDao: TransactionDao,
+        passwordHasher: PasswordHasher
+    ): DataSeeder {
+        return DataSeeder(userDao, transactionDao, passwordHasher)
     }
 }

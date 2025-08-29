@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.async
 import java.time.YearMonth
 import java.time.temporal.WeekFields
 import java.util.Calendar
@@ -45,6 +47,7 @@ class HomeViewModel @Inject constructor(
      * Set the current user ID and load their data
      */
     fun setUserId(userId: Long) {
+        println("🔄 HomeViewModel: Setting user ID to $userId")
         _userId.value = userId
         loadTransactions()
     }
@@ -63,32 +66,42 @@ class HomeViewModel @Inject constructor(
     private fun loadTransactions() {
         val userId = _userId.value ?: return
         
+        println("🔄 HomeViewModel: Loading transactions for user $userId")
         _isLoading.value = true
         _error.value = null
         
         viewModelScope.launch {
             try {
-                // Load monthly transactions
-                transactionRepository.getTransactionsByMonth(userId, _currentMonth.value)
-                    .collect { transactions ->
-                        _transactions.value = transactions
-                    }
+                // Use async to run both operations concurrently
+                val monthlyDeferred = async {
+                    println("🔄 HomeViewModel: Loading monthly transactions...")
+                    val transactions = transactionRepository.getTransactionsByMonth(userId, _currentMonth.value).first()
+                    println("✅ HomeViewModel: Loaded ${transactions.size} monthly transactions")
+                    transactions
+                }
+                
+                val recurringDeferred = async {
+                    println("🔄 HomeViewModel: Loading recurring transactions...")
+                    val transactions = transactionRepository.getRecurringTransactionsByUser(userId).first()
+                    println("✅ HomeViewModel: Loaded ${transactions.size} recurring transactions")
+                    transactions
+                }
+                
+                // Wait for both operations to complete
+                val monthlyTransactions = monthlyDeferred.await()
+                val recurringTransactions = recurringDeferred.await()
+                
+                // Update the state
+                _transactions.value = monthlyTransactions
+                _recurringTransactions.value = recurringTransactions
+                
+                println("✅ HomeViewModel: All transactions loading completed")
             } catch (e: Exception) {
+                println("❌ HomeViewModel: Failed to load transactions: ${e.message}")
+                e.printStackTrace()
                 _error.value = "Failed to load transactions: ${e.message}"
             } finally {
                 _isLoading.value = false
-            }
-        }
-        
-        viewModelScope.launch {
-            try {
-                // Load recurring transactions
-                transactionRepository.getRecurringTransactionsByUser(userId)
-                    .collect { transactions ->
-                        _recurringTransactions.value = transactions
-                    }
-            } catch (e: Exception) {
-                _error.value = "Failed to load recurring transactions: ${e.message}"
             }
         }
     }
