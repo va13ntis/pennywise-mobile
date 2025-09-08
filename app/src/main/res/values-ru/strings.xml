@@ -1,0 +1,133 @@
+<resources>
+    <string name="app_name">p€nnywi$e</string>
+    <string name="app_description">Умное приложение для управления личными финансами</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Главная</string>
+    <string name="nav_transactions">Транзакции</string>
+    <string name="nav_budget">Бюджет</string>
+    <string name="nav_reports">Отчеты</string>
+    <string name="nav_settings">Настройки</string>
+    
+    <!-- Common -->
+    <string name="add">Добавить</string>
+    <string name="edit">Редактировать</string>
+    <string name="delete">Удалить</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="confirm">Подтвердить</string>
+    <string name="loading">Загрузка…</string>
+    <string name="error">Ошибка</string>
+    <string name="success">Успех</string>
+    
+    <!-- Currency -->
+    <string name="currency_symbol">₽</string>
+    <string name="amount">Сумма</string>
+    <string name="balance">Баланс</string>
+    <string name="income">Доход</string>
+    <string name="expenses">Расходы</string>
+    <string name="net_balance">Чистый баланс</string>
+    <string name="total_expenses">Общие расходы</string>
+    <string name="recurring_expenses">Регулярные расходы</string>
+    <string name="week_format">Неделя %d</string>
+    <string name="expand">Развернуть</string>
+    <string name="collapse">Свернуть</string>
+    <string name="no_expenses_this_week">Нет расходов на этой неделе</string>
+    <string name="previous_month">Предыдущий месяц</string>
+    <string name="next_month">Следующий месяц</string>
+    <string name="add_expense">Добавить расход</string>
+    <string name="no_transactions_yet">Пока нет транзакций</string>
+    <string name="add_your_first_expense">Добавьте свой первый расход, чтобы начать</string>
+    
+    <!-- Expense Form -->
+    <string name="new_expense">Новый расход</string>
+    <string name="merchant">Продавец</string>
+    <string name="merchant_required">Название продавца обязательно</string>
+    <string name="amount_required">Сумма обязательна</string>
+    <string name="invalid_amount">Пожалуйста, введите действительную сумму</string>
+    <string name="payment_type">Тип платежа</string>
+    <string name="one_time">Однократно</string>
+    <string name="recurring">Регулярно</string>
+    <string name="notes">Заметки</string>
+    <string name="notes_hint">Дополнительные заметки об этом расходе</string>
+    <string name="category">Категория</string>
+    <string name="category_required">Категория обязательна</string>
+    <string name="category_food">Еда и рестораны</string>
+    <string name="category_transport">Транспорт</string>
+    <string name="category_shopping">Покупки</string>
+    <string name="category_entertainment">Развлечения</string>
+    <string name="category_utilities">Коммунальные услуги</string>
+    <string name="category_health">Здравоохранение</string>
+    <string name="category_other">Другое</string>
+    
+    <!-- Authentication -->
+    <string name="username">Имя пользователя</string>
+    <string name="password">Пароль</string>
+    <string name="confirm_password">Подтвердите пароль</string>
+    <string name="login">Войти</string>
+    <string name="register">Регистрация</string>
+    <string name="create_account">Создать аккаунт</string>
+    <string name="back_to_login">Вернуться к входу</string>
+    <string name="username_required">Имя пользователя не может быть пустым</string>
+    <string name="password_required">Пароль не может быть пустым</string>
+    <string name="confirm_password_required">Пожалуйста, подтвердите пароль</string>
+    <string name="passwords_dont_match">Пароли не совпадают</string>
+    <string name="password_too_short">Пароль должен содержать не менее 6 символов</string>
+    
+    <!-- Biometric Authentication -->
+    <string name="biometric_login_title">Вход с биометрией</string>
+    <string name="biometric_login_subtitle">Используйте отпечаток пальца или лицо для входа</string>
+    <string name="biometric_login_use_password">Использовать пароль</string>
+    <string name="login_with_biometric">Войти с биометрией</string>
+    
+    <!-- Date Picker -->
+    <string name="ok">ОК</string>
+    <string name="select_date">Выберите дату</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings">Настройки</string>
+    <string name="appearance">Внешний вид</string>
+    <string name="light_theme">Светлая тема</string>
+    <string name="dark_theme">Темная тема</string>
+    <string name="system_theme">Системная по умолчанию</string>
+    <string name="backup">Резервная копия</string>
+    <string name="cloud_backup">Облачное резервное копирование</string>
+    <string name="coming_soon">Скоро</string>
+    <string name="setup_backup">Настроить резервное копирование</string>
+    <string name="back">Назад</string>
+    
+    <!-- Language -->
+    <string name="language">Язык</string>
+    
+    <!-- Currency -->
+    <string name="currency">Валюта</string>
+    <string name="currency_usd">Доллар США ($)</string>
+    <string name="currency_eur">Евро (€)</string>
+    <string name="currency_gbp">Фунт стерлингов (£)</string>
+    <string name="currency_ils">Израильский шекель (₪)</string>
+    <string name="currency_rub">Российский рубль (₽)</string>
+    <string name="currency_jpy">Японская иена (¥)</string>
+    <string name="currency_cad">Канадский доллар (C$)</string>
+    <string name="currency_aud">Австралийский доллар (A$)</string>
+    <string name="currency_chf">Швейцарский франк (CHF)</string>
+    <string name="currency_cny">Китайский юань (¥)</string>
+    <string name="currency_inr">Индийская рупия (₹)</string>
+    
+    <!-- Recurring Periods -->
+    <string name="recurring_daily">Ежедневно</string>
+    <string name="recurring_weekly">Еженедельно</string>
+    <string name="recurring_monthly">Ежемесячно</string>
+    <string name="recurring_yearly">Ежегодно</string>
+    
+    <!-- Currency Conversion -->
+    <string name="currency_conversion">Конвертация валют</string>
+    <string name="enable_currency_conversion">Включить конвертацию валют</string>
+    <string name="original_currency">Исходная валюта</string>
+    <string name="converted_amount">Конвертированная сумма</string>
+    <string name="conversion_rate">Курс конвертации</string>
+    <string name="last_updated">Последнее обновление</string>
+    <string name="conversion_unavailable">Конвертация недоступна</string>
+    <string name="using_cached_rate">Используется кэшированный курс</string>
+    <string name="clear_conversion_cache">Очистить кэш конвертации</string>
+    <string name="cache_cleared">Кэш очищен</string>
+</resources>

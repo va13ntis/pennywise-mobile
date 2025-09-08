@@ -49,6 +49,9 @@ interface UserDao {
     @Query("UPDATE users SET updatedAt = :updatedAt WHERE id = :userId")
     suspend fun updateLastActivity(userId: Long, updatedAt: Long)
     
+    @Query("UPDATE users SET defaultCurrency = :currency, updatedAt = :updatedAt WHERE id = :userId")
+    suspend fun updateDefaultCurrency(userId: Long, currency: String, updatedAt: Long)
+    
     @Query("DELETE FROM users")
     suspend fun deleteAllUsers()
 }

@@ -22,6 +22,7 @@ data class UserEntity(
     val username: String,
     val passwordHash: String,
     val email: String? = null,
+    val defaultCurrency: String = "USD",
     val role: UserRole = UserRole.USER,
     val status: UserStatus = UserStatus.ACTIVE,
     val createdAt: Date = Date(),
@@ -33,6 +34,7 @@ data class UserEntity(
             username = username,
             passwordHash = passwordHash,
             email = email,
+            defaultCurrency = defaultCurrency,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
@@ -45,6 +47,7 @@ data class UserEntity(
                 username = user.username,
                 passwordHash = user.passwordHash,
                 email = user.email,
+                defaultCurrency = user.defaultCurrency,
                 createdAt = user.createdAt,
                 updatedAt = user.updatedAt
             )

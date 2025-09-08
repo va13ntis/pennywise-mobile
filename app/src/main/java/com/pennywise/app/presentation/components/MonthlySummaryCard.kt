@@ -21,19 +21,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.theme.income_green
 import com.pennywise.app.presentation.theme.neutral_gray
+import com.pennywise.app.presentation.util.CurrencyFormatter
+import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import kotlin.math.abs
 
 /**
@@ -43,10 +48,16 @@ import kotlin.math.abs
 fun MonthlySummaryCard(
     totalIncome: Double,
     totalExpenses: Double,
+    currency: String = "",
+    currencyConversionEnabled: Boolean = false,
+    originalCurrency: String = "",
+    conversionState: HomeViewModel.ConversionState = HomeViewModel.ConversionState.Idle,
+    onConvertAmount: (Double) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val netBalance = totalIncome - totalExpenses
     val isPositive = netBalance >= 0
+    val context = LocalContext.current
     
     Card(
         modifier = modifier
@@ -89,11 +100,68 @@ fun MonthlySummaryCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = formatCurrency(balance),
+                        text = CurrencyFormatter.formatAmount(balance, currency, context),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isPositive) income_green else expense_red
+                        color = if (isPositive) income_green else expense_red,
+                        textAlign = TextAlign.Center
                     )
+                }
+            }
+            
+            // Currency conversion display
+            if (currencyConversionEnabled && originalCurrency.isNotEmpty() && originalCurrency != currency) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Trigger conversion for total expenses
+                LaunchedEffect(totalExpenses, originalCurrency, currency) {
+                    if (totalExpenses > 0) {
+                        onConvertAmount(totalExpenses)
+                    }
+                }
+                
+                when (conversionState) {
+                    is HomeViewModel.ConversionState.Loading -> {
+                        Text(
+                            text = stringResource(R.string.loading),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    is HomeViewModel.ConversionState.Success -> {
+                        val originalFormatted = CurrencyFormatter.formatAmount(
+                            conversionState.originalAmount, 
+                            originalCurrency,
+                            context
+                        )
+                        val convertedFormatted = CurrencyFormatter.formatAmount(
+                            conversionState.convertedAmount, 
+                            currency,
+                            context
+                        )
+                        
+                        Text(
+                            text = "$originalFormatted → $convertedFormatted",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        
+                        if (conversionState.isUsingCachedRate) {
+                            Text(
+                                text = stringResource(R.string.using_cached_rate),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    is HomeViewModel.ConversionState.Error -> {
+                        Text(
+                            text = stringResource(R.string.conversion_unavailable),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    else -> { /* Idle state, do nothing */ }
                 }
             }
             
@@ -132,10 +200,11 @@ fun MonthlySummaryCard(
                         }
                     ) { income ->
                         Text(
-                            text = formatCurrency(income),
+                            text = CurrencyFormatter.formatAmount(income, currency, context),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Medium,
-                            color = income_green
+                            color = income_green,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -175,10 +244,11 @@ fun MonthlySummaryCard(
                         }
                     ) { expenses ->
                         Text(
-                            text = formatCurrency(expenses),
+                            text = CurrencyFormatter.formatAmount(expenses, currency, context),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Medium,
-                            color = expense_red
+                            color = expense_red,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -187,13 +257,4 @@ fun MonthlySummaryCard(
     }
 }
 
-/**
- * Format currency value with proper decimal places and currency symbol
- */
-private fun formatCurrency(amount: Double): String {
-    return if (amount >= 0) {
-        "$${String.format("%.2f", amount)}"
-    } else {
-        "-$${String.format("%.2f", abs(amount))}"
-    }
-}
+// Note: Currency formatting is now handled by CurrencyFormatter utility class

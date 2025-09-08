@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Logout
+
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -47,7 +48,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
@@ -77,6 +82,10 @@ fun HomeScreen(
     val currentMonth by viewModel.currentMonth.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val currency by viewModel.currency.collectAsState()
+    val currencyConversionEnabled by viewModel.currencyConversionEnabled.collectAsState()
+    val originalCurrency by viewModel.originalCurrency.collectAsState()
+    val conversionState by viewModel.conversionState.collectAsState()
     
     val transactionsByWeek = viewModel.getTransactionsGroupedByWeek()
     val totalIncome = viewModel.getTotalIncome()
@@ -201,7 +210,12 @@ fun HomeScreen(
                     item {
                         MonthlySummaryCard(
                             totalIncome = totalIncome,
-                            totalExpenses = totalExpenses
+                            totalExpenses = totalExpenses,
+                            currency = currency,
+                            currencyConversionEnabled = currencyConversionEnabled,
+                            originalCurrency = originalCurrency,
+                            conversionState = conversionState,
+                            onConvertAmount = { amount -> viewModel.convertAmount(amount) }
                         )
                     }
                     
@@ -209,7 +223,12 @@ fun HomeScreen(
                     if (recurringTransactions.isNotEmpty()) {
                         item {
                             RecurringExpensesSection(
-                                transactions = recurringTransactions
+                                transactions = recurringTransactions,
+                                currency = currency,
+                                currencyConversionEnabled = currencyConversionEnabled,
+                                originalCurrency = originalCurrency,
+                                conversionState = conversionState,
+                                onConvertAmount = { amount -> viewModel.convertAmount(amount) }
                             )
                         }
                     }
@@ -219,7 +238,12 @@ fun HomeScreen(
                         item {
                             ExpenseSection(
                                 title = stringResource(R.string.week_format, weekNumber),
-                                transactions = weekTransactions
+                                transactions = weekTransactions,
+                                currency = currency,
+                                currencyConversionEnabled = currencyConversionEnabled,
+                                originalCurrency = originalCurrency,
+                                conversionState = conversionState,
+                                onConvertAmount = { amount -> viewModel.convertAmount(amount) }
                             )
                         }
                     }
@@ -341,7 +365,10 @@ fun MonthNavigation(
             Icon(
                 imageVector = Icons.Default.ChevronLeft,
                 contentDescription = stringResource(R.string.previous_month),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.graphicsLayer(
+                    scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
+                )
             )
         }
         
@@ -359,7 +386,10 @@ fun MonthNavigation(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = stringResource(R.string.next_month),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.graphicsLayer(
+                    scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
+                )
             )
         }
     }

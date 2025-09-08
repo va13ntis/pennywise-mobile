@@ -111,6 +111,23 @@ class AuthManager @Inject constructor(
     }
     
     /**
+     * Update the current user object (useful when user data changes)
+     */
+    suspend fun updateCurrentUser(updatedUser: User) {
+        try {
+            println("🔄 AuthManager: Updating current user to ${updatedUser.username} (ID: ${updatedUser.id})")
+            // Update the user in the database
+            userRepository.updateUser(updatedUser)
+            // Update the current user state
+            _currentUser.value = updatedUser
+            println("✅ AuthManager: Current user updated successfully")
+        } catch (e: Exception) {
+            println("❌ AuthManager: Error updating current user: ${e.message}")
+            throw e
+        }
+    }
+    
+    /**
      * Check if user is currently authenticated
      */
     fun isUserAuthenticated(): Boolean = _currentUser.value != null

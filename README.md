@@ -1,5 +1,10 @@
 # PennyWise - Smart Personal Finance Management
 
+[![CI/CD Pipeline](https://github.com/your-username/pennywise-mobile/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/pennywise-mobile/actions/workflows/ci.yml)
+[![PR Validation](https://github.com/your-username/pennywise-mobile/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/your-username/pennywise-mobile/actions/workflows/pr-validation.yml)
+[![Nightly Build](https://github.com/your-username/pennywise-mobile/actions/workflows/nightly.yml/badge.svg)](https://github.com/your-username/pennywise-mobile/actions/workflows/nightly.yml)
+[![Test Coverage](https://codecov.io/gh/your-username/pennywise-mobile/branch/main/graph/badge.svg)](https://codecov.io/gh/your-username/pennywise-mobile)
+
 PennyWise is a modern Android application built with Kotlin and Jetpack Compose that helps users manage their personal finances effectively. The app follows Clean Architecture principles and uses the latest Android development technologies.
 
 ## Features
@@ -148,13 +153,53 @@ The app follows Clean Architecture principles with three main layers:
 - Write descriptive commit messages
 - Review code before merging
 
+## CI/CD Pipeline
+
+PennyWise uses GitHub Actions for continuous integration and deployment with comprehensive testing:
+
+### Workflows
+
+- **CI/CD Pipeline** (`ci.yml`): Full test suite including unit, integration, UI, performance, and accessibility tests
+- **PR Validation** (`pr-validation.yml`): Quick validation for pull requests with essential tests
+- **Nightly Build** (`nightly.yml`): Comprehensive nightly testing including security checks and performance benchmarks
+- **Test Reporting** (`test-reporting.yml`): Generates detailed test reports and visualizations
+
+### Test Coverage
+
+The pipeline includes:
+
+- **Unit Tests**: Currency models, utilities, and business logic
+- **Integration Tests**: Database operations and service layer
+- **UI Tests**: Espresso-based UI component testing
+- **Performance Tests**: AndroidX Microbenchmark performance testing
+- **Accessibility Tests**: Screen reader and accessibility compliance
+- **Load Tests**: High-frequency operation testing
+
+### Test Reports
+
+- JaCoCo test coverage reports (HTML and XML)
+- Currency-specific coverage analysis
+- Performance benchmark results
+- Accessibility compliance reports
+- Security vulnerability scans
+
+### Pipeline Features
+
+- **Fast Feedback**: Unit tests run first for quick feedback
+- **Parallel Execution**: Tests run in parallel for faster completion
+- **Artifact Storage**: Test results and reports stored for 30 days
+- **Code Coverage**: Integration with Codecov for coverage tracking
+- **Failure Notifications**: Automatic notifications on test failures
+- **Status Badges**: Real-time pipeline status in README
+
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Submit a pull request
+5. Ensure all tests pass in the CI/CD pipeline
+6. Submit a pull request
 
 ## License
 

@@ -37,7 +37,11 @@ class DataSeeder @Inject constructor(
             
             // Create sample transactions for the current month
             createSampleTransactions(testUser.id)
-            println("✅ Sample transactions created")
+            println("✅ Sample transactions for current month created")
+            
+            // Create historical data for previous months (6 months of history)
+            createHistoricalTransactions(testUser.id, 6)
+            println("✅ Historical transactions created")
             
             println("✅ Test data seeded successfully!")
             println("📝 Login credentials:")
@@ -144,7 +148,7 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = 3500.0,
                 description = "Salary",
-                category = "Income",
+                category = "Salary",
                 type = TransactionType.INCOME,
                 date = calendar.time,
                 isRecurring = true,
@@ -156,9 +160,33 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = 500.0,
                 description = "Freelance Project",
-                category = "Income",
+                category = "Freelance",
                 type = TransactionType.INCOME,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
+                isRecurring = false,
+                recurringPeriod = null,
+                createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = 250.0,
+                description = "Investment Dividend",
+                category = "Investment",
+                type = TransactionType.INCOME,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 20) }.time,
+                isRecurring = false,
+                recurringPeriod = null,
+                createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = 100.0,
+                description = "Cash Gift",
+                category = "Gift",
+                type = TransactionType.INCOME,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 25) }.time,
                 isRecurring = false,
                 recurringPeriod = null,
                 createdAt = Date()
@@ -180,7 +208,7 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -120.0,
                 description = "Grocery Shopping",
-                category = "Food",
+                category = "Groceries",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 2) }.time,
                 isRecurring = false,
@@ -199,6 +227,18 @@ class DataSeeder @Inject constructor(
                 recurringPeriod = null,
                 createdAt = Date()
             ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -35.0,
+                description = "Pharmacy",
+                category = "Healthcare",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 4) }.time,
+                isRecurring = false,
+                recurringPeriod = null,
+                createdAt = Date()
+            ),
             
             // Week 2 expenses
             TransactionEntity(
@@ -206,7 +246,7 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -85.0,
                 description = "Restaurant Dinner",
-                category = "Food",
+                category = "Dining Out",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 8) }.time,
                 isRecurring = false,
@@ -218,9 +258,21 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -200.0,
                 description = "Shopping Mall",
-                category = "Shopping",
+                category = "Clothing",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
+                isRecurring = false,
+                recurringPeriod = null,
+                createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -20.0,
+                description = "Mobile App Purchase",
+                category = "Software",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 12) }.time,
                 isRecurring = false,
                 recurringPeriod = null,
                 createdAt = Date()
@@ -244,9 +296,21 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -95.0,
                 description = "Gym Membership",
-                category = "Health",
+                category = "Fitness",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 18) }.time,
+                isRecurring = false,
+                recurringPeriod = null,
+                createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -50.0,
+                description = "Bookstore",
+                category = "Education",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 19) }.time,
                 isRecurring = false,
                 recurringPeriod = null,
                 createdAt = Date()
@@ -258,7 +322,7 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -150.0,
                 description = "Home Supplies",
-                category = "Home",
+                category = "Household",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 22) }.time,
                 isRecurring = false,
@@ -270,9 +334,21 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -75.0,
                 description = "Coffee Shop",
-                category = "Food",
+                category = "Coffee",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 25) }.time,
+                isRecurring = false,
+                recurringPeriod = null,
+                createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -120.0,
+                description = "Pet Supplies",
+                category = "Pets",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 27) }.time,
                 isRecurring = false,
                 recurringPeriod = null,
                 createdAt = Date()
@@ -293,7 +369,7 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -1200.0,
                 description = "Rent Payment",
-                category = "Housing",
+                category = "Rent",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 1) }.time,
                 isRecurring = true,
@@ -305,7 +381,7 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -150.0,
                 description = "Electricity Bill",
-                category = "Utilities",
+                category = "Electricity",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 5) }.time,
                 isRecurring = true,
@@ -317,7 +393,7 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -80.0,
                 description = "Internet Bill",
-                category = "Utilities",
+                category = "Internet",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 7) }.time,
                 isRecurring = true,
@@ -329,14 +405,537 @@ class DataSeeder @Inject constructor(
                 userId = userId,
                 amount = -25.0,
                 description = "Netflix Subscription",
-                category = "Entertainment",
+                category = "Streaming",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
                 isRecurring = true,
                 recurringPeriod = RecurringPeriod.MONTHLY,
                 createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -60.0,
+                description = "Phone Plan",
+                category = "Mobile",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -35.0,
+                description = "Cloud Storage",
+                category = "Subscription",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 20) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = Date()
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -15.0,
+                description = "Music Streaming",
+                category = "Subscription",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 23) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = Date()
             )
         )
+    }
+    
+    /**
+     * Create historical transactions for previous months
+     */
+    private suspend fun createHistoricalTransactions(userId: Long, numberOfMonths: Int) {
+        println("🔄 Creating historical transactions for the past $numberOfMonths months")
+        
+        val calendar = Calendar.getInstance()
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val currentYear = calendar.get(Calendar.YEAR)
+        
+        val allHistoricalTransactions = mutableListOf<TransactionEntity>()
+        
+        // Generate data for each previous month
+        for (i in 1..numberOfMonths) {
+            val targetMonth = getPreviousMonth(currentMonth, i)
+            val targetYear = if (currentMonth - i < 0) currentYear - 1 else currentYear
+            
+            println("🔄 Generating transactions for ${getMonthName(targetMonth)} $targetYear")
+            
+            val monthTransactions = mutableListOf<TransactionEntity>()
+            
+            // Create recurring transactions (similar each month with slight variations)
+            val recurringExpenses = createHistoricalRecurringExpenses(userId, targetMonth, targetYear, i)
+            monthTransactions.addAll(recurringExpenses)
+            
+            // Create income (mostly stable with occasional variations)
+            val incomeTransactions = createHistoricalIncomeTransactions(userId, targetMonth, targetYear, i)
+            monthTransactions.addAll(incomeTransactions)
+            
+            // Create expenses with seasonal variations
+            val regularExpenses = createHistoricalRegularExpenses(userId, targetMonth, targetYear, i)
+            monthTransactions.addAll(regularExpenses)
+            
+            allHistoricalTransactions.addAll(monthTransactions)
+            println("✅ Generated ${monthTransactions.size} transactions for ${getMonthName(targetMonth)}")
+        }
+        
+        // Insert all historical transactions
+        transactionDao.insertTransactions(allHistoricalTransactions)
+        println("✅ Inserted ${allHistoricalTransactions.size} historical transactions")
+    }
+    
+    /**
+     * Create historical recurring expenses for a specific month
+     */
+    private fun createHistoricalRecurringExpenses(userId: Long, month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
+        val calendar = Calendar.getInstance()
+        calendar.set(year, month, 1)
+        
+        // Base recurring expenses
+        val recurringTransactions = mutableListOf(
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -1200.0, // Rent stays the same
+                description = "Rent Payment",
+                category = "Rent",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 1) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = getHistoricalCreatedDate(calendar.time)
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -60.0, // Phone plan stays the same
+                description = "Phone Plan",
+                category = "Mobile",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = getHistoricalCreatedDate(calendar.time)
+            )
+        )
+        
+        // Add seasonal variations to utility bills
+        val seasonalFactor = getSeasonalUtilityFactor(month)
+        recurringTransactions.add(
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                // Electricity varies by season
+                amount = -130.0 * seasonalFactor,
+                description = "Electricity Bill",
+                category = "Electricity",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 5) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = getHistoricalCreatedDate(calendar.time)
+            )
+        )
+        
+        // Internet and subscriptions (constant across months)
+        recurringTransactions.addAll(listOf(
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -80.0,
+                description = "Internet Bill",
+                category = "Internet",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 7) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = getHistoricalCreatedDate(calendar.time)
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -25.0,
+                description = "Netflix Subscription",
+                category = "Streaming",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = getHistoricalCreatedDate(calendar.time)
+            ),
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = -15.0,
+                description = "Music Streaming",
+                category = "Subscription",
+                type = TransactionType.EXPENSE,
+                date = calendar.apply { set(Calendar.DAY_OF_MONTH, 23) }.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = getHistoricalCreatedDate(calendar.time)
+            )
+        ))
+        
+        return recurringTransactions
+    }
+    
+    /**
+     * Create historical income transactions for a specific month
+     */
+    private fun createHistoricalIncomeTransactions(userId: Long, month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
+        val calendar = Calendar.getInstance()
+        calendar.set(year, month, 1)
+        
+        val incomeTransactions = mutableListOf<TransactionEntity>(
+            // Regular salary - consistent each month
+            TransactionEntity(
+                id = 0,
+                userId = userId,
+                amount = 3500.0,
+                description = "Salary",
+                category = "Salary",
+                type = TransactionType.INCOME,
+                date = calendar.time,
+                isRecurring = true,
+                recurringPeriod = RecurringPeriod.MONTHLY,
+                createdAt = getHistoricalCreatedDate(calendar.time)
+            )
+        )
+        
+        // Add variable freelance income - not every month
+        if (monthsAgo % 2 == 0) { // Every other month
+            incomeTransactions.add(
+                TransactionEntity(
+                    id = 0,
+                    userId = userId,
+                    amount = 400.0 + (monthsAgo * 20), // Slightly variable amount
+                    description = "Freelance Project",
+                    category = "Freelance",
+                    type = TransactionType.INCOME,
+                    date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
+                    isRecurring = false,
+                    recurringPeriod = null,
+                    createdAt = getHistoricalCreatedDate(calendar.time)
+                )
+            )
+        }
+        
+        // Add quarterly investment dividends
+        if (month % 3 == 0) { // March, June, September, December
+            incomeTransactions.add(
+                TransactionEntity(
+                    id = 0,
+                    userId = userId,
+                    amount = 250.0,
+                    description = "Investment Dividend",
+                    category = "Investment",
+                    type = TransactionType.INCOME,
+                    date = calendar.apply { set(Calendar.DAY_OF_MONTH, 20) }.time,
+                    isRecurring = false,
+                    recurringPeriod = null,
+                    createdAt = getHistoricalCreatedDate(calendar.time)
+                )
+            )
+        }
+        
+        // Add occasional gift income (birthdays, holidays)
+        if (month == 11 || month == 0) { // December or January (holiday gifts)
+            incomeTransactions.add(
+                TransactionEntity(
+                    id = 0,
+                    userId = userId,
+                    amount = 150.0,
+                    description = "Holiday Gift",
+                    category = "Gift",
+                    type = TransactionType.INCOME,
+                    date = calendar.apply { 
+                        set(Calendar.DAY_OF_MONTH, if (month == 11) 25 else 5) 
+                    }.time,
+                    isRecurring = false,
+                    recurringPeriod = null,
+                    createdAt = getHistoricalCreatedDate(calendar.time)
+                )
+            )
+        }
+        
+        return incomeTransactions
+    }
+    
+    /**
+     * Create historical regular expenses for a specific month
+     */
+    private fun createHistoricalRegularExpenses(userId: Long, month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
+        val calendar = Calendar.getInstance()
+        calendar.set(year, month, 1)
+        
+        val regularExpenses = mutableListOf<TransactionEntity>()
+        
+        // Add grocery expenses - people shop every week
+        for (week in 0..3) {
+            val groceryDay = 2 + (week * 7)
+            if (groceryDay <= 28) { // Ensure we don't exceed month days
+                regularExpenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -(100.0 + (Math.random() * 40)), // Variable grocery expenses
+                        description = "Grocery Shopping",
+                        category = "Groceries",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { set(Calendar.DAY_OF_MONTH, groceryDay) }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+        }
+        
+        // Transportation expenses - bi-weekly gas fillup
+        for (week in 0..1) {
+            regularExpenses.add(
+                TransactionEntity(
+                    id = 0,
+                    userId = userId,
+                    amount = -45.0,
+                    description = "Gas Station",
+                    category = "Transportation",
+                    type = TransactionType.EXPENSE,
+                    date = calendar.apply { set(Calendar.DAY_OF_MONTH, 3 + (week * 14)) }.time,
+                    isRecurring = false,
+                    recurringPeriod = null,
+                    createdAt = getHistoricalCreatedDate(calendar.time)
+                )
+            )
+        }
+        
+        // Add dining out expenses - varies by month
+        val diningOutCount = 1 + (Math.random() * 3).toInt() // 1-3 dining experiences per month
+        for (i in 0 until diningOutCount) {
+            val diningDay = 5 + (i * 8)
+            if (diningDay <= 28) {
+                regularExpenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -(40.0 + (Math.random() * 60)), // Variable dining expenses
+                        description = "Restaurant Dinner",
+                        category = "Dining Out",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { set(Calendar.DAY_OF_MONTH, diningDay) }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+        }
+        
+        // Add seasonal expenses
+        addSeasonalExpenses(regularExpenses, userId, calendar, month)
+        
+        // Add healthcare expenses (occasional)
+        if (monthsAgo % 3 == 1) { // Every third month
+            regularExpenses.add(
+                TransactionEntity(
+                    id = 0,
+                    userId = userId,
+                    amount = -35.0,
+                    description = "Pharmacy",
+                    category = "Healthcare",
+                    type = TransactionType.EXPENSE,
+                    date = calendar.apply { set(Calendar.DAY_OF_MONTH, 14) }.time,
+                    isRecurring = false,
+                    recurringPeriod = null,
+                    createdAt = getHistoricalCreatedDate(calendar.time)
+                )
+            )
+        }
+        
+        // Add entertainment expenses (movies, etc)
+        if (monthsAgo % 2 == 0) { // Every other month
+            regularExpenses.add(
+                TransactionEntity(
+                    id = 0,
+                    userId = userId,
+                    amount = -60.0,
+                    description = "Movie Tickets",
+                    category = "Entertainment",
+                    type = TransactionType.EXPENSE,
+                    date = calendar.apply { set(Calendar.DAY_OF_MONTH, 16) }.time,
+                    isRecurring = false,
+                    recurringPeriod = null,
+                    createdAt = getHistoricalCreatedDate(calendar.time)
+                )
+            )
+        }
+        
+        return regularExpenses
+    }
+    
+    /**
+     * Add seasonal expenses based on the month
+     */
+    private fun addSeasonalExpenses(
+        expenses: MutableList<TransactionEntity>,
+        userId: Long,
+        calendar: Calendar,
+        month: Int
+    ) {
+        when (month) {
+            0 -> { // January - Post-holiday sales
+                expenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -150.0,
+                        description = "Post-Holiday Sales Shopping",
+                        category = "Clothing",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+            1 -> { // February - Valentine's Day
+                expenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -120.0,
+                        description = "Valentine's Day Dinner",
+                        category = "Dining Out",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { set(Calendar.DAY_OF_MONTH, 14) }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+            3, 4 -> { // April, May - Spring shopping
+                expenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -180.0,
+                        description = "Spring Wardrobe Update",
+                        category = "Clothing",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { set(Calendar.DAY_OF_MONTH, 12) }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+            5, 6, 7 -> { // June, July, August - Summer activities
+                expenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -95.0,
+                        description = "Beach Day Trip",
+                        category = "Entertainment",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { set(Calendar.DAY_OF_MONTH, 18) }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+            8, 9 -> { // September, October - Back to school/fall
+                expenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -210.0,
+                        description = "Fall Shopping",
+                        category = "Clothing",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+            10, 11 -> { // November, December - Holiday shopping
+                expenses.add(
+                    TransactionEntity(
+                        id = 0,
+                        userId = userId,
+                        amount = -350.0,
+                        description = "Holiday Gift Shopping",
+                        category = "Gifts",
+                        type = TransactionType.EXPENSE,
+                        date = calendar.apply { 
+                            set(Calendar.DAY_OF_MONTH, if (month == 10) 28 else 15) 
+                        }.time,
+                        isRecurring = false,
+                        recurringPeriod = null,
+                        createdAt = getHistoricalCreatedDate(calendar.time)
+                    )
+                )
+            }
+        }
+    }
+    
+    /**
+     * Get the appropriate created date for a historical transaction
+     */
+    private fun getHistoricalCreatedDate(transactionDate: Date): Date {
+        val createdCalendar = Calendar.getInstance()
+        createdCalendar.time = transactionDate
+        // Created date should be a day or two before the transaction date
+        createdCalendar.add(Calendar.DAY_OF_MONTH, -1 * (1 + (Math.random() * 2).toInt()))
+        return createdCalendar.time
+    }
+    
+    /**
+     * Calculate the previous month
+     */
+    private fun getPreviousMonth(currentMonth: Int, monthsAgo: Int): Int {
+        var result = currentMonth - monthsAgo
+        while (result < 0) {
+            result += 12
+        }
+        return result
+    }
+    
+    /**
+     * Get a month name from its number (0-based)
+     */
+    private fun getMonthName(month: Int): String {
+        val months = arrayOf(
+            "January", "February", "March", "April", "May", "June", 
+            "July", "August", "September", "October", "November", "December"
+        )
+        return months[month]
+    }
+    
+    /**
+     * Get a seasonal factor for utility bills
+     */
+    private fun getSeasonalUtilityFactor(month: Int): Double {
+        return when (month) {
+            11, 0, 1 -> 1.5  // Winter (Dec, Jan, Feb): Higher heating costs
+            5, 6, 7 -> 1.3   // Summer (Jun, Jul, Aug): Higher cooling costs
+            else -> 1.0      // Spring/Fall: Normal costs
+        }
     }
     
     /**

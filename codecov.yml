@@ -1,0 +1,72 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 5%
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+
+comment:
+  layout: "header,diff,files,footer"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+github_checks:
+  annotations: true
+
+ignore:
+  - "**/*Test*.kt"
+  - "**/*Test*.java"
+  - "**/test/**"
+  - "**/androidTest/**"
+  - "**/build/**"
+  - "**/generated/**"
+  - "**/R.class"
+  - "**/R$*.class"
+  - "**/BuildConfig.*"
+  - "**/Manifest*.*"
+  - "**/*_MembersInjector.class"
+  - "**/Dagger*Component.class"
+  - "**/Dagger*Component$Builder.class"
+  - "**/*_Factory.class"
+  - "**/*Module_*Factory.class"
+  - "**/*Fragment.class"
+  - "**/*Activity.class"
+  - "**/*Dialog.class"
+  - "**/*Args.class"
+  - "**/di/**"
+  - "**/*_Provide*Factory.class"
+  - "**/*_*Factory.class"
+
+flags:
+  unit-tests:
+    paths:
+      - "app/src/main/java/com/pennywise/app/domain/**"
+      - "app/src/main/java/com/pennywise/app/data/repository/**"
+      - "app/src/main/java/com/pennywise/app/data/service/**"
+    carryforward: true
+    
+  integration-tests:
+    paths:
+      - "app/src/main/java/com/pennywise/app/data/local/**"
+      - "app/src/main/java/com/pennywise/app/data/api/**"
+    carryforward: true
+    
+  ui-tests:
+    paths:
+      - "app/src/main/java/com/pennywise/app/presentation/**"
+    carryforward: true
+    
+  currency-feature:
+    paths:
+      - "app/src/main/java/com/pennywise/app/domain/model/Currency*"
+      - "app/src/main/java/com/pennywise/app/domain/util/Currency*"
+      - "app/src/main/java/com/pennywise/app/domain/validation/Currency*"
+      - "app/src/main/java/com/pennywise/app/data/service/Currency*"
+      - "app/src/main/java/com/pennywise/app/presentation/util/Currency*"
+    carryforward: true

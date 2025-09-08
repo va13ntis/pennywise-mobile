@@ -4,12 +4,17 @@ import android.content.Context
 import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
+import com.pennywise.app.data.local.dao.CurrencyUsageDao
 import com.pennywise.app.data.repository.TransactionRepositoryImpl
 import com.pennywise.app.data.repository.UserRepositoryImpl
+import com.pennywise.app.data.repository.CurrencyUsageRepositoryImpl
 import com.pennywise.app.data.util.PasswordHasher
 import com.pennywise.app.data.util.DataSeeder
+import com.pennywise.app.data.util.DataMigrationService
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.UserRepository
+import com.pennywise.app.domain.repository.CurrencyUsageRepository
+import com.pennywise.app.domain.usecase.CurrencySortingService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -52,6 +57,15 @@ object RepositoryModule {
     }
     
     /**
+     * Provides the CurrencyUsageDao
+     */
+    @Provides
+    @Singleton
+    fun provideCurrencyUsageDao(database: PennyWiseDatabase): CurrencyUsageDao {
+        return database.currencyUsageDao()
+    }
+    
+    /**
      * Provides the PasswordHasher utility
      */
     @Provides
@@ -84,6 +98,17 @@ object RepositoryModule {
     }
     
     /**
+     * Provides the CurrencyUsageRepository implementation
+     */
+    @Provides
+    @Singleton
+    fun provideCurrencyUsageRepository(
+        currencyUsageDao: CurrencyUsageDao
+    ): CurrencyUsageRepository {
+        return CurrencyUsageRepositoryImpl(currencyUsageDao)
+    }
+    
+    /**
      * Provides the DataSeeder utility
      */
     @Provides
@@ -94,5 +119,30 @@ object RepositoryModule {
         passwordHasher: PasswordHasher
     ): DataSeeder {
         return DataSeeder(userDao, transactionDao, passwordHasher)
+    }
+    
+    /**
+     * Provides the DataMigrationService
+     */
+    @Provides
+    @Singleton
+    fun provideDataMigrationService(
+        userRepository: UserRepository,
+        transactionRepository: TransactionRepository,
+        currencyUsageRepository: CurrencyUsageRepository
+    ): DataMigrationService {
+        return DataMigrationService(userRepository, transactionRepository, currencyUsageRepository)
+    }
+    
+    /**
+     * Provides the CurrencySortingService
+     */
+    @Provides
+    @Singleton
+    fun provideCurrencySortingService(
+        currencyUsageRepository: CurrencyUsageRepository,
+        userRepository: UserRepository
+    ): CurrencySortingService {
+        return CurrencySortingService(currencyUsageRepository, userRepository)
     }
 }

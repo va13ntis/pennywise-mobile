@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PennyWise</string>
+    <string name="app_name">p€nnywi$e</string>
     <string name="app_description">Smart personal finance management app</string>
     
     <!-- Navigation -->
@@ -95,5 +95,71 @@
     <string name="coming_soon">Coming soon</string>
     <string name="setup_backup">Set Up Backup</string>
     <string name="back">Back</string>
+    
+    <!-- Language -->
+    <string name="language">Language</string>
+    
+    <!-- Currency -->
+    <string name="currency">Currency</string>
+    <string name="default_currency">Default Currency</string>
+    <string name="select_currency">Select Currency</string>
+    <string name="currency_selection_hint">Tap to open currency selection dropdown. Use search to find currencies by code, symbol, or name.</string>
+    <string name="currency_required">Please select a currency</string>
+    <string name="most_popular_currencies">Most Popular</string>
+    <string name="all_currencies">All Currencies</string>
+    <string name="currency_usd">US Dollar ($)</string>
+    <string name="currency_eur">Euro (€)</string>
+    <string name="currency_gbp">British Pound (£)</string>
+    <string name="currency_ils">Israeli Shekel (₪)</string>
+    <string name="currency_rub">Russian Ruble (₽)</string>
+    <string name="currency_jpy">Japanese Yen (¥)</string>
+    <string name="currency_cad">Canadian Dollar (C$)</string>
+    <string name="currency_aud">Australian Dollar (A$)</string>
+    <string name="currency_chf">Swiss Franc (CHF)</string>
+    <string name="currency_cny">Chinese Yuan (¥)</string>
+    <string name="currency_inr">Indian Rupee (₹)</string>
+    
+    <!-- Recurring Periods -->
+    <string name="recurring_daily">Daily</string>
+    <string name="recurring_weekly">Weekly</string>
+    <string name="recurring_monthly">Monthly</string>
+    <string name="recurring_yearly">Yearly</string>
+    
+    <!-- Currency Conversion -->
+    <string name="currency_conversion">Currency Conversion</string>
+    <string name="enable_currency_conversion">Enable Currency Conversion</string>
+    <string name="original_currency">Original Currency</string>
+    <string name="converted_amount">Converted Amount</string>
+    <string name="conversion_rate">Conversion Rate</string>
+    <string name="last_updated">Last Updated</string>
+    <string name="conversion_unavailable">Conversion Unavailable</string>
+    <string name="using_cached_rate">Using Cached Rate</string>
+    <string name="clear_conversion_cache">Clear Conversion Cache</string>
+    <string name="cache_cleared">Cache Cleared</string>
+    
+    <!-- Currency Error Messages -->
+    <string name="currency_error_empty_code">Please select a currency</string>
+    <string name="currency_error_invalid_length">Currency code must be exactly %d characters</string>
+    <string name="currency_error_unsupported_code">Currency \'%s\' is not supported</string>
+    <string name="currency_error_invalid_amount">Please enter a valid amount</string>
+    <string name="currency_error_with_suggestions">%s. Did you mean: %s?</string>
+    
+    <!-- Currency Recovery Messages -->
+    <string name="currency_recovery_empty_code">Please select a currency from the dropdown</string>
+    <string name="currency_recovery_invalid_length">Please enter a 3-letter currency code</string>
+    <string name="currency_recovery_unsupported_code">Please select from the supported currencies</string>
+    <string name="currency_recovery_invalid_amount">Please enter a valid positive number</string>
+    
+    <!-- Currency Change Warnings -->
+    <string name="currency_change_warning">Changing from %s to %s may affect existing data</string>
+    
+    <!-- Default Currency Settings -->
+    <string name="change_default_currency">Change Default Currency</string>
+    <string name="change_default_currency_confirmation">Are you sure you want to change your default currency to %s? This will affect how amounts are displayed throughout the app.</string>
+    <string name="default_currency_updated">Default currency updated successfully</string>
+    <string name="default_currency_update_failed">Failed to update default currency</string>
+    <string name="current_default_currency">Current Default Currency</string>
+    <string name="currency_settings">Currency Settings</string>
+    <string name="change">Change</string>
 </resources>
 

@@ -13,15 +13,18 @@ import com.pennywise.app.data.local.converter.UserRoleConverter
 import com.pennywise.app.data.local.converter.UserStatusConverter
 import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
+import com.pennywise.app.data.local.dao.CurrencyUsageDao
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
+import com.pennywise.app.data.local.entity.CurrencyUsageEntity
+import com.pennywise.app.data.local.migration.DatabaseMigrations
 
 /**
  * Room database for PennyWise app
  */
 @Database(
-    entities = [UserEntity::class, TransactionEntity::class],
-    version = 1,
+    entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(
@@ -35,6 +38,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     
     abstract fun userDao(): UserDao
     abstract fun transactionDao(): TransactionDao
+    abstract fun currencyUsageDao(): CurrencyUsageDao
     
     companion object {
         @Volatile
@@ -47,7 +51,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     "pennywise_database"
                 )
-                .fallbackToDestructiveMigration()
+                .addMigrations(DatabaseMigrations.MIGRATION_1_2)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

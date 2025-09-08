@@ -18,7 +18,7 @@ class UserRepositoryImpl @Inject constructor(
     private val passwordHasher: PasswordHasher
 ) : UserRepository {
     
-    override suspend fun registerUser(username: String, password: String): Result<Long> {
+    override suspend fun registerUser(username: String, password: String, defaultCurrency: String): Result<Long> {
         return try {
             // Check if username already exists
             val existingUser = userDao.getUserByUsername(username)
@@ -32,7 +32,8 @@ class UserRepositoryImpl @Inject constructor(
             // Create new user entity
             val userEntity = UserEntity(
                 username = username,
-                passwordHash = passwordHash
+                passwordHash = passwordHash,
+                defaultCurrency = defaultCurrency
             )
             
             // Insert user and return the generated ID
@@ -84,6 +85,10 @@ class UserRepositoryImpl @Inject constructor(
     
     override suspend fun updateUserStatus(userId: Long, status: UserStatus) {
         userDao.updateUserStatus(userId, status)
+    }
+    
+    override suspend fun updateDefaultCurrency(userId: Long, currency: String) {
+        userDao.updateDefaultCurrency(userId, currency, System.currentTimeMillis())
     }
     
     override suspend fun isUsernameTaken(username: String): Boolean {

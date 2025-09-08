@@ -34,6 +34,7 @@ data class TransactionEntity(
     val id: Long = 0,
     val userId: Long, // Foreign key to users table
     val amount: Double,
+    val currency: String = "USD",
     val description: String,
     val category: String,
     val type: TransactionType,
@@ -48,6 +49,7 @@ data class TransactionEntity(
             id = id,
             userId = userId,
             amount = amount,
+            currency = currency,
             description = description,
             category = category,
             type = type,
@@ -65,6 +67,7 @@ data class TransactionEntity(
                 id = transaction.id,
                 userId = transaction.userId,
                 amount = transaction.amount,
+                currency = transaction.currency,
                 description = transaction.description,
                 category = transaction.category,
                 type = transaction.type,

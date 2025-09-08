@@ -20,6 +20,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
+import com.pennywise.app.domain.model.Currency
+import com.pennywise.app.presentation.components.CurrencySelectionDropdown
 import com.pennywise.app.presentation.viewmodel.RegisterViewModel
 
 /**
@@ -39,13 +41,16 @@ fun RegisterScreen(
     val confirmPasswordRequiredText = stringResource(R.string.confirm_password_required)
     val passwordsDontMatchText = stringResource(R.string.passwords_dont_match)
     val passwordTooShortText = stringResource(R.string.password_too_short)
+    val currencyRequiredText = stringResource(R.string.currency_required)
     
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var selectedCurrency by remember { mutableStateOf<Currency?>(Currency.getDefault()) }
     var usernameError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+    var currencyError by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     
@@ -157,10 +162,10 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
+                imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(
-                onDone = { focusManager.clearFocus() }
+                onNext = { focusManager.clearFocus() }
             ),
             singleLine = true,
             trailingIcon = {
@@ -170,6 +175,17 @@ fun RegisterScreen(
                         contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
                     )
                 }
+            }
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Currency selection
+        CurrencySelectionDropdown(
+            currentCurrency = selectedCurrency?.code ?: "USD",
+            onCurrencySelected = { currencyCode ->
+                selectedCurrency = Currency.fromCode(currencyCode)
+                currencyError = null
             }
         )
         
@@ -200,10 +216,11 @@ fun RegisterScreen(
                     confirmPassword != password -> passwordsDontMatchText
                     else -> null
                 }
+                currencyError = if (selectedCurrency == null) currencyRequiredText else null
                 
                 // Only proceed if no validation errors
-                if (usernameError == null && passwordError == null && confirmPasswordError == null) {
-                    viewModel.register(username, password, confirmPassword)
+                if (usernameError == null && passwordError == null && confirmPasswordError == null && currencyError == null) {
+                    viewModel.register(username, password, confirmPassword, selectedCurrency?.code ?: "USD")
                 }
             },
             enabled = registerState !is RegisterViewModel.RegisterState.Loading,

@@ -9,6 +9,7 @@ data class Transaction(
     val id: Long = 0,
     val userId: Long, // Reference to the user who owns this transaction
     val amount: Double,
+    val currency: String = "USD",
     val description: String,
     val category: String,
     val type: TransactionType,

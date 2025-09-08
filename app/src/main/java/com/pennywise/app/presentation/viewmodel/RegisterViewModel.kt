@@ -24,9 +24,9 @@ class RegisterViewModel @Inject constructor(
     val registerState: StateFlow<RegisterState> = _registerState
     
     /**
-     * Attempt to register with the provided credentials
+     * Attempt to register with the provided credentials and default currency
      */
-    fun register(username: String, password: String, confirmPassword: String) {
+    fun register(username: String, password: String, confirmPassword: String, defaultCurrency: String = "USD") {
         viewModelScope.launch {
             _registerState.value = RegisterState.Loading
             
@@ -40,7 +40,7 @@ class RegisterViewModel @Inject constructor(
                 return@launch
             }
             
-            val result = userRepository.registerUser(username, password)
+            val result = userRepository.registerUser(username, password, defaultCurrency)
             result.fold(
                 onSuccess = { userId ->
                     // After successful registration, get the user and save to auth manager

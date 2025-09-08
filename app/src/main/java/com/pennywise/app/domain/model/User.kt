@@ -10,6 +10,7 @@ data class User(
     val username: String,
     val passwordHash: String,
     val email: String? = null,
+    val defaultCurrency: String = "USD",
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
 )

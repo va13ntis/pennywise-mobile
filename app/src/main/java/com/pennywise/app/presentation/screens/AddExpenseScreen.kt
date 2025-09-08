@@ -9,6 +9,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,16 +20,106 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import com.pennywise.app.R
+import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.TransactionType
+import com.pennywise.app.presentation.components.CurrencySelectionDropdown
+import com.pennywise.app.presentation.components.CurrencyAdapter
 import com.pennywise.app.presentation.viewmodel.AddExpenseUiState
 import com.pennywise.app.presentation.viewmodel.AddExpenseViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import java.text.SimpleDateFormat
 import java.util.*
+
+/**
+ * Helper function to validate and format amount input based on currency
+ */
+fun validateAndFormatAmount(
+    input: String,
+    currency: Currency?
+): String {
+    if (currency == null) return input
+    
+    // Only allow digits and decimal point
+    val filtered = input.filter { char -> char.isDigit() || char == '.' }
+    
+    return when (currency.decimalPlaces) {
+        0 -> {
+            // For currencies with no decimal places (JPY, KRW), only allow digits
+            filtered.filter { char -> char.isDigit() }
+        }
+        else -> {
+            // For currencies with decimal places, limit to the specified number
+            val parts = filtered.split(".")
+            if (parts.size > 1) {
+                parts[0] + "." + parts[1].take(currency.decimalPlaces)
+            } else {
+                filtered
+            }
+        }
+    }
+}
+
+/**
+ * Visual transformation to format amount with currency symbol
+ */
+class CurrencyAmountTransformation(
+    private val currency: Currency
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val originalText = text.text
+        val formattedText = if (originalText.isNotEmpty()) {
+            "${currency.symbol}$originalText"
+        } else {
+            currency.symbol
+        }
+        
+        return TransformedText(
+            AnnotatedString(formattedText),
+            OffsetMapping.Identity
+        )
+    }
+}
+
+/**
+ * Update amount field formatting based on selected currency
+ */
+fun updateAmountFieldForCurrency(
+    currentAmount: String,
+    selectedCurrency: Currency?
+): String {
+    if (selectedCurrency == null) return currentAmount
+    
+    return when (selectedCurrency.decimalPlaces) {
+        0 -> {
+            // For currencies with no decimal places (JPY, KRW), remove decimal point and everything after
+            currentAmount.split(".")[0]
+        }
+        else -> {
+            // For currencies with decimal places, limit to the specified number
+            val parts = currentAmount.split(".")
+            if (parts.size > 1) {
+                parts[0] + "." + parts[1].take(selectedCurrency.decimalPlaces)
+            } else {
+                currentAmount
+            }
+        }
+    }
+}
 
 /**
  * Add Expense Screen with enhanced form state management and validation
@@ -63,12 +155,26 @@ fun AddExpenseScreen(
     val scrollState = rememberScrollState()
     
     val uiState by viewModel.uiState.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     
     // Pre-fetch string resources to avoid calling them from non-@Composable contexts
     val merchantRequiredText = stringResource(R.string.merchant_required)
     val amountRequiredText = stringResource(R.string.amount_required)
     val invalidAmountText = stringResource(R.string.invalid_amount)
     val categoryRequiredText = stringResource(R.string.category_required)
+    
+    // Currency dropdown string resources
+    val currencyLabelText = stringResource(R.string.currency)
+    val currencyHintText = stringResource(R.string.currency_selection_hint)
+    val currencyContentDesc = stringResource(R.string.select_currency)
+    
+    // Currency-specific validation messages
+    val currencyValidationMessages = remember {
+        mapOf(
+            "JPY" to "Japanese Yen uses whole numbers only (no decimal places)",
+            "KRW" to "Korean Won uses whole numbers only (no decimal places)"
+        )
+    }
     
     // Date formatter
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
@@ -104,19 +210,40 @@ fun AddExpenseScreen(
     // Validation function
     val validateForm = {
         merchantError = if (merchant.isBlank()) merchantRequiredText else null
+        
+        // Enhanced amount validation with currency-specific rules
         amountError = when {
             amount.isBlank() -> amountRequiredText
             amount.toDoubleOrNull() == null -> invalidAmountText
             amount.toDoubleOrNull()!! <= 0 -> invalidAmountText
+            selectedCurrency?.let { currency ->
+                when (currency.decimalPlaces) {
+                    0 -> amount.contains(".")
+                    else -> false
+                }
+            } == true -> currencyValidationMessages[selectedCurrency?.code] ?: "This currency doesn't use decimal places"
             else -> null
         }
+        
         categoryError = if (category.isBlank()) categoryRequiredText else null
         
-        isFormValid = merchantError == null && amountError == null && categoryError == null
+        // Form is valid only if all fields are valid AND currency is selected
+        isFormValid = merchantError == null && amountError == null && categoryError == null && selectedCurrency != null
+    }
+    
+    // Handle currency changes and update amount field formatting
+    LaunchedEffect(selectedCurrency) {
+        if (amount.isNotEmpty()) {
+            // Update amount field formatting when currency changes
+            val formattedAmount = validateAndFormatAmount(amount, selectedCurrency)
+            if (formattedAmount != amount) {
+                amount = formattedAmount
+            }
+        }
     }
     
     // Validate form whenever any field changes
-    LaunchedEffect(merchant, amount, category) {
+    LaunchedEffect(merchant, amount, category, selectedCurrency) {
         validateForm()
     }
     
@@ -141,7 +268,13 @@ fun AddExpenseScreen(
                 title = { Text(stringResource(R.string.new_expense)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBack, 
+                            contentDescription = "Back",
+                            modifier = Modifier.graphicsLayer(
+                                scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
+                            )
+                        )
                     }
                 }
             )
@@ -197,23 +330,38 @@ fun AddExpenseScreen(
                 singleLine = true
             )
             
-            // Amount field
+            // Amount field with currency-specific formatting
             OutlinedTextField(
                 value = amount,
-                onValueChange = { 
-                    // Only allow numbers and decimal point
-                    val filtered = it.filter { char -> char.isDigit() || char == '.' }
-                    amount = filtered
+                onValueChange = { newValue ->
+                    // Apply currency-specific validation and formatting
+                    val formattedAmount = validateAndFormatAmount(newValue, selectedCurrency)
+                    
+                    amount = formattedAmount
                     amountError = when {
-                        filtered.isBlank() -> amountRequiredText
-                        filtered.toDoubleOrNull() == null -> invalidAmountText
-                        filtered.toDoubleOrNull()!! <= 0 -> invalidAmountText
+                        formattedAmount.isBlank() -> amountRequiredText
+                        formattedAmount.toDoubleOrNull() == null -> invalidAmountText
+                        formattedAmount.toDoubleOrNull()!! <= 0 -> invalidAmountText
                         else -> null
                     }
                 },
                 label = { Text(stringResource(R.string.amount)) },
+                prefix = { 
+                    selectedCurrency?.let { currency ->
+                        Text(
+                            text = currency.symbol,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 isError = amountError != null,
-                supportingText = { amountError?.let { Text(it) } },
+                supportingText = { 
+                    amountError?.let { Text(it) } ?: 
+                    selectedCurrency?.let { currency ->
+                        Text("${currency.displayName} - ${currency.decimalPlaces} decimal places")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
@@ -224,6 +372,50 @@ fun AddExpenseScreen(
                 ),
                 singleLine = true
             )
+            
+            // Currency selection with ExposedDropdownMenu using CurrencyAdapter
+            var currencyExpanded by remember { mutableStateOf(false) }
+            val currencyAdapter = remember { CurrencyAdapter() }
+            val currencies = remember { currencyAdapter.getSortedCurrencies() }
+            
+            val displayedCurrencyValue = currencyAdapter.getDisplayText(selectedCurrency)
+            
+            ExposedDropdownMenuBox(
+                expanded = currencyExpanded,
+                onExpandedChange = { currencyExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = displayedCurrencyValue,
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text(currencyLabelText) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                        .semantics { contentDescription = currencyContentDesc },
+                    singleLine = true,
+                    supportingText = { Text(currencyHintText) }
+                )
+                
+                ExposedDropdownMenu(
+                    expanded = currencyExpanded,
+                    onDismissRequest = { currencyExpanded = false },
+                    modifier = Modifier
+                        .exposedDropdownSize(true)
+                        .heightIn(max = 350.dp)
+                ) {
+                    currencyAdapter.CurrencyDropdownMenu(
+                        currencies = currencies,
+                        selectedCurrency = selectedCurrency,
+                        onCurrencySelected = { currency ->
+                            viewModel.updateSelectedCurrency(currency)
+                        },
+                        onDismissRequest = { currencyExpanded = false }
+                    )
+                }
+            }
             
             // Category dropdown
             var categoryExpanded by remember { mutableStateOf(false) }
@@ -275,7 +467,8 @@ fun AddExpenseScreen(
             Text(
                 text = stringResource(R.string.payment_type),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 8.dp),
+                textAlign = TextAlign.Start
             )
             
             Row(
@@ -333,11 +526,12 @@ fun AddExpenseScreen(
                     // Final validation before submission
                     validateForm()
                     
-                    // Only proceed if form is valid
-                    if (isFormValid) {
+                    // Only proceed if form is valid and currency is selected
+                    if (isFormValid && selectedCurrency != null) {
                         val expenseData = ExpenseFormData(
                             merchant = merchant,
                             amount = amount.toDouble(),
+                            currency = selectedCurrency!!.code,
                             category = category,
                             isRecurring = isRecurring,
                             notes = notes.ifBlank { null },
@@ -346,7 +540,7 @@ fun AddExpenseScreen(
                         viewModel.saveExpense(expenseData, userId)
                     }
                 },
-                enabled = isFormValid && uiState !is AddExpenseUiState.Loading,
+                enabled = isFormValid && selectedCurrency != null && uiState !is AddExpenseUiState.Loading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -416,6 +610,7 @@ fun AddExpenseScreen(
 data class ExpenseFormData(
     val merchant: String,
     val amount: Double,
+    val currency: String,
     val category: String,
     val isRecurring: Boolean,
     val notes: String?,
