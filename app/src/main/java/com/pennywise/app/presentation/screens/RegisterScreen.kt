@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Currency
@@ -100,7 +101,10 @@ fun RegisterScreen(
             keyboardActions = KeyboardActions(
                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
             ),
-            singleLine = true
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                textDirection = TextDirection.Ltr
+            )
         )
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -136,6 +140,9 @@ fun RegisterScreen(
                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
             ),
             singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                textDirection = TextDirection.Ltr
+            ),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
@@ -172,6 +179,9 @@ fun RegisterScreen(
                 onNext = { focusManager.clearFocus() }
             ),
             singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                textDirection = TextDirection.Ltr
+            ),
             trailingIcon = {
                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                     Icon(

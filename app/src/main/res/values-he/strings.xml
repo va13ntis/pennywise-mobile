@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">p€nnywi$e</string>
+    <string name="app_name">pennywise</string>
     <string name="app_description">אפליקציה חכמה לניהול כספים אישיים</string>
     
     <!-- Navigation -->
@@ -30,8 +30,6 @@
     <string name="total_expenses">סך הוצאות</string>
     <string name="recurring_expenses">הוצאות קבועות</string>
     <string name="week_format">שבוע %d</string>
-    <string name="expand">הרחב</string>
-    <string name="collapse">כווץ</string>
     <string name="no_expenses_this_week">אין הוצאות השבוע</string>
     <string name="previous_month">חודש קודם</string>
     <string name="next_month">חודש הבא</string>
@@ -130,4 +128,41 @@
     <string name="using_cached_rate">משתמש בשער שמור</string>
     <string name="clear_conversion_cache">נקה שמירת המרה</string>
     <string name="cache_cleared">השמירה נוקתה</string>
+    
+    <!-- Default Currency Settings -->
+    <string name="default_currency">מטבע ברירת מחדל</string>
+    <string name="current_default_currency">מטבע ברירת מחדל נוכחי</string>
+    <string name="change_default_currency">שנה מטבע ברירת מחדל</string>
+    <string name="updating_currency">מעדכן מטבע...</string>
+    <string name="currency_updated_successfully">המטבע עודכן בהצלחה</string>
+    
+    <!-- Account -->
+    <string name="account">חשבון</string>
+    <string name="logout">התנתקות</string>
+    
+    <!-- Language Names -->
+    <string name="language_english">אנגלית</string>
+    <string name="language_hebrew">עברית</string>
+    <string name="language_russian">רוסית</string>
+    
+    <!-- UI Elements -->
+    <string name="expand">הרחב</string>
+    <string name="collapse">כווץ</string>
+    
+    <!-- App Version -->
+    <string name="app_version">גרסה 1.0.0</string>
+    
+    <!-- Month Names -->
+    <string name="month_january">ינואר</string>
+    <string name="month_february">פברואר</string>
+    <string name="month_march">מרץ</string>
+    <string name="month_april">אפריל</string>
+    <string name="month_may">מאי</string>
+    <string name="month_june">יוני</string>
+    <string name="month_july">יולי</string>
+    <string name="month_august">אוגוסט</string>
+    <string name="month_september">ספטמבר</string>
+    <string name="month_october">אוקטובר</string>
+    <string name="month_november">נובמבר</string>
+    <string name="month_december">דצמבר</string>
 </resources>

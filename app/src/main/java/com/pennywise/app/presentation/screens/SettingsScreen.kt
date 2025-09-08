@@ -1,5 +1,7 @@
 package com.pennywise.app.presentation.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,13 +25,66 @@ import com.pennywise.app.presentation.util.LocaleManager
 import javax.inject.Inject
 
 /**
+ * Collapsible section composable for settings groups
+ */
+@Composable
+fun CollapsibleSection(
+    title: String,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            // Header with title and expand/collapse icon
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Animated content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300)),
+                exit = shrinkVertically(
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(300))
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/**
  * Settings screen with theme selection, language selection, and cloud backup placeholder
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onLogout: () -> Unit
 ) {
     val themeMode by viewModel.themeMode.collectAsState(initial = SettingsViewModel.ThemeMode.SYSTEM)
     val language by viewModel.language.collectAsState(initial = "")
@@ -37,6 +92,14 @@ fun SettingsScreen(
     val originalCurrency by viewModel.originalCurrency.collectAsState(initial = "")
     val defaultCurrencyState by viewModel.defaultCurrencyState.collectAsState(initial = SettingsViewModel.DefaultCurrencyState.Loading)
     val currencyUpdateState by viewModel.currencyUpdateState.collectAsState(initial = SettingsViewModel.CurrencyUpdateState.Idle)
+    
+    // State for tracking which sections are expanded (all collapsed by default)
+    var isAppearanceExpanded by remember { mutableStateOf(false) }
+    var isLanguageExpanded by remember { mutableStateOf(false) }
+    var isDefaultCurrencyExpanded by remember { mutableStateOf(false) }
+    var isCurrencyConversionExpanded by remember { mutableStateOf(false) }
+    var isBackupExpanded by remember { mutableStateOf(false) }
+    var isAccountExpanded by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -65,17 +128,10 @@ fun SettingsScreen(
         ) {
             // Theme settings section
             item {
-                Text(
-                    text = stringResource(R.string.appearance),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(vertical = 16.dp)
-                )
-            }
-            
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                CollapsibleSection(
+                    title = stringResource(R.string.appearance),
+                    isExpanded = isAppearanceExpanded,
+                    onToggle = { isAppearanceExpanded = !isAppearanceExpanded }
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -110,23 +166,16 @@ fun SettingsScreen(
             
             // Language settings section
             item {
-                Text(
-                    text = stringResource(R.string.language),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)
-                )
-            }
-            
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                CollapsibleSection(
+                    title = stringResource(R.string.language),
+                    isExpanded = isLanguageExpanded,
+                    onToggle = { isLanguageExpanded = !isLanguageExpanded }
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp)
                     ) {
                         LanguageOption(
-                            title = "English",
+                            title = stringResource(R.string.language_english),
                             selected = language.isEmpty() || language == "en",
                             onClick = { viewModel.setLanguage("en") }
                         )
@@ -134,7 +183,7 @@ fun SettingsScreen(
                         Divider(modifier = Modifier.padding(horizontal = 16.dp))
                         
                         LanguageOption(
-                            title = "עברית",
+                            title = stringResource(R.string.language_hebrew),
                             selected = language == "iw",
                             onClick = { viewModel.setLanguage("iw") }
                         )
@@ -142,7 +191,7 @@ fun SettingsScreen(
                         Divider(modifier = Modifier.padding(horizontal = 16.dp))
                         
                         LanguageOption(
-                            title = "Русский",
+                            title = stringResource(R.string.language_russian),
                             selected = language == "ru",
                             onClick = { viewModel.setLanguage("ru") }
                         )
@@ -152,17 +201,10 @@ fun SettingsScreen(
             
             // Default currency section
             item {
-                Text(
-                    text = stringResource(R.string.default_currency),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)
-                )
-            }
-            
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                CollapsibleSection(
+                    title = stringResource(R.string.default_currency),
+                    isExpanded = isDefaultCurrencyExpanded,
+                    onToggle = { isDefaultCurrencyExpanded = !isDefaultCurrencyExpanded }
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -330,17 +372,10 @@ fun SettingsScreen(
             
             // Currency conversion section
             item {
-                Text(
-                    text = stringResource(R.string.currency_conversion),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)
-                )
-            }
-            
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                CollapsibleSection(
+                    title = stringResource(R.string.currency_conversion),
+                    isExpanded = isCurrencyConversionExpanded,
+                    onToggle = { isCurrencyConversionExpanded = !isCurrencyConversionExpanded }
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -452,17 +487,10 @@ fun SettingsScreen(
             
             // Cloud backup section
             item {
-                Text(
-                    text = stringResource(R.string.backup),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)
-                )
-            }
-            
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                CollapsibleSection(
+                    title = stringResource(R.string.backup),
+                    isExpanded = isBackupExpanded,
+                    onToggle = { isBackupExpanded = !isBackupExpanded }
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
@@ -504,6 +532,43 @@ fun SettingsScreen(
                 }
             }
             
+            // Account section
+            item {
+                CollapsibleSection(
+                    title = stringResource(R.string.account),
+                    isExpanded = isAccountExpanded,
+                    onToggle = { isAccountExpanded = !isAccountExpanded }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onLogout() }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Logout,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            
+                            Text(
+                                text = stringResource(R.string.logout),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+            
             // App version info
             item {
                 Box(
@@ -513,7 +578,7 @@ fun SettingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Version 1.0.0",
+                        text = stringResource(R.string.app_version),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

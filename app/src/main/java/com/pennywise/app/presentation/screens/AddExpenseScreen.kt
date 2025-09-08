@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -370,7 +371,10 @@ fun AddExpenseScreen(
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 ),
-                singleLine = true
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    textDirection = TextDirection.Ltr
+                )
             )
             
             // Currency selection with ExposedDropdownMenu using CurrencyAdapter

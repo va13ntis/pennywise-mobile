@@ -18,8 +18,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Logout
 
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,8 +31,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,6 +56,7 @@ import com.pennywise.app.R
 import com.pennywise.app.presentation.components.ExpenseSection
 import com.pennywise.app.presentation.components.MonthlySummaryCard
 import com.pennywise.app.presentation.components.RecurringExpensesSection
+import com.pennywise.app.presentation.utils.DateFormatter
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import com.pennywise.app.presentation.viewmodel.TestDataViewModel
 import java.time.format.DateTimeFormatter
@@ -72,7 +70,6 @@ import java.util.Locale
 fun HomeScreen(
     onAddExpense: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onLogout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     testDataViewModel: TestDataViewModel = hiltViewModel()
@@ -92,8 +89,6 @@ fun HomeScreen(
     val totalExpenses = viewModel.getTotalExpenses()
     
     val snackbarHostState = remember { SnackbarHostState() }
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()) }
-    var showMenu by remember { mutableStateOf(false) }
     
     // Test data states
     val isSeeding by testDataViewModel.isSeeding.collectAsState()
@@ -132,30 +127,6 @@ fun HomeScreen(
                             imageVector = Icons.Default.Settings,
                             contentDescription = stringResource(R.string.nav_settings)
                         )
-                    }
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options"
-                        )
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Logout") },
-                                onClick = {
-                                    showMenu = false
-                                    onLogout()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Logout,
-                                        contentDescription = "Logout"
-                                    )
-                                }
-                            )
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -200,7 +171,6 @@ fun HomeScreen(
                     item {
                         MonthNavigation(
                             currentMonth = currentMonth,
-                            dateFormatter = dateFormatter,
                             onPreviousMonth = { viewModel.changeMonth(-1) },
                             onNextMonth = { viewModel.changeMonth(1) }
                         )
@@ -346,7 +316,6 @@ fun TestDataSection(
 @Composable
 fun MonthNavigation(
     currentMonth: java.time.YearMonth,
-    dateFormatter: DateTimeFormatter,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     modifier: Modifier = Modifier
@@ -373,7 +342,7 @@ fun MonthNavigation(
         }
         
         Text(
-            text = currentMonth.format(dateFormatter),
+            text = DateFormatter.formatMonthYear(LocalContext.current, currentMonth),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface

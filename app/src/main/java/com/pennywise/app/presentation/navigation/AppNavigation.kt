@@ -131,9 +131,6 @@ fun AppNavigation() {
                 },
                 onNavigateToSettings = {
                     navController.navigate(SETTINGS_ROUTE)
-                },
-                onLogout = {
-                    authViewModel.logout()
                 }
             )
         }
@@ -151,7 +148,10 @@ fun AppNavigation() {
             val settingsViewModel = hiltViewModel<com.pennywise.app.presentation.viewmodel.SettingsViewModel>()
             SettingsScreen(
                 viewModel = settingsViewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onLogout = {
+                    authViewModel.logout()
+                }
             )
         }
     }

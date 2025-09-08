@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">p€nnywi$e</string>
+    <string name="app_name">pennywise</string>
     <string name="app_description">Умное приложение для управления личными финансами</string>
     
     <!-- Navigation -->
@@ -30,8 +30,6 @@
     <string name="total_expenses">Общие расходы</string>
     <string name="recurring_expenses">Регулярные расходы</string>
     <string name="week_format">Неделя %d</string>
-    <string name="expand">Развернуть</string>
-    <string name="collapse">Свернуть</string>
     <string name="no_expenses_this_week">Нет расходов на этой неделе</string>
     <string name="previous_month">Предыдущий месяц</string>
     <string name="next_month">Следующий месяц</string>
@@ -130,4 +128,41 @@
     <string name="using_cached_rate">Используется кэшированный курс</string>
     <string name="clear_conversion_cache">Очистить кэш конвертации</string>
     <string name="cache_cleared">Кэш очищен</string>
+    
+    <!-- Default Currency Settings -->
+    <string name="default_currency">Валюта по умолчанию</string>
+    <string name="current_default_currency">Текущая валюта по умолчанию</string>
+    <string name="change_default_currency">Изменить валюту по умолчанию</string>
+    <string name="updating_currency">Обновление валюты...</string>
+    <string name="currency_updated_successfully">Валюта успешно обновлена</string>
+    
+    <!-- Account -->
+    <string name="account">Аккаунт</string>
+    <string name="logout">Выйти</string>
+    
+    <!-- Language Names -->
+    <string name="language_english">Английский</string>
+    <string name="language_hebrew">Иврит</string>
+    <string name="language_russian">Русский</string>
+    
+    <!-- UI Elements -->
+    <string name="expand">Развернуть</string>
+    <string name="collapse">Свернуть</string>
+    
+    <!-- App Version -->
+    <string name="app_version">Версия 1.0.0</string>
+    
+    <!-- Month Names (Nominative Case) -->
+    <string name="month_january">Январь</string>
+    <string name="month_february">Февраль</string>
+    <string name="month_march">Март</string>
+    <string name="month_april">Апрель</string>
+    <string name="month_may">Май</string>
+    <string name="month_june">Июнь</string>
+    <string name="month_july">Июль</string>
+    <string name="month_august">Август</string>
+    <string name="month_september">Сентябрь</string>
+    <string name="month_october">Октябрь</string>
+    <string name="month_november">Ноябрь</string>
+    <string name="month_december">Декабрь</string>
 </resources>
