@@ -98,4 +98,34 @@ class LocaleManager @Inject constructor() {
             else -> "System Default"
         }
     }
+    
+    /**
+     * Detect the device's system locale and return the best supported language code
+     * @param context The application context
+     * @return The detected locale code that is supported by the app
+     */
+    fun detectDeviceLocale(context: Context): String {
+        val systemLocale = getCurrentLocale(context)
+        val systemLanguage = systemLocale.language
+        
+        return when {
+            isLanguageSupported(systemLanguage) -> systemLanguage
+            systemLanguage.startsWith("he") -> "iw" // Hebrew variants
+            systemLanguage.startsWith("ru") -> "ru" // Russian variants
+            systemLanguage.startsWith("en") -> "en" // English variants
+            else -> "en" // Default to English
+        }
+    }
+    
+    /**
+     * Get all supported locales with their display names
+     * @return Map of locale codes to display names
+     */
+    fun getSupportedLocales(): Map<String, String> {
+        return mapOf(
+            "en" to "English",
+            "iw" to "עברית",
+            "ru" to "Русский"
+        )
+    }
 }

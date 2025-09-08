@@ -1,0 +1,88 @@
+# Task ID: 9
+# Title: Implement Currency Usage Tracking Logic
+# Status: done
+# Dependencies: 3, 6
+# Priority: medium
+# Description: Develop the business logic to track currency usage when transactions are created and update usage statistics.
+# Details:
+Implement a service to track currency usage when transactions are created or updated. This service should update the usage count and last used timestamp in the CurrencyUsage table.
+
+Code example:
+```kotlin
+class CurrencyUsageTracker @Inject constructor(
+    private val currencyUsageRepository: CurrencyUsageRepository
+) {
+    suspend fun trackCurrencyUsage(userId: Long, currencyCode: String) {
+        val existingUsage = currencyUsageRepository.getUserCurrencyUsage(userId, currencyCode)
+        
+        if (existingUsage != null) {
+            // Update existing record
+            currencyUsageRepository.updateUsage(
+                existingUsage.copy(
+                    usageCount = existingUsage.usageCount + 1,
+                    lastUsed = Date(),
+                    updatedAt = Date()
+                )
+            )
+        } else {
+            // Create new record
+            currencyUsageRepository.insertUsage(
+                CurrencyUsage(
+                    userId = userId,
+                    currency = currencyCode,
+                    usageCount = 1,
+                    lastUsed = Date()
+                )
+            )
+        }
+    }
+    
+    suspend fun getUserCurrenciesByPopularity(userId: Long): List<String> {
+        return currencyUsageRepository.getUserCurrenciesSortedByUsage(userId)
+            .map { it.currency }
+    }
+}
+```
+
+Integrate this service with the transaction creation and update flows. Use Kotlin Coroutines for asynchronous processing and Dagger Hilt (version 2.48) for dependency injection.
+
+# Test Strategy:
+Write unit tests to verify that:
+1. New currency usage records are created correctly
+2. Existing records are updated correctly (count incremented, timestamps updated)
+3. Sorting by usage count works correctly
+4. Integration tests to verify tracking is triggered when transactions are created
+5. Edge cases are handled (invalid currencies, null values)
+6. Concurrency handling for simultaneous updates
+
+# Subtasks:
+## 1. Create CurrencyUsageRepository Interface and Implementation [done]
+### Dependencies: None
+### Description: Define and implement the repository interface for accessing and manipulating currency usage data in the database.
+### Details:
+Create a CurrencyUsageRepository interface with methods for retrieving, inserting, and updating currency usage records. Implement the repository using Room Database. Include methods for getUserCurrencyUsage, updateUsage, insertUsage, and getUserCurrenciesSortedByUsage. Ensure proper error handling and transaction management.
+
+## 2. Implement CurrencyUsageTracker Service [done]
+### Dependencies: 9.1
+### Description: Develop the core service that tracks currency usage and provides methods to retrieve usage statistics.
+### Details:
+Implement the CurrencyUsageTracker class as shown in the example, with methods for trackCurrencyUsage and getUserCurrenciesByPopularity. Use Dagger Hilt for dependency injection. Ensure proper null handling and implement logging for debugging purposes. Add thread safety considerations for concurrent usage.
+
+## 3. Integrate Currency Tracking with Transaction Creation Flow [done]
+### Dependencies: 9.2
+### Description: Modify the transaction creation process to track currency usage when a new transaction is created.
+### Details:
+Identify all entry points where transactions are created in the application. Inject the CurrencyUsageTracker into these components and call trackCurrencyUsage whenever a transaction is created with a specific currency. Use Kotlin Coroutines with the appropriate dispatcher (IO) for asynchronous processing. Ensure the tracking doesn't block the main transaction creation flow.
+
+## 4. Integrate Currency Tracking with Transaction Update Flow [done]
+### Dependencies: 9.2
+### Description: Modify the transaction update process to track currency usage when a transaction's currency is changed.
+### Details:
+Identify all entry points where transactions are updated in the application. Inject the CurrencyUsageTracker and call trackCurrencyUsage only when the currency of a transaction is changed during an update. Compare the old and new currency values to determine if tracking is needed. Use Kotlin Coroutines with the appropriate dispatcher for asynchronous processing.
+
+## 5. Implement Currency Usage Analytics and Metrics [done]
+### Dependencies: 9.1, 9.2
+### Description: Create methods to retrieve and display currency usage statistics for analytics purposes.
+### Details:
+Extend the CurrencyUsageTracker with additional methods to provide usage analytics such as getMostUsedCurrencies, getLeastUsedCurrencies, and getCurrencyUsageStats. Implement data transformation logic to convert raw usage data into meaningful metrics. Create utility methods to format the data for display in the UI. Consider caching frequently accessed statistics for performance.
+

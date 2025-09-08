@@ -5,9 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.domain.repository.UserRepository
 import com.pennywise.app.presentation.auth.AuthManager
+import com.pennywise.app.presentation.auth.BiometricAuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,11 +20,29 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val biometricAuthManager: BiometricAuthManager
 ) : ViewModel() {
     
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Initial)
     val loginState: StateFlow<LoginState> = _loginState
+    
+    // Registration status to control visibility of registration option
+    val isUserRegistered: StateFlow<Boolean> = authManager.getRegistrationStatus().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+    
+    // Biometric authentication state
+    val isBiometricEnabled: StateFlow<Boolean> = biometricAuthManager.isBiometricEnabled.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+    
+    // Check if biometric authentication is available on this device
+    val canUseBiometric: Boolean = biometricAuthManager.canAuthenticate()
     
     /**
      * Attempt to login with the provided credentials
@@ -53,6 +74,24 @@ class LoginViewModel @Inject constructor(
      */
     fun resetState() {
         _loginState.value = LoginState.Initial
+    }
+    
+    /**
+     * Enable biometric authentication for the current user
+     */
+    fun enableBiometricAuthentication() {
+        viewModelScope.launch {
+            biometricAuthManager.setBiometricEnabled(true)
+        }
+    }
+    
+    /**
+     * Disable biometric authentication
+     */
+    fun disableBiometricAuthentication() {
+        viewModelScope.launch {
+            biometricAuthManager.setBiometricEnabled(false)
+        }
     }
     
     /**

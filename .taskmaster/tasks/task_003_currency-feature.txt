@@ -1,0 +1,37 @@
+# Task ID: 3
+# Title: Implement Currency Usage Tracking Model
+# Status: done
+# Dependencies: 1, 2
+# Priority: medium
+# Description: Create a new CurrencyUsage entity to track user currency preferences and usage patterns.
+# Details:
+Implement the CurrencyUsage data class as specified in the PRD. This will be used to track which currencies each user uses most frequently, enabling the app to sort currencies by popularity.
+
+Code example:
+```kotlin
+data class CurrencyUsage(
+    val id: Long = 0,
+    val userId: Long,
+    val currency: String,
+    val usageCount: Int = 0,
+    val lastUsed: Date = Date(),
+    val createdAt: Date = Date(),
+    val updatedAt: Date = Date()
+)
+```
+
+Implement a Room DAO (Data Access Object) for CurrencyUsage with methods to:
+1. Insert new usage records
+2. Update existing usage records (increment count, update lastUsed)
+3. Query usage records sorted by count or lastUsed
+4. Get most used currencies for a user
+
+Ensure proper indexing on the userId and currency fields for performance optimization.
+
+# Test Strategy:
+Write unit tests to verify that:
+1. CurrencyUsage objects can be created correctly
+2. DAO methods correctly insert, update, and query usage records
+3. Sorting by usage count works correctly
+4. Unique constraint on userId and currency works as expected
+5. Integration tests to verify the tracking system updates correctly when transactions are created

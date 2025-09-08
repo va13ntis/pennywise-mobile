@@ -98,6 +98,9 @@
     
     <!-- Language -->
     <string name="language">Language</string>
+    <string name="select_language">Select Language</string>
+    <string name="detected_language">Detected: %s</string>
+    <string name="language_auto_detected">Language automatically detected from your device</string>
     
     <!-- Currency -->
     <string name="currency">Currency</string>
@@ -142,7 +145,7 @@
     <string name="currency_error_invalid_length">Currency code must be exactly %d characters</string>
     <string name="currency_error_unsupported_code">Currency \'%s\' is not supported</string>
     <string name="currency_error_invalid_amount">Please enter a valid amount</string>
-    <string name="currency_error_with_suggestions">%s. Did you mean: %s?</string>
+    <string name="currency_error_with_suggestions" formatted="false">%s. Did you mean: %s?</string>
     
     <!-- Currency Recovery Messages -->
     <string name="currency_recovery_empty_code">Please select a currency from the dropdown</string>
@@ -161,5 +164,7 @@
     <string name="current_default_currency">Current Default Currency</string>
     <string name="currency_settings">Currency Settings</string>
     <string name="change">Change</string>
+    <string name="updating_currency">Updating currency...</string>
+    <string name="currency_updated_successfully">Currency updated successfully</string>
 </resources>
 

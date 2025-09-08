@@ -1,0 +1,58 @@
+# Task ID: 5
+# Title: Database Schema Migration
+# Status: done
+# Dependencies: 1, 2, 3
+# Priority: high
+# Description: Create database migration scripts to add currency fields to existing tables and create the new currency_usage table.
+# Details:
+Implement Room database migrations to update the schema as specified in the PRD. This includes adding the defaultCurrency column to the users table, adding the currency column to the transactions table, and creating the new currency_usage table.
+
+Code example:
+```kotlin
+@Database(
+    entities = [User::class, Transaction::class, CurrencyUsage::class],
+    version = 2, // Increment from previous version
+    exportSchema = true
+)
+abstract class AppDatabase : RoomDatabase() {
+    // DAOs...
+    
+    companion object {
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add defaultCurrency to users table
+                database.execSQL("ALTER TABLE users ADD COLUMN defaultCurrency TEXT NOT NULL DEFAULT 'USD'")
+                
+                // Add currency to transactions table
+                database.execSQL("ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD'")
+                
+                // Create currency_usage table
+                database.execSQL("""
+                    CREATE TABLE currency_usage (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        userId INTEGER NOT NULL,
+                        currency TEXT NOT NULL,
+                        usageCount INTEGER NOT NULL DEFAULT 0,
+                        lastUsed INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+                        UNIQUE(userId, currency)
+                    )
+                """)
+            }
+        }
+    }
+}
+```
+
+Ensure proper error handling during migration and implement a fallback strategy if migration fails. Use Room's migration testing utilities to verify migrations work correctly.
+
+# Test Strategy:
+Write migration tests to verify that:
+1. Migration from version 1 to 2 works correctly
+2. Default values are set correctly for existing records
+3. Foreign key constraints are properly enforced
+4. Unique constraints work as expected
+5. Data integrity is maintained during migration
+6. Test with a sample database containing real data

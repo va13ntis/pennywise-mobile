@@ -1,0 +1,218 @@
+# Task ID: 8
+# Title: Update Expense Form with Currency Selection
+# Status: done
+# Dependencies: 1, 2, 4
+# Priority: high
+# Description: Enhance the expense form to pre-select the user's default currency and allow currency changes via dropdown.
+# Details:
+Modify the expense form to include a currency selection dropdown that pre-selects the user's default currency. The dropdown should allow changing the currency for individual expenses and show the currency symbol next to the amount field.
+
+Implementation details:
+1. Use MaterialComponents Exposed Dropdown Menu for currency selection
+2. Pre-select the user's default currency
+3. Show currency symbol next to amount field
+4. Update amount formatting based on selected currency
+5. Maintain currency selection for the session
+6. Use the same CurrencyAdapter as in the registration screen
+
+Code example for updating the amount field based on currency:
+```kotlin
+private fun updateAmountFieldForCurrency(currency: Currency) {
+    // Update hint with currency symbol
+    binding.amountInputLayout.prefixText = currency.symbol
+    
+    // Update formatting based on currency
+    val decimalDigits = when(currency.code) {
+        "JPY" -> 0
+        else -> 2
+    }
+    
+    // Set up input filter for decimal places
+    binding.amountEditText.filters = arrayOf(DecimalDigitsInputFilter(decimalDigits))
+}
+```
+
+Use ViewBinding for cleaner view access and ViewModel to maintain state during configuration changes. Implement proper validation for amount based on currency (e.g., JPY doesn't use decimal places).
+
+# Test Strategy:
+Write UI tests using Espresso to verify that:
+1. User's default currency is pre-selected
+2. Currency can be changed via dropdown
+3. Currency symbol is displayed correctly next to amount
+4. Amount formatting updates based on selected currency
+5. Selected currency is saved with the transaction
+6. Currency selection is maintained during the session
+7. Accessibility testing with TalkBack
+8. Test with different currencies and amount formats
+
+# Subtasks:
+## 1. Update AddExpenseViewModel [done]
+### Dependencies: None
+### Description: Add AuthManager dependency to get current user's default currency, implement selectedCurrency StateFlow, and update saveExpense function to include currency.
+### Details:
+
+
+## 2. Update AddExpenseScreen [done]
+### Dependencies: None
+### Description: Add Currency import, implement CurrencySelectionDropdown component, add selectedCurrency state collection, and modify save button to pass selected currency to ViewModel.
+### Details:
+
+
+## 3. Implement amount field currency formatting [done]
+### Dependencies: None
+### Description: Implement the updateAmountFieldForCurrency function to show currency symbol next to amount field and update formatting based on selected currency.
+### Details:
+<info added on 2025-08-30T17:02:29.627Z>
+Successfully implemented amount field currency formatting:
+
+1. **Enhanced Amount Field**:
+   - Added currency symbol as prefix to the amount field
+   - Implemented currency-specific formatting based on decimal places
+   - Added supporting text showing currency name and decimal places
+   - Applied real-time formatting as user types
+
+2. **Currency-Specific Formatting Logic**:
+   - For currencies with 0 decimal places (JPY, KRW): Only allows digits, no decimal point
+   - For other currencies: Limits decimal places based on currency.decimalPlaces
+   - Real-time validation and formatting as user types
+
+3. **Visual Enhancements**:
+   - Currency symbol displayed as prefix in the amount field
+   - Supporting text shows currency name and decimal places for guidance
+   - Maintains proper Material Design 3 styling
+
+The amount field now properly displays the currency symbol and enforces currency-specific formatting rules in real-time.
+</info added on 2025-08-30T17:02:29.627Z>
+
+## 4. Add validation for currency-specific amount formats [done]
+### Dependencies: None
+### Description: Implement proper validation for amount based on currency (e.g., JPY doesn't use decimal places).
+### Details:
+<info added on 2025-08-30T17:04:21.580Z>
+Successfully implemented comprehensive currency-specific validation:
+
+1. **Enhanced Validation Logic**:
+   - Added currency-specific validation messages for JPY and KRW
+   - Implemented validation that checks for decimal places based on currency
+   - Added real-time validation that triggers when currency changes
+
+2. **Currency-Specific Error Messages**:
+   - JPY: "Japanese Yen uses whole numbers only (no decimal places)"
+   - KRW: "Korean Won uses whole numbers only (no decimal places)"
+   - Generic message for other currencies that don't use decimal places
+
+3. **Real-Time Validation**:
+   - Validation now includes selectedCurrency in LaunchedEffect dependencies
+   - Amount field formatting enforces currency-specific rules in real-time
+   - Error messages appear immediately when invalid input is detected
+
+4. **Comprehensive Validation Coverage**:
+   - Validates amount format based on currency decimal places
+   - Provides clear, user-friendly error messages
+   - Maintains existing validation for required fields and numeric values
+
+The expense form now provides comprehensive validation that adapts to the selected currency's specific formatting requirements.
+</info added on 2025-08-30T17:04:21.580Z>
+
+## 5. Write UI tests for currency selection [done]
+### Dependencies: None
+### Description: Create Espresso tests to verify currency selection functionality, including pre-selection, changing currency, and proper formatting.
+### Details:
+
+
+## 6. Add Currency Dropdown to Expense Form Layout [done]
+### Dependencies: None
+### Description: Modify the expense form layout to include a currency selection dropdown using MaterialComponents Exposed Dropdown Menu.
+### Details:
+1. Add an ExposedDropdownMenu component to the expense form layout XML file
+2. Position it appropriately in the form layout, preferably near the amount field
+3. Set up proper styling to match the app's design
+4. Add appropriate content description for accessibility
+5. Include a label for the dropdown (e.g., 'Currency')
+6. Ensure proper layout constraints for different screen sizes
+<info added on 2025-09-07T16:15:43.912Z>
+1. Replaced the custom CurrencySelectionDropdown with a Material3 ExposedDropdownMenu that integrates better with the form design
+2. Added a proper label for the dropdown with "Currency" text
+3. Included a supportingText with a hint about the currency selection functionality
+4. Added appropriate contentDescription for accessibility
+5. Included visual indicators (checkmark icon) for the currently selected currency
+6. Added proper styling with Material Design 3 consistent with the rest of the form
+7. Used proper layout constraints with fillMaxWidth() to ensure the dropdown resizes appropriately for different screen sizes
+8. Positioned the dropdown after the amount field to maintain logical form flow
+9. Added dividers between dropdown items for better visual separation
+10. Implemented a height limit (350.dp) to ensure the dropdown doesn't take up the entire screen
+</info added on 2025-09-07T16:15:43.912Z>
+
+## 7. Create Currency Adapter for Dropdown [done]
+### Dependencies: 8.1
+### Description: Implement a CurrencyAdapter for the dropdown that displays currency code, symbol, and name, reusing the same adapter from the registration screen.
+### Details:
+1. Reuse the existing CurrencyAdapter from the registration screen
+2. Ensure the adapter displays currency code, symbol, and name in each dropdown item
+3. Sort currencies by popularity
+4. Implement item selection callback
+5. Handle view recycling properly
+6. Ensure proper text styling and layout for dropdown items
+
+## 8. Implement Currency Pre-selection Logic [done]
+### Dependencies: 8.1, 8.2
+### Description: Add logic to pre-select the user's default currency in the dropdown when the expense form is opened.
+### Details:
+1. Retrieve the user's default currency from UserRepository or UserPreferences
+2. Set the pre-selected value in the dropdown when initializing the form
+3. Handle the case when user's default currency is not available
+4. Ensure the pre-selection works correctly when editing existing expenses
+5. Add proper error handling if user data cannot be retrieved
+
+## 9. Update Amount Field Based on Selected Currency [done]
+### Dependencies: 8.1, 8.2, 8.3
+### Description: Implement logic to update the amount field formatting and display based on the selected currency.
+### Details:
+1. Implement the updateAmountFieldForCurrency function as provided in the example
+2. Add currency symbol as prefix to the amount input field
+3. Configure decimal place restrictions based on currency (e.g., JPY has 0 decimal places)
+4. Implement DecimalDigitsInputFilter to restrict input based on currency
+5. Update the amount field whenever currency selection changes
+6. Handle edge cases like currency changes after amount is already entered
+
+## 10. Save and Maintain Currency Selection [done]
+### Dependencies: 8.1, 8.2, 8.3, 8.4
+### Description: Implement logic to save the selected currency with the expense and maintain the selection during the form session.
+### Details:
+1. Update the ViewModel to store the selected currency
+2. Modify the save/update expense logic to include the selected currency
+3. Ensure currency selection persists during configuration changes
+4. Update the database operation to save the currency with the expense
+5. Handle validation to ensure currency is always selected before saving
+6. Add proper error handling for currency-related operations
+<info added on 2025-09-07T17:04:24.015Z>
+## Implementation Summary:
+
+### 1. Currency Selection Persistence During Configuration Changes ✅
+- Currency selection is managed by StateFlow in AddExpenseViewModel, ensuring persistence across configuration changes
+- The selectedCurrency StateFlow is properly initialized with the user's default currency from AuthManager
+- Currency selection survives screen rotations and other configuration changes
+
+### 2. Enhanced Currency Validation Before Saving ✅
+- Updated save button logic to ensure currency is selected before allowing save operation
+- Modified form validation to include currency selection as a required field
+- Save button is now disabled when no currency is selected (enabled = isFormValid && selectedCurrency != null)
+- Removed fallback to "USD" in favor of explicit currency validation
+
+### 3. Comprehensive Error Handling ✅
+- Currency validation and error handling are already implemented in the ViewModel using CurrencyValidator and CurrencyErrorHandler
+- Proper error messages are displayed for currency-related validation failures
+- Currency usage tracking is implemented for analytics and sorting
+
+### 4. Currency Selection Maintenance During Form Session ✅
+- Currency selection is maintained throughout the form session via StateFlow
+- Currency changes are properly tracked and validated
+- Amount field formatting updates automatically when currency changes
+- Currency selection persists until explicitly changed by the user
+
+## Key Improvements Made:
+1. **Enhanced Save Button Logic**: Now requires explicit currency selection before allowing save
+2. **Improved Form Validation**: Currency selection is now part of form validation criteria
+3. **Better User Experience**: Save button is disabled when currency is not selected, providing clear feedback
+</info added on 2025-09-07T17:04:24.015Z>
+

@@ -7,12 +7,14 @@ import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.data.util.SettingsDataStore
 import com.pennywise.app.data.service.CurrencyConversionService
+import com.pennywise.app.presentation.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
@@ -29,7 +31,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val settingsDataStore: SettingsDataStore,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val authManager: AuthManager
 ) : ViewModel() {
     
     private val _userId = MutableStateFlow<Long?>(null)
@@ -50,12 +53,14 @@ class HomeViewModel @Inject constructor(
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
     
     /**
-     * Flow of the current currency preference
+     * Flow of the current currency preference - uses user's default currency
      */
-    val currency: StateFlow<String> = settingsDataStore.currency.stateIn(
+    val currency: StateFlow<String> = authManager.currentUser.map { user ->
+        user?.defaultCurrency ?: "USD"
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ""
+        initialValue = "USD"
     )
     
     /**

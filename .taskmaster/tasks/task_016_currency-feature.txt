@@ -1,0 +1,165 @@
+# Task ID: 16
+# Title: Implement Authentication Flow Refactoring
+# Status: pending
+# Dependencies: 1, 4, 10, 12
+# Priority: medium
+# Description: Refactor the authentication flow to hide registration option after user registration, set default currency during registration, and implement biometric authentication.
+# Details:
+This task involves refactoring the authentication flow with three main components:
+
+1. Registration Option Visibility:
+   - Modify the authentication screen to check if a user is already registered on the device
+   - Store a flag in SharedPreferences or user settings to track registration status
+   - Hide the registration option if a user is already registered
+   - Only show registration again if the user explicitly removes their account from app settings
+   - Ensure this works regardless of whether app data is cleared
+
+2. Default Currency Selection During Registration:
+   - Add a currency selection step to the registration flow
+   - Use the existing reusable currency selection component (from Task 12)
+   - Set the selected currency as the user's default currency in the User entity
+   - Update the registration API/database calls to include the default currency
+   - Ensure the selected currency is used as default for all new expenses
+
+3. Biometric Authentication:
+   - Implement biometric authentication using the BiometricPrompt API
+   - Add biometric authentication option in the login screen
+   - Create a BiometricAuthManager class to handle authentication logic
+   - Store user preference for biometric authentication in secure storage
+   - Implement fallback to password authentication if biometric fails
+
+Code example for biometric authentication:
+```kotlin
+class BiometricAuthManager(private val fragment: Fragment) {
+    private val biometricPrompt = BiometricPrompt(
+        fragment,
+        ContextCompat.getMainExecutor(fragment.requireContext()),
+        object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                // Handle successful authentication
+            }
+            
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                // Handle authentication error
+            }
+            
+            override fun onAuthenticationFailed() {
+                // Handle authentication failure
+            }
+        }
+    )
+    
+    fun authenticate() {
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Biometric Authentication")
+            .setSubtitle("Log in using your biometric credential")
+            .setNegativeButtonText("Use password instead")
+            .build()
+            
+        biometricPrompt.authenticate(promptInfo)
+    }
+}
+```
+
+Implementation considerations:
+- Ensure backward compatibility for existing users
+- Handle devices without biometric capabilities gracefully
+- Implement secure storage for authentication tokens
+- Follow Material Design guidelines for authentication UI
+- Consider accessibility requirements for all authentication methods
+
+# Test Strategy:
+Testing for this task will be divided into three main areas:
+
+1. Registration Option Visibility Tests:
+   - Write UI tests using Espresso to verify registration option is hidden after user registration
+   - Test that registration option remains hidden after app restart
+   - Verify registration option reappears after account removal in settings
+   - Test edge cases like app data clearing and different device configurations
+
+2. Default Currency Selection Tests:
+   - Write unit tests to verify default currency is correctly saved during registration
+   - Create UI tests to verify currency selection component appears during registration
+   - Test that selected currency is correctly applied as default for new expenses
+   - Verify currency selection persists after app restart
+   - Test integration with existing currency-related functionality
+
+3. Biometric Authentication Tests:
+   - Create unit tests for BiometricAuthManager class
+   - Mock biometric responses to test success and failure scenarios
+   - Write UI tests to verify biometric prompt appears correctly
+   - Test fallback to password authentication
+   - Verify authentication state is maintained correctly
+   - Test on devices with and without biometric capabilities
+   - Verify security by attempting to bypass authentication
+
+Additional testing:
+- Perform end-to-end testing of the complete authentication flow
+- Test performance impact of biometric authentication
+- Verify accessibility compliance for all authentication screens
+- Test on multiple device types and OS versions
+- Conduct security testing to ensure authentication cannot be bypassed
+
+# Subtasks:
+## 1. Implement Registration Status Tracking [pending]
+### Dependencies: None
+### Description: Create a mechanism to track user registration status and modify the authentication screen to hide registration options for registered users.
+### Details:
+1. Create a UserRegistrationManager class to handle registration status
+2. Implement methods to store and retrieve registration status in SharedPreferences
+3. Add a flag 'isUserRegistered' that persists even if app data is cleared
+4. Create a method to check if user is registered on device startup
+5. Modify AuthenticationActivity/Fragment to observe registration status
+6. Update UI to conditionally show/hide registration button based on status
+7. Add logic in settings to reset registration status when account is removed
+
+## 2. Integrate Currency Selection into Registration Flow [pending]
+### Dependencies: 16.1
+### Description: Add a currency selection step to the registration process using the existing reusable currency selection component.
+### Details:
+1. Modify the registration flow to include a new step for currency selection
+2. Integrate the existing reusable currency selection component (from Task 12)
+3. Update the User entity to include defaultCurrency field
+4. Modify the RegistrationViewModel to handle and validate currency selection
+5. Update the registration API service to send the selected currency to the backend
+6. Update database schema and repositories to store user's default currency
+7. Ensure the UI guides users through currency selection with appropriate labels and help text
+
+## 3. Create BiometricAuthManager Class [pending]
+### Dependencies: None
+### Description: Implement a BiometricAuthManager class to handle biometric authentication logic and secure storage of authentication preferences.
+### Details:
+1. Create BiometricAuthManager class following the provided code example
+2. Implement methods to check device biometric capabilities
+3. Add secure storage for authentication tokens using EncryptedSharedPreferences
+4. Create methods to store and retrieve user preference for biometric authentication
+5. Implement proper error handling for different biometric authentication scenarios
+6. Add callback interfaces for authentication results
+7. Create utility methods to generate and validate cryptographic keys for secure authentication
+
+## 4. Integrate Biometric Authentication into Login Screen [pending]
+### Dependencies: 16.3
+### Description: Add biometric authentication option to the login screen and implement the UI flow for biometric authentication.
+### Details:
+1. Modify LoginActivity/Fragment to add biometric authentication option
+2. Create UI elements (button, dialog) for biometric authentication following Material Design guidelines
+3. Connect login flow to BiometricAuthManager
+4. Implement success/failure handling in the login UI
+5. Add fallback to password authentication if biometric authentication fails
+6. Implement proper error messages for different authentication scenarios
+7. Add animations for smooth transitions between authentication methods
+8. Ensure accessibility compliance for all authentication UI elements
+
+## 5. Implement Backward Compatibility and Edge Cases [pending]
+### Dependencies: 16.1, 16.2, 16.3, 16.4
+### Description: Ensure backward compatibility for existing users and handle edge cases in the authentication flow.
+### Details:
+1. Create migration strategy for existing users without default currency
+2. Implement graceful degradation for devices without biometric capabilities
+3. Add comprehensive error handling for all authentication scenarios
+4. Create recovery mechanisms for users who can't access biometric authentication
+5. Implement proper state management to handle app backgrounding during authentication
+6. Add logging for authentication events for debugging and analytics
+7. Create user education components (tooltips, help screens) for new authentication options
+8. Implement proper cleanup of sensitive authentication data
+

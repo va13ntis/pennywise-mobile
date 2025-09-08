@@ -1,0 +1,48 @@
+# Task ID: 7
+# Title: Update Registration UI with Currency Selection
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Enhance the registration screen to include a currency selection dropdown after username/password fields.
+# Details:
+Modify the registration UI to include a currency selection dropdown as specified in the PRD. The dropdown should show currency code, symbol, and name, be sorted by popularity, and have USD pre-selected as default.
+
+Implementation details:
+1. Use MaterialComponents Exposed Dropdown Menu (com.google.android.material:material:1.10.0)
+2. Create a custom adapter for the dropdown to display currency code, symbol, and name
+3. Sort currencies by popularity using the Currency enum
+4. Pre-select USD as default
+5. Make currency selection required
+6. Add proper validation
+
+Code example for the adapter:
+```kotlin
+class CurrencyAdapter(context: Context) : ArrayAdapter<Currency>(
+    context, R.layout.item_currency, Currency.values().sortedBy { it.popularity }
+) {
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context)
+            .inflate(R.layout.item_currency, parent, false)
+        
+        val currency = getItem(position)!!
+        view.findViewById<TextView>(R.id.currencyCode).text = currency.code
+        view.findViewById<TextView>(R.id.currencySymbol).text = currency.symbol
+        view.findViewById<TextView>(R.id.currencyName).text = currency.name
+        
+        return view
+    }
+}
+```
+
+Ensure the UI is accessible and works well with different screen sizes and orientations. Use ViewModel (androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2) to preserve selection during configuration changes.
+
+# Test Strategy:
+Write UI tests using Espresso to verify that:
+1. Currency dropdown is displayed correctly
+2. Currencies are sorted by popularity
+3. USD is pre-selected by default
+4. Selection can be changed
+5. Validation works for required field
+6. Selected currency is saved correctly
+7. Accessibility testing with TalkBack
+8. Test on different screen sizes and orientations

@@ -1423,11 +1423,82 @@
             "testStrategy": "Start with fast-running tests (unit tests) and progress to slower tests (UI tests) to provide quick feedback. Configure the pipeline to fail fast if critical tests fail."
           }
         ]
+      },
+      {
+        "id": 16,
+        "title": "Implement Authentication Flow Refactoring",
+        "description": "Refactor the authentication flow to hide registration option after user registration, set default currency during registration, and implement biometric authentication.",
+        "details": "This task involves refactoring the authentication flow with three main components:\n\n1. Registration Option Visibility:\n   - Modify the authentication screen to check if a user is already registered on the device\n   - Store a flag in SharedPreferences or user settings to track registration status\n   - Hide the registration option if a user is already registered\n   - Only show registration again if the user explicitly removes their account from app settings\n   - Ensure this works regardless of whether app data is cleared\n\n2. Default Currency Selection During Registration:\n   - Add a currency selection step to the registration flow\n   - Use the existing reusable currency selection component (from Task 12)\n   - Set the selected currency as the user's default currency in the User entity\n   - Update the registration API/database calls to include the default currency\n   - Ensure the selected currency is used as default for all new expenses\n\n3. Biometric Authentication:\n   - Implement biometric authentication using the BiometricPrompt API\n   - Add biometric authentication option in the login screen\n   - Create a BiometricAuthManager class to handle authentication logic\n   - Store user preference for biometric authentication in secure storage\n   - Implement fallback to password authentication if biometric fails\n\nCode example for biometric authentication:\n```kotlin\nclass BiometricAuthManager(private val fragment: Fragment) {\n    private val biometricPrompt = BiometricPrompt(\n        fragment,\n        ContextCompat.getMainExecutor(fragment.requireContext()),\n        object : BiometricPrompt.AuthenticationCallback() {\n            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {\n                // Handle successful authentication\n            }\n            \n            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {\n                // Handle authentication error\n            }\n            \n            override fun onAuthenticationFailed() {\n                // Handle authentication failure\n            }\n        }\n    )\n    \n    fun authenticate() {\n        val promptInfo = BiometricPrompt.PromptInfo.Builder()\n            .setTitle(\"Biometric Authentication\")\n            .setSubtitle(\"Log in using your biometric credential\")\n            .setNegativeButtonText(\"Use password instead\")\n            .build()\n            \n        biometricPrompt.authenticate(promptInfo)\n    }\n}\n```\n\nImplementation considerations:\n- Ensure backward compatibility for existing users\n- Handle devices without biometric capabilities gracefully\n- Implement secure storage for authentication tokens\n- Follow Material Design guidelines for authentication UI\n- Consider accessibility requirements for all authentication methods",
+        "testStrategy": "Testing for this task will be divided into three main areas:\n\n1. Registration Option Visibility Tests:\n   - Write UI tests using Espresso to verify registration option is hidden after user registration\n   - Test that registration option remains hidden after app restart\n   - Verify registration option reappears after account removal in settings\n   - Test edge cases like app data clearing and different device configurations\n\n2. Default Currency Selection Tests:\n   - Write unit tests to verify default currency is correctly saved during registration\n   - Create UI tests to verify currency selection component appears during registration\n   - Test that selected currency is correctly applied as default for new expenses\n   - Verify currency selection persists after app restart\n   - Test integration with existing currency-related functionality\n\n3. Biometric Authentication Tests:\n   - Create unit tests for BiometricAuthManager class\n   - Mock biometric responses to test success and failure scenarios\n   - Write UI tests to verify biometric prompt appears correctly\n   - Test fallback to password authentication\n   - Verify authentication state is maintained correctly\n   - Test on devices with and without biometric capabilities\n   - Verify security by attempting to bypass authentication\n\nAdditional testing:\n- Perform end-to-end testing of the complete authentication flow\n- Test performance impact of biometric authentication\n- Verify accessibility compliance for all authentication screens\n- Test on multiple device types and OS versions\n- Conduct security testing to ensure authentication cannot be bypassed",
+        "status": "done",
+        "dependencies": [
+          1,
+          4,
+          10,
+          12
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Registration Status Tracking",
+            "description": "Create a mechanism to track user registration status and modify the authentication screen to hide registration options for registered users.",
+            "dependencies": [],
+            "details": "1. Create a UserRegistrationManager class to handle registration status\n2. Implement methods to store and retrieve registration status in SharedPreferences\n3. Add a flag 'isUserRegistered' that persists even if app data is cleared\n4. Create a method to check if user is registered on device startup\n5. Modify AuthenticationActivity/Fragment to observe registration status\n6. Update UI to conditionally show/hide registration button based on status\n7. Add logic in settings to reset registration status when account is removed",
+            "status": "done",
+            "testStrategy": "1. Unit test UserRegistrationManager for correct storage/retrieval of registration status\n2. UI tests to verify registration option visibility based on registration status\n3. Test persistence across app restarts\n4. Test registration option reappears after account removal"
+          },
+          {
+            "id": 2,
+            "title": "Integrate Currency Selection into Registration Flow",
+            "description": "Add a currency selection step to the registration process using the existing reusable currency selection component.",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "1. Modify the registration flow to include a new step for currency selection\n2. Integrate the existing reusable currency selection component (from Task 12)\n3. Update the User entity to include defaultCurrency field\n4. Modify the RegistrationViewModel to handle and validate currency selection\n5. Update the registration API service to send the selected currency to the backend\n6. Update database schema and repositories to store user's default currency\n7. Ensure the UI guides users through currency selection with appropriate labels and help text",
+            "status": "done",
+            "testStrategy": "1. Unit test the updated User entity and registration logic\n2. Integration tests for the registration flow with currency selection\n3. UI tests to verify currency selection appears in registration flow\n4. Verify selected currency is correctly stored in the database\n5. Test API calls include the default currency parameter"
+          },
+          {
+            "id": 3,
+            "title": "Create BiometricAuthManager Class",
+            "description": "Implement a BiometricAuthManager class to handle biometric authentication logic and secure storage of authentication preferences.",
+            "dependencies": [],
+            "details": "1. Create BiometricAuthManager class following the provided code example\n2. Implement methods to check device biometric capabilities\n3. Add secure storage for authentication tokens using EncryptedSharedPreferences\n4. Create methods to store and retrieve user preference for biometric authentication\n5. Implement proper error handling for different biometric authentication scenarios\n6. Add callback interfaces for authentication results\n7. Create utility methods to generate and validate cryptographic keys for secure authentication",
+            "status": "done",
+            "testStrategy": "1. Unit test BiometricAuthManager for correct handling of authentication callbacks\n2. Test secure storage of authentication tokens\n3. Test device capability detection logic\n4. Mock biometric responses to test success/failure/error scenarios\n5. Test fallback mechanisms when biometrics are unavailable"
+          },
+          {
+            "id": 4,
+            "title": "Integrate Biometric Authentication into Login Screen",
+            "description": "Add biometric authentication option to the login screen and implement the UI flow for biometric authentication.",
+            "dependencies": [
+              "16.3"
+            ],
+            "details": "1. Modify LoginActivity/Fragment to add biometric authentication option\n2. Create UI elements (button, dialog) for biometric authentication following Material Design guidelines\n3. Connect login flow to BiometricAuthManager\n4. Implement success/failure handling in the login UI\n5. Add fallback to password authentication if biometric authentication fails\n6. Implement proper error messages for different authentication scenarios\n7. Add animations for smooth transitions between authentication methods\n8. Ensure accessibility compliance for all authentication UI elements",
+            "status": "done",
+            "testStrategy": "1. UI tests to verify biometric authentication option appears correctly\n2. Test authentication flow with mocked biometric responses\n3. Test fallback to password authentication\n4. Accessibility tests for all authentication UI elements\n5. Test error message display for different authentication scenarios"
+          },
+          {
+            "id": 5,
+            "title": "Implement Backward Compatibility and Edge Cases",
+            "description": "Ensure backward compatibility for existing users and handle edge cases in the authentication flow.",
+            "dependencies": [
+              "16.1",
+              "16.2",
+              "16.3",
+              "16.4"
+            ],
+            "details": "1. Create migration strategy for existing users without default currency\n2. Implement graceful degradation for devices without biometric capabilities\n3. Add comprehensive error handling for all authentication scenarios\n4. Create recovery mechanisms for users who can't access biometric authentication\n5. Implement proper state management to handle app backgrounding during authentication\n6. Add logging for authentication events for debugging and analytics\n7. Create user education components (tooltips, help screens) for new authentication options\n8. Implement proper cleanup of sensitive authentication data",
+            "status": "done",
+            "testStrategy": "1. Test migration of existing user accounts\n2. Test on devices with and without biometric capabilities\n3. Test authentication flow interruptions (app backgrounding, incoming calls)\n4. Test recovery mechanisms for authentication failures\n5. Verify proper cleanup of sensitive data\n6. End-to-end tests of complete authentication flow with all edge cases"
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-08-30T16:46:17.240Z",
-      "updated": "2025-09-08T08:29:36.353Z",
+      "updated": "2025-09-08T08:51:58.451Z",
       "description": "Tasks for currency-feature context"
     }
   }

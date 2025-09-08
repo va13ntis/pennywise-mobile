@@ -18,7 +18,7 @@ class UserRepositoryImpl @Inject constructor(
     private val passwordHasher: PasswordHasher
 ) : UserRepository {
     
-    override suspend fun registerUser(username: String, password: String, defaultCurrency: String): Result<Long> {
+    override suspend fun registerUser(username: String, password: String, defaultCurrency: String, locale: String): Result<Long> {
         return try {
             // Check if username already exists
             val existingUser = userDao.getUserByUsername(username)
@@ -33,7 +33,8 @@ class UserRepositoryImpl @Inject constructor(
             val userEntity = UserEntity(
                 username = username,
                 passwordHash = passwordHash,
-                defaultCurrency = defaultCurrency
+                defaultCurrency = defaultCurrency,
+                locale = locale
             )
             
             // Insert user and return the generated ID

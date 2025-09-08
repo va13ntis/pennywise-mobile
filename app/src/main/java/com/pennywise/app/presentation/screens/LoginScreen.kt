@@ -1,9 +1,11 @@
 package com.pennywise.app.presentation.screens
 
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -11,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -19,6 +22,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.User
@@ -35,10 +39,10 @@ fun LoginScreen(
     onLoginSuccess: (User) -> Unit,
     testDataViewModel: TestDataViewModel = hiltViewModel()
 ) {
-    // For now, we'll disable biometric functionality to avoid injection issues
-    // TODO: Implement proper biometric injection in future iteration
-    val canUseBiometric = false
     val loginState by viewModel.loginState.collectAsState()
+    val isUserRegistered by viewModel.isUserRegistered.collectAsState()
+    val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
+    val canUseBiometric = viewModel.canUseBiometric
     
     // Test data states
     val isSeeding by testDataViewModel.isSeeding.collectAsState()
@@ -56,11 +60,25 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
     
     // Handle login success
     LaunchedEffect(loginState) {
         if (loginState is LoginViewModel.LoginState.Success) {
             onLoginSuccess((loginState as LoginViewModel.LoginState.Success).user)
+        }
+    }
+    
+    // Handle biometric authentication
+    fun handleBiometricAuthentication() {
+        if (canUseBiometric && isBiometricEnabled) {
+            val activity = context as? FragmentActivity
+            if (activity != null) {
+                // For now, we'll use a simple approach - in a real implementation,
+                // you would integrate with the BiometricAuthManager here
+                // This is a placeholder for the biometric authentication flow
+                viewModel.login("", "") // This would be replaced with actual biometric login
+            }
         }
     }
     
@@ -183,12 +201,35 @@ fun LoginScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Register link
-        TextButton(
-            onClick = onNavigateToRegister,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.create_account))
+        // Biometric authentication button - only show if available and enabled
+        if (canUseBiometric && isBiometricEnabled) {
+            OutlinedButton(
+                onClick = { handleBiometricAuthentication() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                enabled = loginState !is LoginViewModel.LoginState.Loading
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fingerprint,
+                    contentDescription = "Biometric Authentication",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.login_with_biometric))
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
+        // Register link - only show if user is not registered
+        if (!isUserRegistered) {
+            TextButton(
+                onClick = onNavigateToRegister,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.create_account))
+            }
         }
         
         Spacer(modifier = Modifier.height(32.dp))

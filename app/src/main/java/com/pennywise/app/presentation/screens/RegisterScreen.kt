@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.presentation.components.CurrencySelectionDropdown
+import com.pennywise.app.presentation.components.LocaleSelectionDropdown
 import com.pennywise.app.presentation.viewmodel.RegisterViewModel
 
 /**
@@ -47,12 +48,15 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var selectedCurrency by remember { mutableStateOf<Currency?>(Currency.getDefault()) }
+    var selectedLocale by remember { mutableStateOf(viewModel.getDetectedLocale()) }
     var usernameError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
     var currencyError by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    
+    val supportedLocales = remember { viewModel.getSupportedLocales() }
     
     val focusManager = LocalFocusManager.current
     
@@ -189,6 +193,25 @@ fun RegisterScreen(
             }
         )
         
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Language selection
+        LocaleSelectionDropdown(
+            currentLocale = selectedLocale,
+            supportedLocales = supportedLocales,
+            onLocaleSelected = { localeCode ->
+                selectedLocale = localeCode
+            }
+        )
+        
+        // Show detected language info
+        Text(
+            text = stringResource(R.string.language_auto_detected),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        
         // Error message from ViewModel
         if (registerState is RegisterViewModel.RegisterState.Error) {
             Text(
@@ -220,7 +243,7 @@ fun RegisterScreen(
                 
                 // Only proceed if no validation errors
                 if (usernameError == null && passwordError == null && confirmPasswordError == null && currencyError == null) {
-                    viewModel.register(username, password, confirmPassword, selectedCurrency?.code ?: "USD")
+                    viewModel.register(username, password, confirmPassword, selectedCurrency?.code ?: "USD", selectedLocale)
                 }
             },
             enabled = registerState !is RegisterViewModel.RegisterState.Loading,

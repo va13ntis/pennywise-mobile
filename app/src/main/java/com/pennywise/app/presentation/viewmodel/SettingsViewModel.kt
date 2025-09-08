@@ -101,12 +101,13 @@ class SettingsViewModel @Inject constructor(
             try {
                 _defaultCurrencyState.value = DefaultCurrencyState.Loading
                 
-                val currentUser = authManager.getCurrentUser()
-                if (currentUser != null) {
-                    val defaultCurrency = currentUser.defaultCurrency ?: "USD"
-                    _defaultCurrencyState.value = DefaultCurrencyState.Success(defaultCurrency)
-                } else {
-                    _defaultCurrencyState.value = DefaultCurrencyState.Error("User not authenticated")
+                authManager.currentUser.collect { currentUser ->
+                    if (currentUser != null) {
+                        val defaultCurrency = currentUser.defaultCurrency ?: "USD"
+                        _defaultCurrencyState.value = DefaultCurrencyState.Success(defaultCurrency)
+                    } else {
+                        _defaultCurrencyState.value = DefaultCurrencyState.Error("User not authenticated")
+                    }
                 }
             } catch (e: Exception) {
                 _defaultCurrencyState.value = DefaultCurrencyState.Error("Failed to load default currency: ${e.message}")
@@ -176,7 +177,7 @@ class SettingsViewModel @Inject constructor(
             try {
                 _currencyUpdateState.value = CurrencyUpdateState.Loading
                 
-                val currentUser = authManager.getCurrentUser()
+                val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
                     // Update the user's default currency
                     userRepository.updateDefaultCurrency(currentUser.id, newCurrency)

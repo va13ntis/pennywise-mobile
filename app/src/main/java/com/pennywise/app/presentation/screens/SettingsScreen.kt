@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.*
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,6 +35,8 @@ fun SettingsScreen(
     val language by viewModel.language.collectAsState(initial = "")
     val currencyConversionEnabled by viewModel.currencyConversionEnabled.collectAsState(initial = false)
     val originalCurrency by viewModel.originalCurrency.collectAsState(initial = "")
+    val defaultCurrencyState by viewModel.defaultCurrencyState.collectAsState(initial = SettingsViewModel.DefaultCurrencyState.Loading)
+    val currencyUpdateState by viewModel.currencyUpdateState.collectAsState(initial = SettingsViewModel.CurrencyUpdateState.Idle)
     
     Scaffold(
         topBar = {
@@ -143,6 +146,184 @@ fun SettingsScreen(
                             selected = language == "ru",
                             onClick = { viewModel.setLanguage("ru") }
                         )
+                    }
+                }
+            }
+            
+            // Default currency section
+            item {
+                Text(
+                    text = stringResource(R.string.default_currency),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)
+                )
+            }
+            
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        when (defaultCurrencyState) {
+                            is SettingsViewModel.DefaultCurrencyState.Loading -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.loading),
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            }
+                            is SettingsViewModel.DefaultCurrencyState.Success -> {
+                                Text(
+                                    text = stringResource(R.string.current_default_currency),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                                
+                                Text(
+                                    text = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                )
+                                
+                                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                                
+                                Text(
+                                    text = stringResource(R.string.change_default_currency),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                                
+                                // Currency options for default currency
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_usd),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "USD",
+                                    onClick = { viewModel.updateDefaultCurrency("USD") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_eur),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "EUR",
+                                    onClick = { viewModel.updateDefaultCurrency("EUR") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_gbp),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "GBP",
+                                    onClick = { viewModel.updateDefaultCurrency("GBP") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_ils),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "ILS",
+                                    onClick = { viewModel.updateDefaultCurrency("ILS") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_rub),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "RUB",
+                                    onClick = { viewModel.updateDefaultCurrency("RUB") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_jpy),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "JPY",
+                                    onClick = { viewModel.updateDefaultCurrency("JPY") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_cad),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "CAD",
+                                    onClick = { viewModel.updateDefaultCurrency("CAD") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_aud),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "AUD",
+                                    onClick = { viewModel.updateDefaultCurrency("AUD") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_chf),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "CHF",
+                                    onClick = { viewModel.updateDefaultCurrency("CHF") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_cny),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "CNY",
+                                    onClick = { viewModel.updateDefaultCurrency("CNY") }
+                                )
+                                
+                                CurrencyOption(
+                                    title = stringResource(R.string.currency_inr),
+                                    selected = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Success).currencyCode == "INR",
+                                    onClick = { viewModel.updateDefaultCurrency("INR") }
+                                )
+                            }
+                            is SettingsViewModel.DefaultCurrencyState.Error -> {
+                                Text(
+                                    text = (defaultCurrencyState as SettingsViewModel.DefaultCurrencyState.Error).message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                                )
+                            }
+                        }
+                        
+                        // Show update state
+                        when (currencyUpdateState) {
+                            is SettingsViewModel.CurrencyUpdateState.Loading -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.updating_currency),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                            is SettingsViewModel.CurrencyUpdateState.Success -> {
+                                Text(
+                                    text = stringResource(R.string.currency_updated_successfully),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                                LaunchedEffect(Unit) {
+                                    kotlinx.coroutines.delay(2000)
+                                    viewModel.resetCurrencyUpdateState()
+                                }
+                            }
+                            is SettingsViewModel.CurrencyUpdateState.Error -> {
+                                Text(
+                                    text = (currencyUpdateState as SettingsViewModel.CurrencyUpdateState.Error).message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            else -> { /* Idle state, do nothing */ }
+                        }
                     }
                 }
             }

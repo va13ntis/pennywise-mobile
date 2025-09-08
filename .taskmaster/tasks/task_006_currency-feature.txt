@@ -1,0 +1,58 @@
+# Task ID: 6
+# Title: Data Migration for Existing Records
+# Status: done
+# Dependencies: 5
+# Priority: high
+# Description: Implement a data migration strategy to set default values for existing users and transactions.
+# Details:
+Create a migration service to handle data migration for existing records. This includes setting the default currency to USD for existing users, setting the currency to USD for existing transactions, and initializing currency usage data.
+
+Code example:
+```kotlin
+class DataMigrationService @Inject constructor(
+    private val userRepository: UserRepository,
+    private val transactionRepository: TransactionRepository,
+    private val currencyUsageRepository: CurrencyUsageRepository
+) {
+    suspend fun migrateExistingData() {
+        // Set default currency for existing users
+        userRepository.getAllUsers().forEach { user ->
+            userRepository.updateUserDefaultCurrency(user.id, "USD")
+        }
+        
+        // Set currency for existing transactions
+        transactionRepository.getAllTransactions().forEach { transaction ->
+            transactionRepository.updateTransactionCurrency(transaction.id, "USD")
+        }
+        
+        // Initialize currency usage data
+        userRepository.getAllUsers().forEach { user ->
+            val transactions = transactionRepository.getTransactionsByUserId(user.id)
+            val currencyCounts = transactions.groupBy { it.currency }
+                .mapValues { it.value.size }
+            
+            currencyCounts.forEach { (currency, count) ->
+                currencyUsageRepository.insertOrUpdateUsage(
+                    CurrencyUsage(
+                        userId = user.id,
+                        currency = currency,
+                        usageCount = count,
+                        lastUsed = Date()
+                    )
+                )
+            }
+        }
+    }
+}
+```
+
+Implement this as a one-time migration that runs after the database schema migration. Use Kotlin Coroutines (version 1.7.3) for asynchronous processing and WorkManager (version 2.8.1) to ensure the migration completes even if the app is closed.
+
+# Test Strategy:
+Write integration tests to verify that:
+1. Default currency is correctly set for existing users
+2. Currency is correctly set for existing transactions
+3. Currency usage data is correctly initialized
+4. Migration is idempotent (can be run multiple times without issues)
+5. Migration handles edge cases (empty database, large datasets)
+6. Performance testing with large datasets

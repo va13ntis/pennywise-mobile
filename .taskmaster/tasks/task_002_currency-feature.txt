@@ -1,0 +1,36 @@
+# Task ID: 2
+# Title: Update Transaction Data Model with Currency Field
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Enhance the Transaction entity to include the currency field to store the currency for each transaction.
+# Details:
+Modify the Transaction data class to include the currency field as specified in the PRD. This will allow transactions to be recorded in different currencies. Ensure backward compatibility by setting 'USD' as the default value.
+
+Code example:
+```kotlin
+data class Transaction(
+    val id: Long = 0,
+    val userId: Long,
+    val amount: Double,
+    val currency: String = "USD", // New field
+    val description: String,
+    val category: String,
+    val type: TransactionType,
+    val date: Date,
+    val isRecurring: Boolean = false,
+    val recurringPeriod: RecurringPeriod? = null,
+    val createdAt: Date = Date(),
+    val updatedAt: Date = Date()
+)
+```
+
+Implement proper validation to ensure currency codes are valid according to the Currency enum. Use Room annotations for database integration with proper foreign key relationships.
+
+# Test Strategy:
+Write unit tests to verify that:
+1. Transaction objects can be created with a specific currency
+2. Default currency is applied when not specified
+3. Transaction objects can be serialized and deserialized correctly with the new field
+4. Repository methods correctly handle the new field in CRUD operations
+5. Invalid currency codes are properly validated

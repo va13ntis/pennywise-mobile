@@ -36,7 +36,8 @@ import com.pennywise.app.presentation.navigation.REGISTER_ROUTE
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
-    val isAuthenticated by authViewModel.isAuthenticated.collectAsState(initial = false)
+    val currentUser by authViewModel.currentUser.collectAsState(initial = null)
+    val isAuthenticated = currentUser != null
     
     // Show loading state initially
     var isInitialized by remember { mutableStateOf(false) }
@@ -63,9 +64,26 @@ fun AppNavigation() {
         return
     }
     
+    // Handle navigation when authentication state changes
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            // User is authenticated, navigate to main app
+            navController.navigate(MAIN_ROUTE) {
+                // Clear the back stack so user can't go back to login/register
+                popUpTo(LOGIN_ROUTE) { inclusive = true }
+            }
+        } else {
+            // User is not authenticated, navigate to login
+            navController.navigate(LOGIN_ROUTE) {
+                // Clear the back stack so user can't go back to main app
+                popUpTo(MAIN_ROUTE) { inclusive = true }
+            }
+        }
+    }
+    
     NavHost(
         navController = navController,
-        startDestination = if (isAuthenticated) MAIN_ROUTE else LOGIN_ROUTE
+        startDestination = if (currentUser != null) MAIN_ROUTE else LOGIN_ROUTE
     ) {
         // Login screen
         composable(LOGIN_ROUTE) {
@@ -85,7 +103,10 @@ fun AppNavigation() {
             RegisterScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onRegisterSuccess = { navController.popBackStack() }
+                onRegisterSuccess = { 
+                    // Navigation will be handled automatically by the authentication state change
+                    // No need to navigate manually here
+                }
             )
         }
         

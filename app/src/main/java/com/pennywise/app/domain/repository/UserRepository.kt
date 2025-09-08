@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
  * Repository interface for user data operations
  */
 interface UserRepository {
-    suspend fun registerUser(username: String, password: String, defaultCurrency: String = "USD"): Result<Long>
+    suspend fun registerUser(username: String, password: String, defaultCurrency: String = "USD", locale: String = "en"): Result<Long>
     suspend fun authenticateUser(username: String, password: String): Result<User>
     suspend fun getUserById(userId: Long): User?
     suspend fun getUserByUsername(username: String): User?
