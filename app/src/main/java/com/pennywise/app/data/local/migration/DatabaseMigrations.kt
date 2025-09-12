@@ -51,4 +51,65 @@ object DatabaseMigrations {
             )
         }
     }
+    
+    /**
+     * Migration from version 2 to 3
+     * - Add paymentMethod column to transactions table
+     */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Add paymentMethod column to transactions table
+            database.execSQL(
+                "ALTER TABLE transactions ADD COLUMN paymentMethod TEXT NOT NULL DEFAULT 'CASH'"
+            )
+        }
+    }
+    
+    /**
+     * Migration from version 3 to 4
+     * - Add installments and installmentAmount columns to transactions table for split payments
+     */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Add installments column to transactions table
+            database.execSQL(
+                "ALTER TABLE transactions ADD COLUMN installments INTEGER"
+            )
+            
+            // Add installmentAmount column to transactions table
+            database.execSQL(
+                "ALTER TABLE transactions ADD COLUMN installmentAmount REAL"
+            )
+        }
+    }
+    
+    /**
+     * Migration from version 4 to 5
+     * - Create bank_cards table for bank card management
+     */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Create bank_cards table
+            database.execSQL(
+                """
+                CREATE TABLE bank_cards (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    userId INTEGER NOT NULL,
+                    alias TEXT NOT NULL,
+                    lastFourDigits TEXT NOT NULL,
+                    paymentDay INTEGER NOT NULL,
+                    isActive INTEGER NOT NULL DEFAULT 1,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Create indices for bank_cards table
+            database.execSQL(
+                "CREATE INDEX index_bank_cards_userId ON bank_cards (userId)"
+            )
+        }
+    }
 }

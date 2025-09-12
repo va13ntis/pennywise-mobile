@@ -131,7 +131,8 @@ fun AppNavigation() {
                 },
                 onNavigateToSettings = {
                     navController.navigate(SETTINGS_ROUTE)
-                }
+                },
+                viewModel = homeViewModel
             )
         }
         

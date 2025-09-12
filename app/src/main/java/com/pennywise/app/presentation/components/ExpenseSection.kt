@@ -13,14 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -188,17 +186,14 @@ fun ExpenseSection(
             ) {
                 Column {
                     if (transactions.isNotEmpty()) {
-                        Divider(
+                        HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant,
                             thickness = 1.dp
                         )
                         
-                        // Use LazyColumn for efficient list updates with proper keys
-                        LazyColumn {
-                            items(
-                                items = transactions,
-                                key = { transaction -> transaction.id } // Crucial for stable identity
-                            ) { transaction ->
+                        // Use Column instead of LazyColumn to avoid nested scrollable components
+                        Column {
+                            transactions.forEachIndexed { index, transaction ->
                                 TransactionItem(
                                     transaction = transaction,
                                     currency = currency,
@@ -206,8 +201,8 @@ fun ExpenseSection(
                                 )
                                 
                                 // Add divider between items (except for the last one)
-                                if (transactions.indexOf(transaction) < transactions.size - 1) {
-                                    Divider(
+                                if (index < transactions.size - 1) {
+                                    HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outlineVariant,
                                         thickness = 0.5.dp,
                                         modifier = Modifier.padding(horizontal = 16.dp)

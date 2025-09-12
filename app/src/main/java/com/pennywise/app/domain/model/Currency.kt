@@ -67,11 +67,21 @@ enum class Currency(
          * Format amount with currency symbol
          */
         fun formatAmount(amount: Double, currency: Currency): String {
-            val formattedAmount = when (currency.decimalPlaces) {
-                0 -> amount.toInt().toString()
-                else -> String.format("%.${currency.decimalPlaces}f", amount)
+            // Ensure minus sign is always on the far left for negative values
+            return if (amount < 0) {
+                val absoluteAmount = kotlin.math.abs(amount)
+                val formattedAmount = when (currency.decimalPlaces) {
+                    0 -> absoluteAmount.toInt().toString()
+                    else -> String.format("%.${currency.decimalPlaces}f", absoluteAmount)
+                }
+                "-${currency.symbol}$formattedAmount"
+            } else {
+                val formattedAmount = when (currency.decimalPlaces) {
+                    0 -> amount.toInt().toString()
+                    else -> String.format("%.${currency.decimalPlaces}f", amount)
+                }
+                "${currency.symbol}$formattedAmount"
             }
-            return "${currency.symbol}$formattedAmount"
         }
 
         /**

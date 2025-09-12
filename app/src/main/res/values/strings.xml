@@ -44,9 +44,20 @@
     <string name="amount_required">Amount is required</string>
     <string name="invalid_amount">Please enter a valid amount</string>
     <string name="payment_type">Payment Type</string>
+    <string name="payment_method">Payment Method</string>
     <string name="one_time">One-time</string>
     <string name="recurring">Recurring</string>
     <string name="notes">Notes</string>
+    
+    <!-- Bank Cards -->
+    <string name="bank_cards_title">Bank Cards</string>
+    <string name="add_bank_card">Add Bank Card</string>
+    <string name="edit_bank_card">Edit Bank Card</string>
+    <string name="card_alias">Card Alias</string>
+    <string name="last_four_digits">Last Four Digits</string>
+    <string name="payment_day">Payment Day</string>
+    <string name="no_bank_cards_title">No Bank Cards</string>
+    <string name="no_bank_cards_description">Add your bank cards to track payment due dates and manage your expenses better.</string>
     <string name="notes_hint">Optional notes about this expense</string>
     <string name="category">Category</string>
     <string name="category_required">Category is required</string>

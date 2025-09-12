@@ -5,6 +5,7 @@ import android.text.TextUtils
 import android.view.View
 import java.text.NumberFormat
 import java.util.*
+import androidx.core.text.layoutDirection
 
 /**
  * Enhanced utility class for currency formatting with proper locale support
@@ -42,15 +43,43 @@ object CurrencyFormatter {
             format.currency = Currency.getInstance("USD")
         }
         
-        // Apply bidirectional markers if needed for mixed-direction text
+        // Format the amount
         val formattedAmount = format.format(amount)
-        val isRTL = forceRTL || TextUtils.getLayoutDirectionFromLocale(formattingLocale) == View.LAYOUT_DIRECTION_RTL
+        
+        // Fix negative sign positioning - ensure minus sign is always on the far left
+        if (amount < 0) {
+            // For negative amounts, format the absolute value first
+            val absoluteAmount = kotlin.math.abs(amount)
+            val positiveFormatted = format.format(absoluteAmount)
+            
+            // Remove the currency symbol from the positive formatted amount
+            val cleanAmount = positiveFormatted.replace(format.currency.symbol, "").trim()
+            
+            // Reconstruct with minus sign on the far left, before currency symbol
+            return "-${format.currency.symbol}$cleanAmount"
+        } else {
+            return formattedAmount
+        }
+
+        /*
+        val isRTL = forceRTL || formattingLocale.layoutDirection == View.LAYOUT_DIRECTION_RTL
         
         return if (isRTL) {
-            "\u200F$formattedAmount\u200F" // RLM markers
+            // For RTL, we need to ensure the minus sign stays on the left
+            // Use LTR override for the minus sign and currency symbol, then RTL for the number
+            if (amount < 0) {
+                val absoluteAmount = kotlin.math.abs(amount)
+                val positiveFormatted = format.format(absoluteAmount)
+                val cleanAmount = positiveFormatted.replace(format.currency.symbol, "").trim()
+                // Force LTR for minus sign and currency symbol, then RTL for the number
+                "\u202D-${format.currency.symbol}\u202C\u200F$cleanAmount\u200F"
+            } else {
+                "\u200F$correctedAmount\u200F" // RLM markers
+            }
         } else {
-            formattedAmount
+            correctedAmount
         }
+         */
     }
     
     /**

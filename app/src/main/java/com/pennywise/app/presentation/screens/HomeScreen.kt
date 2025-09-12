@@ -71,7 +71,7 @@ fun HomeScreen(
     onAddExpense: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel(),
+    viewModel: HomeViewModel,
     testDataViewModel: TestDataViewModel = hiltViewModel()
 ) {
     val transactions by viewModel.transactions.collectAsState()
@@ -84,9 +84,11 @@ fun HomeScreen(
     val originalCurrency by viewModel.originalCurrency.collectAsState()
     val conversionState by viewModel.conversionState.collectAsState()
     
-    val transactionsByWeek = viewModel.getTransactionsGroupedByWeek()
-    val totalIncome = viewModel.getTotalIncome()
-    val totalExpenses = viewModel.getTotalExpenses()
+    // Reactive computed values
+    val transactionsByWeek by viewModel.transactionsByWeek.collectAsState()
+    val totalIncome by viewModel.totalIncome.collectAsState()
+    val totalExpenses by viewModel.totalExpenses.collectAsState()
+    val netBalance by viewModel.netBalance.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
     

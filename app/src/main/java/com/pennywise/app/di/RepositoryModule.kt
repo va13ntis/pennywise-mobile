@@ -5,15 +5,19 @@ import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.dao.CurrencyUsageDao
+import com.pennywise.app.data.local.dao.BankCardDao
 import com.pennywise.app.data.repository.TransactionRepositoryImpl
 import com.pennywise.app.data.repository.UserRepositoryImpl
 import com.pennywise.app.data.repository.CurrencyUsageRepositoryImpl
+import com.pennywise.app.data.repository.BankCardRepositoryImpl
 import com.pennywise.app.data.util.PasswordHasher
 import com.pennywise.app.data.util.DataSeeder
 import com.pennywise.app.data.util.DataMigrationService
+import com.pennywise.app.data.security.CardEncryptionManager
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.UserRepository
 import com.pennywise.app.domain.repository.CurrencyUsageRepository
+import com.pennywise.app.domain.repository.BankCardRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import dagger.Module
 import dagger.Provides
@@ -63,6 +67,15 @@ object RepositoryModule {
     @Singleton
     fun provideCurrencyUsageDao(database: PennyWiseDatabase): CurrencyUsageDao {
         return database.currencyUsageDao()
+    }
+    
+    /**
+     * Provides the BankCardDao
+     */
+    @Provides
+    @Singleton
+    fun provideBankCardDao(database: PennyWiseDatabase): BankCardDao {
+        return database.bankCardDao()
     }
     
     /**
@@ -144,5 +157,17 @@ object RepositoryModule {
         userRepository: UserRepository
     ): CurrencySortingService {
         return CurrencySortingService(currencyUsageRepository, userRepository)
+    }
+    
+    /**
+     * Provides the BankCardRepository implementation
+     */
+    @Provides
+    @Singleton
+    fun provideBankCardRepository(
+        bankCardDao: BankCardDao,
+        encryptionManager: CardEncryptionManager
+    ): BankCardRepository {
+        return BankCardRepositoryImpl(bankCardDao, encryptionManager)
     }
 }

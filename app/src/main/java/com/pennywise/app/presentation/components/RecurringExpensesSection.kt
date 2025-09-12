@@ -87,10 +87,11 @@ fun RecurringExpensesSection(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column {
             // Header with special styling for recurring expenses
@@ -98,7 +99,7 @@ fun RecurringExpensesSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(16.dp),
+                    .padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -205,8 +206,9 @@ fun RecurringExpensesSection(
             ) {
                 Column {
                     Divider(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                        thickness = 1.dp
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                     
                     transactions.forEachIndexed { index, transaction ->
@@ -218,9 +220,9 @@ fun RecurringExpensesSection(
                         // Add divider between items (except for the last one)
                         if (index < transactions.size - 1) {
                             Divider(
-                                color = MaterialTheme.colorScheme.outlineVariant,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                                 thickness = 0.5.dp,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     }
@@ -258,16 +260,18 @@ fun RecurringTransactionItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         // Transaction details
         Column(
             modifier = Modifier.weight(1f)
         ) {
+            // Title row with description and recurring badge
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 4.dp)
             ) {
                 Text(
                     text = transaction.description,
@@ -292,33 +296,39 @@ fun RecurringTransactionItem(
                 }
             }
             
-            Spacer(modifier = Modifier.height(2.dp))
-            
+            // Date
             Text(
                 text = formattedDate,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Start
+                modifier = Modifier.padding(bottom = 2.dp)
             )
             
-            if (transaction.category.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = transaction.category,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            
-            // Show recurring period if available
-            transaction.recurringPeriod?.let { period ->
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = formatRecurringPeriod(period),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    textAlign = TextAlign.Start
-                )
+            // Category and frequency row
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (transaction.category.isNotEmpty()) {
+                    Text(
+                        text = transaction.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                // Show recurring period if available
+                transaction.recurringPeriod?.let { period ->
+                    if (transaction.category.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = formatRecurringPeriod(period),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
         

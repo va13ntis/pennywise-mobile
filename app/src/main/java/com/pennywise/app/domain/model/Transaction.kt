@@ -16,6 +16,9 @@ data class Transaction(
     val date: Date,
     val isRecurring: Boolean = false,
     val recurringPeriod: RecurringPeriod? = null,
+    val paymentMethod: PaymentMethod = PaymentMethod.CASH,
+    val installments: Int? = null, // Only used for split payments
+    val installmentAmount: Double? = null, // Calculated monthly payment amount
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
 )

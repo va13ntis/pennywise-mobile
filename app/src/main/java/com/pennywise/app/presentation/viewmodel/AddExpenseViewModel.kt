@@ -6,7 +6,9 @@ import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.TransactionType
+import com.pennywise.app.domain.model.BankCard
 import com.pennywise.app.domain.repository.TransactionRepository
+import com.pennywise.app.domain.repository.BankCardRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.domain.validation.CurrencyValidator
 import com.pennywise.app.domain.validation.CurrencyErrorHandler
@@ -25,6 +27,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AddExpenseViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
+    private val bankCardRepository: BankCardRepository,
     private val authManager: AuthManager,
     private val currencyValidator: CurrencyValidator,
     private val currencyErrorHandler: CurrencyErrorHandler,
@@ -44,6 +47,10 @@ class AddExpenseViewModel @Inject constructor(
     // Top currencies (most used)
     private val _topCurrencies = MutableStateFlow<List<Currency>>(emptyList())
     val topCurrencies: StateFlow<List<Currency>> = _topCurrencies
+    
+    // Bank cards for the current user
+    private val _bankCards = MutableStateFlow<List<BankCard>>(emptyList())
+    val bankCards: StateFlow<List<BankCard>> = _bankCards
     
     init {
         // Initialize with current user's default currency and load sorted currencies
@@ -65,6 +72,9 @@ class AddExpenseViewModel @Inject constructor(
                     
                     // Load sorted currencies for this user
                     loadSortedCurrencies(currentUser.id)
+                    
+                    // Load bank cards for this user
+                    loadBankCards(currentUser.id)
                 }
             }
         }
@@ -83,6 +93,23 @@ class AddExpenseViewModel @Inject constructor(
         viewModelScope.launch {
             currencySortingService.getTopCurrencies(userId, 10).collect { topCurrencies ->
                 _topCurrencies.value = topCurrencies
+            }
+        }
+    }
+    
+    /**
+     * Load bank cards for a user
+     */
+    private fun loadBankCards(userId: Long) {
+        viewModelScope.launch {
+            try {
+                bankCardRepository.getActiveBankCardsByUserId(userId).collect { cards ->
+                    _bankCards.value = cards
+                }
+            } catch (e: Exception) {
+                // Handle error - could log or show user feedback
+                // For now, just set empty list
+                _bankCards.value = emptyList()
             }
         }
     }
@@ -168,6 +195,9 @@ class AddExpenseViewModel @Inject constructor(
                     date = expenseData.date,
                     isRecurring = expenseData.isRecurring,
                     recurringPeriod = if (expenseData.isRecurring) RecurringPeriod.MONTHLY else null,
+                    paymentMethod = expenseData.paymentMethod,
+                    installments = expenseData.installments,
+                    installmentAmount = expenseData.installmentAmount,
                     createdAt = Date(),
                     updatedAt = Date()
                 )
@@ -177,6 +207,17 @@ class AddExpenseViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = AddExpenseUiState.Error(e.message ?: "Failed to save expense")
             }
+        }
+    }
+    
+    /**
+     * Calculate installment amount based on total amount and number of installments
+     */
+    fun calculateInstallmentAmount(totalAmount: Double, installments: Int): Double {
+        return if (installments > 0) {
+            totalAmount / installments
+        } else {
+            totalAmount
         }
     }
     

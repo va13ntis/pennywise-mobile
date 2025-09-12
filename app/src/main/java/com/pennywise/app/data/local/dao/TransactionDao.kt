@@ -61,5 +61,9 @@ interface TransactionDao {
     
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions()
+    
+    // Debug query to get recent transactions for a user (for debugging)
+    @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC LIMIT 10")
+    suspend fun getRecentTransactionsByUser(userId: Long): List<TransactionEntity>
 }
 

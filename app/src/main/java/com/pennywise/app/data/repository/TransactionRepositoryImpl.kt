@@ -71,7 +71,30 @@ class TransactionRepositoryImpl @Inject constructor(
     override fun getTransactionsByMonth(userId: Long, month: YearMonth): Flow<List<Transaction>> {
         val startDate = month.atDay(1).toDate()
         val endDate = month.atEndOfMonth().toDate()
-        return getTransactionsByUserAndDateRange(userId, startDate, endDate)
+        
+        println("🔍 TransactionRepository: Querying transactions for user $userId, month $month")
+        println("🔍 TransactionRepository: Date range: $startDate to $endDate")
+        
+        return getTransactionsByUserAndDateRange(userId, startDate, endDate).map { transactions ->
+            println("🔍 TransactionRepository: Found ${transactions.size} transactions for $month")
+            
+            // Debug: Show recent transactions for this user
+            kotlinx.coroutines.runBlocking {
+                val recentTransactions = transactionDao.getRecentTransactionsByUser(userId)
+                println("🔍 TransactionRepository: Recent transactions for user $userId:")
+                recentTransactions.forEachIndexed { index, transaction ->
+                    println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
+                }
+                
+                val countInRange = transactionDao.getTransactionCountByDateRange(userId, startDate, endDate)
+                println("🔍 TransactionRepository: Count of transactions in date range: $countInRange")
+            }
+            
+            transactions.forEachIndexed { index, transaction ->
+                println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
+            }
+            transactions
+        }
     }
     
     // Aggregation operations

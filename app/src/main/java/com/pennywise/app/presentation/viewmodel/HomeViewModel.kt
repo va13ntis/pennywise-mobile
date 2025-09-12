@@ -15,9 +15,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import java.time.YearMonth
 import java.time.temporal.WeekFields
 import java.util.Calendar
@@ -41,8 +44,19 @@ class HomeViewModel @Inject constructor(
     private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions.asStateFlow()
     
-    private val _recurringTransactions = MutableStateFlow<List<Transaction>>(emptyList())
-    val recurringTransactions: StateFlow<List<Transaction>> = _recurringTransactions.asStateFlow()
+    private val _allRecurringTransactions = MutableStateFlow<List<Transaction>>(emptyList())
+    
+    // Computed recurring transactions filtered by current month
+    val recurringTransactions: StateFlow<List<Transaction>> = combine(
+        _allRecurringTransactions.asStateFlow(),
+        _currentMonth.asStateFlow()
+    ) { allRecurring, currentMonth ->
+        filterRecurringTransactionsForMonth(allRecurring, currentMonth)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -51,6 +65,57 @@ class HomeViewModel @Inject constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
     
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
+    
+    // Reactive computed values
+    val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = _transactions.map { transactions ->
+        transactions
+            .filter { it.type == TransactionType.EXPENSE }
+            .groupBy { transaction ->
+                val calendar = Calendar.getInstance().apply {
+                    time = transaction.date
+                }
+                calendar.get(Calendar.WEEK_OF_MONTH)
+            }
+            .toSortedMap()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyMap()
+    )
+    
+    val totalIncome: StateFlow<Double> = _transactions.map { transactions ->
+        transactions
+            .filter { it.type == TransactionType.INCOME }
+            .sumOf { it.amount }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0.0
+    )
+    
+    val totalExpenses: StateFlow<Double> = _transactions.map { transactions ->
+        transactions
+            .filter { it.type == TransactionType.EXPENSE }
+            .sumOf { it.amount }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0.0
+    )
+    
+    val netBalance: StateFlow<Double> = _transactions.map { transactions ->
+        val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+        val expenses = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+        income - expenses
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0.0
+    )
+    
+    // Job management for proper coroutine lifecycle
+    private var monthlyTransactionsJob: Job? = null
+    private var recurringTransactionsJob: Job? = null
     
     /**
      * Flow of the current currency preference - uses user's default currency
@@ -105,12 +170,56 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
+     * Filter recurring transactions to show only those relevant for the current month
+     * This includes transactions that have a date within the current month
+     */
+    private fun filterRecurringTransactionsForMonth(
+        allRecurring: List<Transaction>,
+        currentMonth: YearMonth
+    ): List<Transaction> {
+        if (allRecurring.isEmpty()) return emptyList()
+        
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay()
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
+        
+        println("🔍 HomeViewModel: Filtering recurring transactions for month: $currentMonth")
+        println("🔍 HomeViewModel: Date range: $startOfMonth to $endOfMonth")
+        println("🔍 HomeViewModel: Total recurring transactions to filter: ${allRecurring.size}")
+        
+        val filtered = allRecurring.filter { transaction ->
+            val transactionDate = transaction.date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+            
+            // Only include if the transaction date falls within the current month
+            val isInCurrentMonth = !transactionDate.isBefore(startOfMonth) && !transactionDate.isAfter(endOfMonth)
+            
+            if (isInCurrentMonth) {
+                println("✅ HomeViewModel: Including recurring transaction: ${transaction.description} - ${transactionDate.toLocalDate()}")
+            }
+            
+            isInCurrentMonth
+        }
+        
+        println("🔍 HomeViewModel: Filtered to ${filtered.size} recurring transactions for $currentMonth")
+        return filtered
+    }
+    
+    /**
      * Set the current user ID and load their data
      */
     fun setUserId(userId: Long) {
         println("🔄 HomeViewModel: Setting user ID to $userId")
-        _userId.value = userId
-        loadTransactions()
+        
+        // Only start observing if the user ID has changed
+        if (_userId.value != userId) {
+            // Cancel existing jobs to prevent multiple coroutines
+            monthlyTransactionsJob?.cancel()
+            recurringTransactionsJob?.cancel()
+            
+            _userId.value = userId
+            startObservingTransactions()
+        } else {
+            println("🔄 HomeViewModel: User ID $userId is already set, skipping observation restart")
+        }
     }
     
     /**
@@ -118,94 +227,96 @@ class HomeViewModel @Inject constructor(
      */
     fun changeMonth(offset: Int) {
         _currentMonth.value = _currentMonth.value.plusMonths(offset.toLong())
-        loadTransactions()
     }
     
     /**
-     * Load transactions for the current month and user
+     * Start observing transactions reactively based on user and month changes
      */
-    private fun loadTransactions() {
-        val userId = _userId.value ?: return
+    private fun startObservingTransactions() {
+        println("🔄 HomeViewModel: Starting to observe transactions")
         
-        println("🔄 HomeViewModel: Loading transactions for user $userId")
-        _isLoading.value = true
-        _error.value = null
-        
-        viewModelScope.launch {
+        // Observe monthly transactions - this will automatically update when month changes
+        monthlyTransactionsJob = viewModelScope.launch {
             try {
-                // Use async to run both operations concurrently
-                val monthlyDeferred = async {
-                    println("🔄 HomeViewModel: Loading monthly transactions...")
-                    val transactions = transactionRepository.getTransactionsByMonth(userId, _currentMonth.value).first()
-                    println("✅ HomeViewModel: Loaded ${transactions.size} monthly transactions")
-                    transactions
+                combine(_userId.asStateFlow(), _currentMonth.asStateFlow()) { userId, month ->
+                    Pair(userId, month)
+                }.collect { (userId, month) ->
+                    if (userId != null) {
+                        println("🔄 HomeViewModel: Loading monthly transactions for user $userId, month: $month")
+                        _isLoading.value = true
+                        
+                        try {
+                            val transactions = transactionRepository.getTransactionsByMonth(userId, month).first()
+                            println("✅ HomeViewModel: Loaded ${transactions.size} monthly transactions for $month")
+                            
+                            // Log detailed transaction information
+                            if (transactions.isNotEmpty()) {
+                                println("📊 HomeViewModel: Transaction details for $month:")
+                                transactions.forEachIndexed { index, transaction ->
+                                    println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
+                                }
+                                
+                                val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+                                val totalExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+                                println("📊 HomeViewModel: Total Income: $${totalIncome}, Total Expenses: $${totalExpense}")
+                            } else {
+                                println("⚠️ HomeViewModel: No transactions found for $month")
+                            }
+                            
+                            _transactions.value = transactions
+                        } catch (e: Exception) {
+                            // Don't show cancellation errors to the user
+                            if (e !is CancellationException) {
+                                println("❌ HomeViewModel: Failed to load monthly transactions: ${e.message}")
+                                e.printStackTrace()
+                                _error.value = "Failed to load transactions: ${e.message}"
+                            }
+                        } finally {
+                            _isLoading.value = false
+                        }
+                    }
                 }
-                
-                val recurringDeferred = async {
-                    println("🔄 HomeViewModel: Loading recurring transactions...")
-                    val transactions = transactionRepository.getRecurringTransactionsByUser(userId).first()
-                    println("✅ HomeViewModel: Loaded ${transactions.size} recurring transactions")
-                    transactions
-                }
-                
-                // Wait for both operations to complete
-                val monthlyTransactions = monthlyDeferred.await()
-                val recurringTransactions = recurringDeferred.await()
-                
-                // Update the state
-                _transactions.value = monthlyTransactions
-                _recurringTransactions.value = recurringTransactions
-                
-                println("✅ HomeViewModel: All transactions loading completed")
             } catch (e: Exception) {
-                println("❌ HomeViewModel: Failed to load transactions: ${e.message}")
-                e.printStackTrace()
-                _error.value = "Failed to load transactions: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                // Don't show cancellation errors to the user
+                if (e !is CancellationException) {
+                    println("❌ HomeViewModel: Failed to observe monthly transactions: ${e.message}")
+                    e.printStackTrace()
+                    _error.value = "Failed to load transactions: ${e.message}"
+                    _isLoading.value = false
+                }
+            }
+        }
+        
+        // Observe recurring transactions (only once per user)
+        recurringTransactionsJob = viewModelScope.launch {
+            try {
+                _userId.asStateFlow().collect { userId ->
+                    if (userId != null) {
+                        println("🔄 HomeViewModel: Loading recurring transactions for user $userId")
+                        try {
+                            val transactions = transactionRepository.getRecurringTransactionsByUser(userId).first()
+                            println("✅ HomeViewModel: Loaded ${transactions.size} recurring transactions")
+                            _allRecurringTransactions.value = transactions
+                        } catch (e: Exception) {
+                            // Don't show cancellation errors to the user
+                            if (e !is CancellationException) {
+                                println("❌ HomeViewModel: Failed to load recurring transactions: ${e.message}")
+                                _error.value = "Failed to load recurring transactions: ${e.message}"
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Don't show cancellation errors to the user
+                if (e !is CancellationException) {
+                    println("❌ HomeViewModel: Failed to observe recurring transactions: ${e.message}")
+                    e.printStackTrace()
+                    _error.value = "Failed to load recurring transactions: ${e.message}"
+                }
             }
         }
     }
     
-    /**
-     * Get transactions grouped by week number
-     */
-    fun getTransactionsGroupedByWeek(): Map<Int, List<Transaction>> {
-        return _transactions.value
-            .filter { it.type == TransactionType.EXPENSE }
-            .groupBy { transaction ->
-                val calendar = Calendar.getInstance().apply {
-                    time = transaction.date
-                }
-                calendar.get(Calendar.WEEK_OF_MONTH)
-            }
-            .toSortedMap()
-    }
-    
-    /**
-     * Get total expenses for the current month
-     */
-    fun getTotalExpenses(): Double {
-        return _transactions.value
-            .filter { it.type == TransactionType.EXPENSE }
-            .sumOf { it.amount }
-    }
-    
-    /**
-     * Get total income for the current month
-     */
-    fun getTotalIncome(): Double {
-        return _transactions.value
-            .filter { it.type == TransactionType.INCOME }
-            .sumOf { it.amount }
-    }
-    
-    /**
-     * Get net balance (income - expenses) for the current month
-     */
-    fun getNetBalance(): Double {
-        return getTotalIncome() - getTotalExpenses()
-    }
     
     /**
      * Clear any error messages
@@ -256,5 +367,14 @@ class HomeViewModel @Inject constructor(
      */
     fun clearConversionState() {
         _conversionState.value = ConversionState.Idle
+    }
+    
+    /**
+     * Clean up resources when ViewModel is cleared
+     */
+    override fun onCleared() {
+        super.onCleared()
+        monthlyTransactionsJob?.cancel()
+        recurringTransactionsJob?.cancel()
     }
 }
