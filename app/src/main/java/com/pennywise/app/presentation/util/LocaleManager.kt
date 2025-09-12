@@ -47,12 +47,8 @@ class LocaleManager @Inject constructor() {
      * @return The current locale
      */
     fun getCurrentLocale(context: Context): Locale {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            context.resources.configuration.locales[0]
-        } else {
-            @Suppress("DEPRECATION")
-            context.resources.configuration.locale
-        }
+        // Use Locale.getDefault() which is more reliable than configuration.locales[0]
+        return Locale.getDefault()
     }
     
     /**

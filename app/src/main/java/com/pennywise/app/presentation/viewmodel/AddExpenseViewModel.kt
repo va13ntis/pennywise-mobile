@@ -7,8 +7,10 @@ import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.domain.model.BankCard
+import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.BankCardRepository
+import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.domain.validation.CurrencyValidator
 import com.pennywise.app.domain.validation.CurrencyErrorHandler
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.Date
+import java.util.Calendar
 import javax.inject.Inject
 
 /**
@@ -28,6 +31,7 @@ import javax.inject.Inject
 class AddExpenseViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val bankCardRepository: BankCardRepository,
+    private val splitPaymentInstallmentRepository: SplitPaymentInstallmentRepository,
     private val authManager: AuthManager,
     private val currencyValidator: CurrencyValidator,
     private val currencyErrorHandler: CurrencyErrorHandler,
@@ -51,6 +55,9 @@ class AddExpenseViewModel @Inject constructor(
     // Bank cards for the current user
     private val _bankCards = MutableStateFlow<List<BankCard>>(emptyList())
     val bankCards: StateFlow<List<BankCard>> = _bankCards
+    
+    // Current user
+    val currentUser = authManager.currentUser
     
     init {
         // Initialize with current user's default currency and load sorted currencies
@@ -158,6 +165,8 @@ class AddExpenseViewModel @Inject constructor(
             _uiState.value = AddExpenseUiState.Loading
             
             try {
+                android.util.Log.d("AddExpenseViewModel", "Saving expense for userId: $userId")
+                android.util.Log.d("AddExpenseViewModel", "Expense data: $expenseData")
                 val currency = _selectedCurrency.value ?: Currency.getDefault()
                 
                 // Validate currency and amount
@@ -185,16 +194,24 @@ class AddExpenseViewModel @Inject constructor(
                     }
                 }
                 
+                // For split payments, the main transaction should only record the first installment amount
+                val isSplitPayment = expenseData.installments != null && expenseData.installments > 1
+                val mainTransactionAmount = if (isSplitPayment) {
+                    expenseData.installmentAmount ?: calculateInstallmentAmount(expenseData.amount, expenseData.installments!!)
+                } else {
+                    expenseData.amount
+                }
+                
                 val transaction = Transaction(
                     userId = userId,
-                    amount = expenseData.amount,
+                    amount = mainTransactionAmount,
                     currency = currency.code,
                     description = expenseData.merchant,
                     category = expenseData.category,
                     type = TransactionType.EXPENSE,
                     date = expenseData.date,
                     isRecurring = expenseData.isRecurring,
-                    recurringPeriod = if (expenseData.isRecurring) RecurringPeriod.MONTHLY else null,
+                    recurringPeriod = expenseData.recurringPeriod,
                     paymentMethod = expenseData.paymentMethod,
                     installments = expenseData.installments,
                     installmentAmount = expenseData.installmentAmount,
@@ -203,6 +220,21 @@ class AddExpenseViewModel @Inject constructor(
                 )
                 
                 val transactionId = transactionRepository.insertTransaction(transaction)
+                
+                // If this is a split payment, create installments for future months
+                if (isSplitPayment) {
+                    createSplitPaymentInstallments(
+                        parentTransactionId = transactionId,
+                        userId = userId,
+                        totalAmount = expenseData.amount,
+                        currency = currency.code,
+                        description = expenseData.merchant,
+                        category = expenseData.category,
+                        startDate = expenseData.date,
+                        installments = expenseData.installments!!
+                    )
+                }
+                
                 _uiState.value = AddExpenseUiState.Success(transactionId)
             } catch (e: Exception) {
                 _uiState.value = AddExpenseUiState.Error(e.message ?: "Failed to save expense")
@@ -218,6 +250,58 @@ class AddExpenseViewModel @Inject constructor(
             totalAmount / installments
         } else {
             totalAmount
+        }
+    }
+    
+    /**
+     * Create split payment installments for all months
+     */
+    private suspend fun createSplitPaymentInstallments(
+        parentTransactionId: Long,
+        userId: Long,
+        totalAmount: Double,
+        currency: String,
+        description: String,
+        category: String,
+        startDate: Date,
+        installments: Int
+    ) {
+        val installmentAmount = totalAmount / installments
+        val calendar = Calendar.getInstance()
+        calendar.time = startDate
+        
+        val installmentsList = mutableListOf<SplitPaymentInstallment>()
+        
+        // Create installments for all months
+        for (i in 1..installments) {
+            val installment = SplitPaymentInstallment(
+                parentTransactionId = parentTransactionId,
+                userId = userId,
+                amount = installmentAmount,
+                currency = currency,
+                description = description,
+                category = category,
+                type = TransactionType.EXPENSE,
+                dueDate = calendar.time,
+                installmentNumber = i,
+                totalInstallments = installments,
+                isPaid = (i == 1), // Mark the first installment as paid since it's recorded in the main transaction
+                paidDate = if (i == 1) startDate else null,
+                createdAt = Date(),
+                updatedAt = Date()
+            )
+            
+            installmentsList.add(installment)
+            
+            // Move to the next month for the next installment
+            if (i < installments) {
+                calendar.add(Calendar.MONTH, 1)
+            }
+        }
+        
+        // Insert all installments at once
+        if (installmentsList.isNotEmpty()) {
+            splitPaymentInstallmentRepository.insertInstallments(installmentsList)
         }
     }
     

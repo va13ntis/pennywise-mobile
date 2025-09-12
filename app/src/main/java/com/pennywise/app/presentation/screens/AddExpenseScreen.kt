@@ -1,5 +1,6 @@
 package com.pennywise.app.presentation.screens
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -90,7 +91,11 @@ import com.pennywise.app.presentation.viewmodel.AddExpenseUiState
 import com.pennywise.app.presentation.viewmodel.AddExpenseViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import com.pennywise.app.presentation.util.LocaleFormatter
 import java.text.SimpleDateFormat
+import java.text.DateFormat
 import java.util.*
 
 /**
@@ -268,22 +273,6 @@ fun PillToggleButton(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Animated checkmark
-                AnimatedVisibility(
-                    visible = isSelected && showCheckmark,
-                    enter = fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(200)),
-                    exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .padding(end = 4.dp)
-                    )
-                }
-                
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyMedium,
@@ -364,14 +353,21 @@ fun AddExpenseScreen(
     onSaveExpense: (expenseData: ExpenseFormData) -> Unit,
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
-    // For now, we'll use a hardcoded user ID since we don't have user management fully set up
-    val userId = 1L
+    // Get the current user ID from the ViewModel
+    val currentUser by viewModel.currentUser.collectAsState()
+    val userId = currentUser?.id ?: 1L // Fallback to 1L if no user is found
+    
+    // Debug logging for user ID
+    LaunchedEffect(currentUser) {
+        Log.d("AddExpenseScreen", "Current user: $currentUser, UserId: $userId")
+    }
     
     // Form state management using remember and mutableStateOf
     var merchant by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var isRecurring by remember { mutableStateOf(false) }
+    var selectedRecurringPeriod by remember { mutableStateOf(RecurringPeriod.MONTHLY) }
     var notes by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(Date()) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -379,13 +375,11 @@ fun AddExpenseScreen(
     var installments by remember { mutableStateOf(1) }
     var showInstallmentOptions by remember { mutableStateOf(false) }
     var selectedBankCardId by remember { mutableStateOf<Long?>(null) }
-    var chequeNumber by remember { mutableStateOf("") }
     
     // Validation states
     var merchantError by remember { mutableStateOf<String?>(null) }
     var amountError by remember { mutableStateOf<String?>(null) }
     var categoryError by remember { mutableStateOf<String?>(null) }
-    var chequeNumberError by remember { mutableStateOf<String?>(null) }
     
     // Form validation state
     var isFormValid by remember { mutableStateOf(false) }
@@ -416,8 +410,8 @@ fun AddExpenseScreen(
         )
     }
     
-    // Date formatter
-    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+    // Date formatter - use LocaleFormatter for consistent region detection
+    val context = LocalContext.current
     
     // Category options - pre-fetch string resources
     val categoryFood = stringResource(R.string.category_food)
@@ -467,16 +461,12 @@ fun AddExpenseScreen(
         
         categoryError = if (category.isBlank()) categoryRequiredText else null
         
-        // Cheque number validation (only required when cheque payment method is selected)
-        chequeNumberError = when {
-            selectedPaymentMethod == PaymentMethod.CHEQUE && chequeNumber.isBlank() -> "Cheque number is required"
-            selectedPaymentMethod == PaymentMethod.CHEQUE && chequeNumber.length < 3 -> "Cheque number must be at least 3 characters"
-            else -> null
-        }
-        
         // Form is valid only if all fields are valid AND currency is selected
+        val wasValid = isFormValid
         isFormValid = merchantError == null && amountError == null && categoryError == null && 
-                     chequeNumberError == null && selectedCurrency != null
+                     selectedCurrency != null
+        
+        Log.d("AddExpenseScreen", "Validation: merchant='$merchant' (error: $merchantError), amount='$amount' (error: $amountError), category='$category' (error: $categoryError), currency=${selectedCurrency?.code}, valid=$isFormValid (was: $wasValid)")
     }
     
     // Handle currency changes and update amount field formatting
@@ -498,90 +488,123 @@ fun AddExpenseScreen(
     }
     
     // Validate form whenever any field changes
-    LaunchedEffect(merchant, amount, category, selectedCurrency, selectedPaymentMethod, chequeNumber) {
+    LaunchedEffect(merchant, amount, category, selectedCurrency, selectedPaymentMethod) {
         validateForm()
     }
     
     // Handle UI state changes from ViewModel
     LaunchedEffect(uiState) {
+        Log.d("AddExpenseScreen", "UI State changed: $uiState")
         when (uiState) {
             is AddExpenseUiState.Success -> {
+                Log.d("AddExpenseScreen", "Save successful, navigating back")
                 onNavigateBack()
             }
             is AddExpenseUiState.Error -> {
+                Log.e("AddExpenseScreen", "Save failed: ${(uiState as AddExpenseUiState.Error).message}")
                 // In a real app, you'd show a snackbar or dialog here
                 // For now, we'll just reset the state
                 viewModel.resetState()
             }
-            else -> {}
+            is AddExpenseUiState.Loading -> {
+                Log.d("AddExpenseScreen", "Save in progress...")
+            }
+            else -> {
+                Log.d("AddExpenseScreen", "UI State: $uiState")
+            }
         }
     }
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.new_expense)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.Default.ArrowBack, 
-                            contentDescription = "Back",
-                            modifier = Modifier.graphicsLayer(
-                                scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
-                            )
-                        )
-                    }
-                }
+                title = { Text(stringResource(R.string.new_expense)) }
             )
         },
         bottomBar = {
-            // Sticky Save Button
-            Button(
-                onClick = {
-                    // Final validation before submission
-                    validateForm()
-                    
-                    // Only proceed if form is valid and currency is selected
-                    if (isFormValid && selectedCurrency != null) {
-                        val totalAmount = amount.toDouble()
-                        val installmentAmount = if (selectedPaymentMethod == PaymentMethod.BANK_CARD && installments > 1) {
-                            viewModel.calculateInstallmentAmount(totalAmount, installments)
-                        } else null
-                        
-                        val expenseData = ExpenseFormData(
-                            merchant = merchant,
-                            amount = totalAmount,
-                            currency = selectedCurrency!!.code,
-                            category = category,
-                            isRecurring = isRecurring,
-                            notes = notes.ifBlank { null },
-                            date = selectedDate,
-                            paymentMethod = selectedPaymentMethod,
-                            installments = if (selectedPaymentMethod == PaymentMethod.BANK_CARD && installments > 1) installments else null,
-                            installmentAmount = installmentAmount,
-                            selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.BANK_CARD) selectedBankCardId else null,
-                            chequeNumber = if (selectedPaymentMethod == PaymentMethod.CHEQUE && chequeNumber.isNotBlank()) chequeNumber else null
-                        )
-                        viewModel.saveExpense(expenseData, userId)
-                    }
-                },
-                enabled = isFormValid && selectedCurrency != null && uiState !is AddExpenseUiState.Loading,
+            // Sticky Save and Cancel Buttons
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
                     .padding(16.dp),
-                shape = RoundedCornerShape(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (uiState is AddExpenseUiState.Loading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
+                // Cancel Button
+                OutlinedButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
                     Text(
-                        text = stringResource(R.string.save),
+                        text = stringResource(R.string.cancel),
                         style = MaterialTheme.typography.titleMedium
                     )
+                }
+                
+                // Save Button
+                Button(
+                    onClick = {
+                        Log.d("AddExpenseScreen", "=== SAVE BUTTON CLICKED ===")
+                        Log.d("AddExpenseScreen", "Save button clicked")
+                        Log.d("AddExpenseScreen", "Form valid: $isFormValid, Currency: ${selectedCurrency?.code}")
+                        Log.d("AddExpenseScreen", "Merchant: '$merchant', Amount: '$amount', Category: '$category'")
+                        
+                        // Final validation before submission
+                        validateForm()
+                        
+                        Log.d("AddExpenseScreen", "After validation - Form valid: $isFormValid")
+                        
+                        // Only proceed if form is valid and currency is selected
+                        if (isFormValid && selectedCurrency != null) {
+                            Log.d("AddExpenseScreen", "Proceeding with save...")
+                            val totalAmount = amount.toDouble()
+                            val installmentAmount = if ((selectedPaymentMethod == PaymentMethod.BANK_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) {
+                                viewModel.calculateInstallmentAmount(totalAmount, installments)
+                            } else null
+                            
+                            val expenseData = ExpenseFormData(
+                                merchant = merchant,
+                                amount = totalAmount,
+                                currency = selectedCurrency!!.code,
+                                category = category,
+                                isRecurring = isRecurring,
+                                recurringPeriod = if (isRecurring) selectedRecurringPeriod else null,
+                                notes = notes.ifBlank { null },
+                                date = selectedDate,
+                                paymentMethod = selectedPaymentMethod,
+                                installments = if ((selectedPaymentMethod == PaymentMethod.BANK_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) installments else null,
+                                installmentAmount = installmentAmount,
+                                selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.BANK_CARD) selectedBankCardId else null
+                            )
+                            Log.d("AddExpenseScreen", "Calling viewModel.saveExpense with data: $expenseData")
+                            viewModel.saveExpense(expenseData, userId)
+                        } else {
+                            Log.d("AddExpenseScreen", "Form validation failed - not saving")
+                        }
+                    },
+                    enabled = run {
+                        val enabled = isFormValid && selectedCurrency != null && uiState !is AddExpenseUiState.Loading
+                        Log.d("AddExpenseScreen", "Save button enabled: $enabled (formValid: $isFormValid, currency: ${selectedCurrency?.code}, uiState: $uiState)")
+                        enabled
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(64.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (uiState is AddExpenseUiState.Loading) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.save),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                 }
             }
         }
@@ -592,9 +615,8 @@ fun AddExpenseScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
             
             // Date Picker - Custom clickable field
             Column(
@@ -637,7 +659,18 @@ fun AddExpenseScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = dateFormatter.format(selectedDate),
+                            text = try {
+                                // Try LocaleFormatter first
+                                LocaleFormatter.formatTransactionDate(selectedDate, context)
+                            } catch (e: Exception) {
+                                // Fallback to system default date format
+                                try {
+                                    DateFormat.getDateInstance(DateFormat.SHORT).format(selectedDate)
+                                } catch (e2: Exception) {
+                                    // Final fallback to simple format
+                                    SimpleDateFormat("MM/dd/yyyy", Locale.US).format(selectedDate)
+                                }
+                            },
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -707,7 +740,7 @@ fun AddExpenseScreen(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         ),
                         singleLine = true,
-                        textStyle = androidx.compose.ui.text.TextStyle(
+                        textStyle = TextStyle(
                             textDirection = TextDirection.Ltr
                         ),
                         shape = RoundedCornerShape(16.dp)
@@ -864,23 +897,6 @@ fun AddExpenseScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Payment Method Section
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectableGroup(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        PaymentMethod.values().forEach { paymentMethod ->
-                            PillToggleButton(
-                                text = paymentMethod.displayName,
-                                isSelected = selectedPaymentMethod == paymentMethod,
-                                onClick = { selectedPaymentMethod = paymentMethod },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                    
                     // Payment Type Section
                     Row(
                         modifier = Modifier
@@ -900,6 +916,62 @@ fun AddExpenseScreen(
                             onClick = { isRecurring = true },
                             modifier = Modifier.weight(1f)
                         )
+                    }
+
+                    // Payment Method Section
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectableGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        PaymentMethod.values().forEach { paymentMethod ->
+                            PillToggleButton(
+                                text = paymentMethod.displayName,
+                                isSelected = selectedPaymentMethod == paymentMethod,
+                                onClick = { selectedPaymentMethod = paymentMethod },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // Recurring Period Selection (only shown when recurring is selected)
+                    AnimatedVisibility(
+                        visible = isRecurring,
+                        enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+                        exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.recurring_period),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectableGroup(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                RecurringPeriod.values().forEach { period ->
+                                    PillToggleButton(
+                                        text = when (period) {
+                                            RecurringPeriod.DAILY -> stringResource(R.string.daily)
+                                            RecurringPeriod.WEEKLY -> stringResource(R.string.weekly)
+                                            RecurringPeriod.MONTHLY -> stringResource(R.string.monthly)
+                                            RecurringPeriod.YEARLY -> stringResource(R.string.yearly)
+                                        },
+                                        isSelected = selectedRecurringPeriod == period,
+                                        onClick = { selectedRecurringPeriod = period },
+                                        modifier = Modifier.weight(1f),
+                                        showCheckmark = false
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -957,14 +1029,14 @@ fun AddExpenseScreen(
                 }
             }
             
-            // Split Payment Options (only shown when Bank card is selected)
+            // Split Payment Options (only shown when Bank card or Cheque is selected)
             AnimatedVisibility(
-                visible = selectedPaymentMethod == PaymentMethod.BANK_CARD,
+                visible = selectedPaymentMethod == PaymentMethod.BANK_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE,
                 enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
                 exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
             ) {
                 FormSectionCard(
-                    title = "Split Payment Options",
+                    title = "Payments layout",
                     icon = Icons.Default.Repeat
                 ) {
                     Column(
@@ -977,7 +1049,7 @@ fun AddExpenseScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Number of installments:",
+                                text = "Number of payments:",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -1075,39 +1147,6 @@ fun AddExpenseScreen(
                 }
             }
             
-            // Cheque Number Field (only shown when Cheque payment method is selected)
-            AnimatedVisibility(
-                visible = selectedPaymentMethod == PaymentMethod.CHEQUE,
-                enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
-                exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
-            ) {
-                OutlinedTextField(
-                    value = chequeNumber,
-                    onValueChange = { newValue ->
-                        chequeNumber = newValue
-                        chequeNumberError = when {
-                            newValue.isBlank() -> "Cheque number is required"
-                            newValue.length < 3 -> "Cheque number must be at least 3 characters"
-                            else -> null
-                        }
-                    },
-                    label = { Text("Cheque Number") },
-                    isError = chequeNumberError != null,
-                    supportingText = { chequeNumberError?.let { Text(it) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next,
-                        capitalization = KeyboardCapitalization.Characters
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    ),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
-                )
-            }
-            
             // Notes field
             OutlinedTextField(
                 value = notes,
@@ -1129,7 +1168,7 @@ fun AddExpenseScreen(
             )
             
             // Add bottom padding to account for sticky save button
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(80.dp))
             
             // Display error messages from ViewModel
             if (uiState is AddExpenseUiState.Error) {
@@ -1249,11 +1288,11 @@ data class ExpenseFormData(
     val currency: String,
     val category: String,
     val isRecurring: Boolean,
+    val recurringPeriod: RecurringPeriod? = null, // Recurring period when isRecurring is true
     val notes: String?,
     val date: Date,
     val paymentMethod: PaymentMethod,
     val installments: Int? = null, // Only used for split payments
     val installmentAmount: Double? = null, // Calculated monthly payment amount
-    val selectedBankCardId: Long? = null, // Selected bank card ID when payment method is BANK_CARD
-    val chequeNumber: String? = null // Cheque number when payment method is CHEQUE
+    val selectedBankCardId: Long? = null // Selected bank card ID when payment method is BANK_CARD
 )

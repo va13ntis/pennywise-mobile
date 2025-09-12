@@ -47,6 +47,11 @@
     <string name="payment_method">Payment Method</string>
     <string name="one_time">One-time</string>
     <string name="recurring">Recurring</string>
+    <string name="recurring_period">Recurring Period</string>
+    <string name="daily">Day</string>
+    <string name="weekly">Week</string>
+    <string name="monthly">Month</string>
+    <string name="yearly">Year</string>
     <string name="notes">Notes</string>
     
     <!-- Bank Cards -->

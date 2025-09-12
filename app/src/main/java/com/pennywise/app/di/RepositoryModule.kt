@@ -6,19 +6,27 @@ import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.dao.CurrencyUsageDao
 import com.pennywise.app.data.local.dao.BankCardDao
+import com.pennywise.app.data.local.dao.SplitPaymentInstallmentDao
 import com.pennywise.app.data.repository.TransactionRepositoryImpl
 import com.pennywise.app.data.repository.UserRepositoryImpl
 import com.pennywise.app.data.repository.CurrencyUsageRepositoryImpl
 import com.pennywise.app.data.repository.BankCardRepositoryImpl
+import com.pennywise.app.data.repository.SplitPaymentInstallmentRepositoryImpl
 import com.pennywise.app.data.util.PasswordHasher
 import com.pennywise.app.data.util.DataSeeder
 import com.pennywise.app.data.util.DataMigrationService
+import com.pennywise.app.data.util.SettingsDataStore
 import com.pennywise.app.data.security.CardEncryptionManager
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.UserRepository
 import com.pennywise.app.domain.repository.CurrencyUsageRepository
 import com.pennywise.app.domain.repository.BankCardRepository
+import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
+import com.pennywise.app.presentation.auth.UserRegistrationManager
+import com.pennywise.app.presentation.auth.AuthMigrationManager
+import com.pennywise.app.presentation.auth.BiometricAuthManager
+import com.pennywise.app.presentation.util.LocaleManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -76,6 +84,15 @@ object RepositoryModule {
     @Singleton
     fun provideBankCardDao(database: PennyWiseDatabase): BankCardDao {
         return database.bankCardDao()
+    }
+    
+    /**
+     * Provides the SplitPaymentInstallmentDao
+     */
+    @Provides
+    @Singleton
+    fun provideSplitPaymentInstallmentDao(database: PennyWiseDatabase): SplitPaymentInstallmentDao {
+        return database.splitPaymentInstallmentDao()
     }
     
     /**
@@ -169,5 +186,66 @@ object RepositoryModule {
         encryptionManager: CardEncryptionManager
     ): BankCardRepository {
         return BankCardRepositoryImpl(bankCardDao, encryptionManager)
+    }
+    
+    /**
+     * Provides the SplitPaymentInstallmentRepository implementation
+     */
+    @Provides
+    @Singleton
+    fun provideSplitPaymentInstallmentRepository(
+        splitPaymentInstallmentDao: SplitPaymentInstallmentDao
+    ): SplitPaymentInstallmentRepository {
+        return SplitPaymentInstallmentRepositoryImpl(splitPaymentInstallmentDao)
+    }
+    
+    /**
+     * Provides the SettingsDataStore utility
+     */
+    @Provides
+    @Singleton
+    fun provideSettingsDataStore(@ApplicationContext context: Context): SettingsDataStore {
+        return SettingsDataStore(context)
+    }
+    
+    /**
+     * Provides the LocaleManager utility
+     */
+    @Provides
+    @Singleton
+    fun provideLocaleManager(): LocaleManager {
+        return LocaleManager()
+    }
+    
+    /**
+     * Provides the UserRegistrationManager
+     */
+    @Provides
+    @Singleton
+    fun provideUserRegistrationManager(@ApplicationContext context: Context): UserRegistrationManager {
+        return UserRegistrationManager(context)
+    }
+    
+    /**
+     * Provides the BiometricAuthManager
+     */
+    @Provides
+    @Singleton
+    fun provideBiometricAuthManager(@ApplicationContext context: Context): BiometricAuthManager {
+        return BiometricAuthManager(context)
+    }
+    
+    /**
+     * Provides the AuthMigrationManager
+     */
+    @Provides
+    @Singleton
+    fun provideAuthMigrationManager(
+        @ApplicationContext context: Context,
+        userRepository: UserRepository,
+        userRegistrationManager: UserRegistrationManager,
+        biometricAuthManager: BiometricAuthManager
+    ): AuthMigrationManager {
+        return AuthMigrationManager(context, userRepository, userRegistrationManager, biometricAuthManager)
     }
 }

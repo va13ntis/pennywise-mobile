@@ -33,7 +33,7 @@ object CurrencyFormatter {
         locale: Locale? = null,
         forceRTL: Boolean = false
     ): String {
-        val formattingLocale = locale ?: context.resources.configuration.locales[0]
+        val formattingLocale = locale ?: Locale.getDefault()
         val format = NumberFormat.getCurrencyInstance(formattingLocale)
         
         try {
@@ -103,7 +103,7 @@ object CurrencyFormatter {
         showRate: Boolean = false,
         conversionRate: Double = 0.0
     ): String {
-        val locale = context.resources.configuration.locales[0]
+        val locale = Locale.getDefault()
         val originalFormatted = formatAmount(originalAmount, originalCurrency, context)
         val convertedFormatted = formatAmount(convertedAmount, targetCurrency, context)
         
@@ -180,7 +180,7 @@ object CurrencyFormatter {
         currencyCode: String,
         context: Context
     ): Pair<String, String> {
-        val locale = context.resources.configuration.locales[0]
+        val locale = Locale.getDefault()
         val symbol = getCurrencySymbol(currencyCode, locale)
         val formattedAmount = formatAmountWithoutSymbol(amount, currencyCode, locale)
         
@@ -236,7 +236,7 @@ object CurrencyFormatter {
             return formatAmount(amount, currencyCode, context)
         }
         
-        val locale = context.resources.configuration.locales[0]
+        val locale = Locale.getDefault()
         val symbol = getCurrencySymbol(currencyCode, locale)
         
         return when {
@@ -294,7 +294,7 @@ object CurrencyFormatter {
         context: Context,
         locale: Locale? = null
     ): String {
-        val formattingLocale = locale ?: context.resources.configuration.locales[0]
+        val formattingLocale = locale ?: Locale.getDefault()
         val format = NumberFormat.getCurrencyInstance(formattingLocale)
         
         try {

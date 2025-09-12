@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.TransactionType
+import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.domain.repository.TransactionRepository
+import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.data.util.SettingsDataStore
 import com.pennywise.app.data.service.CurrencyConversionService
 import com.pennywise.app.presentation.auth.AuthManager
@@ -33,6 +35,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
+    private val splitPaymentInstallmentRepository: SplitPaymentInstallmentRepository,
     private val settingsDataStore: SettingsDataStore,
     private val currencyConversionService: CurrencyConversionService,
     private val authManager: AuthManager
@@ -45,6 +48,7 @@ class HomeViewModel @Inject constructor(
     val transactions: StateFlow<List<Transaction>> = _transactions.asStateFlow()
     
     private val _allRecurringTransactions = MutableStateFlow<List<Transaction>>(emptyList())
+    private val _splitPaymentInstallments = MutableStateFlow<List<SplitPaymentInstallment>>(emptyList())
     
     // Computed recurring transactions filtered by current month
     val recurringTransactions: StateFlow<List<Transaction>> = combine(
@@ -52,6 +56,18 @@ class HomeViewModel @Inject constructor(
         _currentMonth.asStateFlow()
     ) { allRecurring, currentMonth ->
         filterRecurringTransactionsForMonth(allRecurring, currentMonth)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+    
+    // Computed split payment installments filtered by current month
+    val splitPaymentInstallments: StateFlow<List<SplitPaymentInstallment>> = combine(
+        _splitPaymentInstallments.asStateFlow(),
+        _currentMonth.asStateFlow()
+    ) { allInstallments, currentMonth ->
+        filterSplitPaymentInstallmentsForMonth(allInstallments, currentMonth)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -204,6 +220,44 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
+     * Filter split payment installments for the current month
+     */
+    private fun filterSplitPaymentInstallmentsForMonth(
+        allInstallments: List<SplitPaymentInstallment>,
+        currentMonth: YearMonth
+    ): List<SplitPaymentInstallment> {
+        if (allInstallments.isEmpty()) return emptyList()
+        
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay()
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
+        
+        println("🔍 HomeViewModel: Filtering split payment installments for month: $currentMonth")
+        println("🔍 HomeViewModel: Date range: $startOfMonth to $endOfMonth")
+        println("🔍 HomeViewModel: Total installments to filter: ${allInstallments.size}")
+        
+        val filtered = allInstallments.filter { installment ->
+            val dueDate = installment.dueDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+            
+            // Only include if the installment due date falls within the current month
+            val isInCurrentMonth = !dueDate.isBefore(startOfMonth) && !dueDate.isAfter(endOfMonth)
+            
+            // Exclude the first installment (installmentNumber == 1) since it's already shown in the week section
+            val isNotFirstInstallment = installment.installmentNumber > 1
+            
+            val shouldInclude = isInCurrentMonth && isNotFirstInstallment
+            
+            if (shouldInclude) {
+                println("✅ HomeViewModel: Including split payment installment: ${installment.description} - ${dueDate.toLocalDate()}")
+            }
+            
+            shouldInclude
+        }
+        
+        println("🔍 HomeViewModel: Filtered to ${filtered.size} split payment installments for $currentMonth")
+        return filtered
+    }
+    
+    /**
      * Set the current user ID and load their data
      */
     fun setUserId(userId: Long) {
@@ -287,20 +341,21 @@ class HomeViewModel @Inject constructor(
             }
         }
         
-        // Observe recurring transactions (only once per user)
+        // Observe recurring transactions continuously
         recurringTransactionsJob = viewModelScope.launch {
             try {
                 _userId.asStateFlow().collect { userId ->
                     if (userId != null) {
-                        println("🔄 HomeViewModel: Loading recurring transactions for user $userId")
+                        println("🔄 HomeViewModel: Starting to observe recurring transactions for user $userId")
                         try {
-                            val transactions = transactionRepository.getRecurringTransactionsByUser(userId).first()
-                            println("✅ HomeViewModel: Loaded ${transactions.size} recurring transactions")
-                            _allRecurringTransactions.value = transactions
+                            transactionRepository.getRecurringTransactionsByUser(userId).collect { transactions ->
+                                println("✅ HomeViewModel: Updated recurring transactions: ${transactions.size} transactions")
+                                _allRecurringTransactions.value = transactions
+                            }
                         } catch (e: Exception) {
                             // Don't show cancellation errors to the user
                             if (e !is CancellationException) {
-                                println("❌ HomeViewModel: Failed to load recurring transactions: ${e.message}")
+                                println("❌ HomeViewModel: Failed to observe recurring transactions: ${e.message}")
                                 _error.value = "Failed to load recurring transactions: ${e.message}"
                             }
                         }
@@ -315,6 +370,36 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+        
+        // Observe split payment installments continuously
+        viewModelScope.launch {
+            try {
+                _userId.asStateFlow().collect { userId ->
+                    if (userId != null) {
+                        println("🔄 HomeViewModel: Starting to observe split payment installments for user $userId")
+                        try {
+                            splitPaymentInstallmentRepository.getInstallmentsByUser(userId).collect { installments ->
+                                println("✅ HomeViewModel: Updated split payment installments: ${installments.size} installments")
+                                _splitPaymentInstallments.value = installments
+                            }
+                        } catch (e: Exception) {
+                            // Don't show cancellation errors to the user
+                            if (e !is CancellationException) {
+                                println("❌ HomeViewModel: Failed to observe split payment installments: ${e.message}")
+                                _error.value = "Failed to load split payment installments: ${e.message}"
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Don't show cancellation errors to the user
+                if (e !is CancellationException) {
+                    println("❌ HomeViewModel: Failed to observe split payment installments: ${e.message}")
+                    e.printStackTrace()
+                    _error.value = "Failed to load split payment installments: ${e.message}"
+                }
+            }
+        }
     }
     
     
@@ -323,6 +408,18 @@ class HomeViewModel @Inject constructor(
      */
     fun clearError() {
         _error.value = null
+    }
+    
+    /**
+     * Refresh all data - useful for manual refresh after adding new expenses
+     */
+    fun refreshData() {
+        val userId = _userId.value
+        if (userId != null) {
+            println("🔄 HomeViewModel: Manual refresh requested for user $userId")
+            // The continuous observations will automatically pick up any new data
+            // This method is mainly for debugging or future use
+        }
     }
     
     /**

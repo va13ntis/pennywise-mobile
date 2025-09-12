@@ -76,6 +76,7 @@ fun HomeScreen(
 ) {
     val transactions by viewModel.transactions.collectAsState()
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
+    val splitPaymentInstallments by viewModel.splitPaymentInstallments.collectAsState()
     val currentMonth by viewModel.currentMonth.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -191,11 +192,12 @@ fun HomeScreen(
                         )
                     }
                     
-                    // Recurring expenses section
-                    if (recurringTransactions.isNotEmpty()) {
+                    // Recurring expenses section (includes both recurring transactions and split payment installments)
+                    if (recurringTransactions.isNotEmpty() || splitPaymentInstallments.isNotEmpty()) {
                         item {
                             RecurringExpensesSection(
                                 transactions = recurringTransactions,
+                                splitPaymentInstallments = splitPaymentInstallments,
                                 currency = currency,
                                 currencyConversionEnabled = currencyConversionEnabled,
                                 originalCurrency = originalCurrency,
@@ -221,7 +223,7 @@ fun HomeScreen(
                     }
                     
                     // Empty state if no transactions
-                    if (transactions.isEmpty() && recurringTransactions.isEmpty()) {
+                    if (transactions.isEmpty() && recurringTransactions.isEmpty() && splitPaymentInstallments.isEmpty()) {
                         item {
                             EmptyState(
                                 onSeedTestData = { testDataViewModel.seedTestData() },

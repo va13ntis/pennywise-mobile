@@ -112,4 +112,51 @@ object DatabaseMigrations {
             )
         }
     }
+    
+    /**
+     * Migration from version 5 to 6
+     * - Create split_payment_installments table for tracking split payments by months
+     */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Create split_payment_installments table
+            database.execSQL(
+                """
+                CREATE TABLE split_payment_installments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    parentTransactionId INTEGER NOT NULL,
+                    userId INTEGER NOT NULL,
+                    amount REAL NOT NULL,
+                    currency TEXT NOT NULL DEFAULT 'USD',
+                    description TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    dueDate INTEGER NOT NULL,
+                    installmentNumber INTEGER NOT NULL,
+                    totalInstallments INTEGER NOT NULL,
+                    isPaid INTEGER NOT NULL DEFAULT 0,
+                    paidDate INTEGER,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (parentTransactionId) REFERENCES transactions(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Create indices for split_payment_installments table
+            database.execSQL(
+                "CREATE INDEX index_split_payment_installments_userId ON split_payment_installments (userId)"
+            )
+            database.execSQL(
+                "CREATE INDEX index_split_payment_installments_parentTransactionId ON split_payment_installments (parentTransactionId)"
+            )
+            database.execSQL(
+                "CREATE INDEX index_split_payment_installments_dueDate ON split_payment_installments (dueDate)"
+            )
+            database.execSQL(
+                "CREATE INDEX index_split_payment_installments_isPaid ON split_payment_installments (isPaid)"
+            )
+        }
+    }
 }

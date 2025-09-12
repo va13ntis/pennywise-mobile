@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
+import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.theme.income_green
 import com.pennywise.app.presentation.util.CurrencyFormatter
@@ -57,6 +58,7 @@ import kotlin.math.abs
 @Composable
 fun RecurringExpensesSection(
     transactions: List<Transaction>,
+    splitPaymentInstallments: List<SplitPaymentInstallment> = emptyList(),
     currency: String = "",
     currencyConversionEnabled: Boolean = false,
     originalCurrency: String = "",
@@ -64,16 +66,18 @@ fun RecurringExpensesSection(
     onConvertAmount: (Double) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    if (transactions.isEmpty()) {
+    if (transactions.isEmpty() && splitPaymentInstallments.isEmpty()) {
         return
     }
     
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
     
-    // Calculate total only when transactions change - prevents unnecessary recomposition
-    val totalAmount by remember(transactions) {
-        derivedStateOf<Double> { transactions.sumOf { it.amount } }
+    // Calculate total only when transactions or installments change - prevents unnecessary recomposition
+    val totalAmount by remember(transactions, splitPaymentInstallments) {
+        derivedStateOf<Double> { 
+            transactions.sumOf { it.amount } + splitPaymentInstallments.sumOf { it.amount }
+        }
     }
     
     // Format amount only when total or currency changes - prevents unnecessary recomposition
@@ -211,6 +215,7 @@ fun RecurringExpensesSection(
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
                     
+                    // Display recurring transactions
                     transactions.forEachIndexed { index, transaction ->
                         RecurringTransactionItem(
                             transaction = transaction,
@@ -218,7 +223,24 @@ fun RecurringExpensesSection(
                         )
                         
                         // Add divider between items (except for the last one)
-                        if (index < transactions.size - 1) {
+                        if (index < transactions.size - 1 || splitPaymentInstallments.isNotEmpty()) {
+                            Divider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                thickness = 0.5.dp,
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        }
+                    }
+                    
+                    // Display split payment installments
+                    splitPaymentInstallments.forEachIndexed { index, installment ->
+                        SplitPaymentInstallmentItem(
+                            installment = installment,
+                            currency = currency
+                        )
+                        
+                        // Add divider between items (except for the last one)
+                        if (index < splitPaymentInstallments.size - 1) {
                             Divider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                                 thickness = 0.5.dp,
@@ -346,6 +368,117 @@ fun RecurringTransactionItem(
 }
 
 // Note: Currency formatting is now handled by CurrencyFormatter utility class
+
+/**
+ * Specialized item for split payment installments with enhanced styling
+ */
+@Composable
+fun SplitPaymentInstallmentItem(
+    installment: SplitPaymentInstallment,
+    currency: String = "",
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    
+    // Format amount only when installment amount or currency changes - prevents unnecessary recomposition
+    val formattedAmount by remember(installment.amount, currency) {
+        derivedStateOf<String> {
+            CurrencyFormatter.formatAmount(installment.amount, currency, context)
+        }
+    }
+    
+    // Format due date only when installment due date changes - prevents unnecessary recomposition
+    val formattedDueDate by remember(installment.dueDate) {
+        derivedStateOf<String> {
+            LocaleFormatter.formatTransactionDate(installment.dueDate, context)
+        }
+    }
+    
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        // Installment details
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            // Title row with description and split payment badge
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 4.dp)
+            ) {
+                Text(
+                    text = installment.getFormattedDescription(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Split payment badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "💳",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            
+            // Due date
+            Text(
+                text = "Due: $formattedDueDate",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (installment.isOverdue()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+            
+            // Category and status row
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (installment.category.isNotEmpty()) {
+                    Text(
+                        text = installment.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                // Show payment status
+                if (installment.category.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = if (installment.isPaid) "Paid" else "Pending",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (installment.isPaid) income_green else expense_red,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        // Amount
+        Text(
+            text = formattedAmount,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = expense_red,
+            textAlign = TextAlign.End
+        )
+    }
+}
 
 /**
  * Format recurring period for display using localized strings

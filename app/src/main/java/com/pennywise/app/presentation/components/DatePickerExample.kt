@@ -15,9 +15,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pennywise.app.presentation.util.LocaleFormatter
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.ZoneId
+import java.util.Date
 
 /**
  * Example component demonstrating how to use the CustomDatePickerDialog
@@ -27,8 +30,7 @@ import java.time.format.DateTimeFormatter
 fun DatePickerExample() {
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
-    
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val context = LocalContext.current
     
     Column(
         modifier = Modifier
@@ -38,7 +40,13 @@ fun DatePickerExample() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Selected Date: ${selectedDate?.format(dateFormatter) ?: "None"}"
+            text = "Selected Date: ${
+                selectedDate?.let { date ->
+                    // Convert LocalDate to Date for LocaleFormatter
+                    val dateAsDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                    LocaleFormatter.formatTransactionDate(dateAsDate, context)
+                } ?: "None"
+            }"
         )
         
         Spacer(modifier = Modifier.height(16.dp))

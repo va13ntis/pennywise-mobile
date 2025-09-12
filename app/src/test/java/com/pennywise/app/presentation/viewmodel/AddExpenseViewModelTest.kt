@@ -2,7 +2,11 @@ package com.pennywise.app.presentation.viewmodel
 
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.TransactionType
+import com.pennywise.app.domain.model.RecurringPeriod
+import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.repository.TransactionRepository
+import com.pennywise.app.domain.repository.BankCardRepository
+import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.domain.validation.CurrencyErrorHandler
 import com.pennywise.app.domain.validation.CurrencyValidator
 import com.pennywise.app.presentation.auth.AuthManager
@@ -26,30 +30,41 @@ class AddExpenseViewModelTest {
     
     private lateinit var viewModel: AddExpenseViewModel
     private lateinit var mockTransactionRepository: TransactionRepository
+    private lateinit var mockBankCardRepository: BankCardRepository
     private lateinit var mockAuthManager: AuthManager
     private lateinit var mockCurrencyValidator: CurrencyValidator
     private lateinit var mockCurrencyErrorHandler: CurrencyErrorHandler
+    private lateinit var mockCurrencySortingService: CurrencySortingService
     
     @Before
     fun setUp() {
         mockTransactionRepository = mockk()
+        mockBankCardRepository = mockk()
         mockAuthManager = mockk()
         mockCurrencyValidator = mockk()
         mockCurrencyErrorHandler = mockk()
+        mockCurrencySortingService = mockk()
         
         // Setup default behaviors
         every { mockAuthManager.currentUser } returns MutableStateFlow(null)
+        every { mockAuthManager.getCurrentUser() } returns null
         every { mockCurrencyValidator.getValidCurrencyOrFallback(any()) } returns Currency.USD
         every { mockCurrencyValidator.validateCurrencyCode(any()) } returns com.pennywise.app.domain.validation.ValidationResult.Success
         every { mockCurrencyValidator.validateAmountForCurrency(any(), any()) } returns com.pennywise.app.domain.validation.ValidationResult.Success
         every { mockCurrencyErrorHandler.handleCurrencyFallback(any(), any(), any()) } just Runs
         every { mockCurrencyErrorHandler.handleCurrencyValidationError(any(), any(), any()) } just Runs
+        every { mockCurrencySortingService.getSortedCurrencies(any()) } returns MutableStateFlow(emptyList())
+        every { mockCurrencySortingService.getTopCurrencies(any(), any()) } returns MutableStateFlow(emptyList())
+        every { mockCurrencySortingService.trackCurrencyUsage(any(), any()) } just Runs
+        every { mockBankCardRepository.getActiveBankCardsByUserId(any()) } returns MutableStateFlow(emptyList())
         
         viewModel = AddExpenseViewModel(
             mockTransactionRepository,
+            mockBankCardRepository,
             mockAuthManager,
             mockCurrencyValidator,
-            mockCurrencyErrorHandler
+            mockCurrencyErrorHandler,
+            mockCurrencySortingService
         )
     }
     
@@ -89,9 +104,13 @@ class AddExpenseViewModelTest {
         val expenseData = ExpenseFormData(
             merchant = "Test Merchant",
             amount = 100.0,
+            currency = "USD",
             category = "Food",
+            isRecurring = false,
+            recurringPeriod = null,
+            notes = null,
             date = Date(),
-            isRecurring = false
+            paymentMethod = PaymentMethod.CASH
         )
         val userId = 1L
         val transactionId = 123L
@@ -117,9 +136,13 @@ class AddExpenseViewModelTest {
         val expenseData = ExpenseFormData(
             merchant = "Test Merchant",
             amount = 100.0,
+            currency = "USD",
             category = "Food",
+            isRecurring = false,
+            recurringPeriod = null,
+            notes = null,
             date = Date(),
-            isRecurring = false
+            paymentMethod = PaymentMethod.CASH
         )
         val userId = 1L
         
@@ -145,9 +168,13 @@ class AddExpenseViewModelTest {
         val expenseData = ExpenseFormData(
             merchant = "Test Merchant",
             amount = -100.0, // Negative amount
+            currency = "USD",
             category = "Food",
+            isRecurring = false,
+            recurringPeriod = null,
+            notes = null,
             date = Date(),
-            isRecurring = false
+            paymentMethod = PaymentMethod.CASH
         )
         val userId = 1L
         
@@ -173,9 +200,13 @@ class AddExpenseViewModelTest {
         val expenseData = ExpenseFormData(
             merchant = "Test Merchant",
             amount = 100.0,
+            currency = "USD",
             category = "Food",
+            isRecurring = false,
+            recurringPeriod = null,
+            notes = null,
             date = Date(),
-            isRecurring = false
+            paymentMethod = PaymentMethod.CASH
         )
         val userId = 1L
         val transactionId = 123L
@@ -219,9 +250,11 @@ class AddExpenseViewModelTest {
         // When
         viewModel = AddExpenseViewModel(
             mockTransactionRepository,
+            mockBankCardRepository,
             mockAuthManager,
             mockCurrencyValidator,
-            mockCurrencyErrorHandler
+            mockCurrencyErrorHandler,
+            mockCurrencySortingService
         )
         
         // Then
@@ -239,9 +272,13 @@ class AddExpenseViewModelTest {
         val expenseData = ExpenseFormData(
             merchant = "Test Merchant",
             amount = 100.0,
+            currency = "USD",
             category = "Food",
+            isRecurring = false,
+            recurringPeriod = null,
+            notes = null,
             date = Date(),
-            isRecurring = false
+            paymentMethod = PaymentMethod.CASH
         )
         val userId = 1L
         val transactionId = 123L
@@ -258,6 +295,84 @@ class AddExpenseViewModelTest {
         
         // Then
         assertTrue("Should reset to idle state", viewModel.uiState.value is AddExpenseUiState.Idle)
+    }
+    
+    @Test
+    fun `saveExpense should create recurring transaction with correct period`() = runTest {
+        // Given
+        val expenseData = ExpenseFormData(
+            merchant = "Netflix",
+            amount = 15.99,
+            currency = "USD",
+            category = "Entertainment",
+            isRecurring = true,
+            recurringPeriod = RecurringPeriod.MONTHLY,
+            notes = "Monthly subscription",
+            date = Date(),
+            paymentMethod = PaymentMethod.BANK_CARD
+        )
+        val userId = 1L
+        val transactionId = 123L
+        
+        every { mockTransactionRepository.insertTransaction(any()) } returns transactionId
+        
+        // When
+        viewModel.saveExpense(expenseData, userId)
+        
+        // Then
+        verify {
+            mockTransactionRepository.insertTransaction(match {
+                it.isRecurring == true &&
+                it.recurringPeriod == RecurringPeriod.MONTHLY &&
+                it.description == "Netflix" &&
+                it.amount == 15.99 &&
+                it.paymentMethod == PaymentMethod.BANK_CARD
+            })
+        }
+        
+        // Wait for state to update
+        advanceUntilIdle()
+        assertEquals("Should return success state", AddExpenseUiState.Success(transactionId), viewModel.uiState.value)
+    }
+    
+    @Test
+    fun `saveExpense should create transaction with cheque payment method and installments`() = runTest {
+        // Given
+        val expenseData = ExpenseFormData(
+            merchant = "Furniture Store",
+            amount = 1200.0,
+            currency = "USD",
+            category = "Shopping",
+            isRecurring = false,
+            recurringPeriod = null,
+            notes = "Split payment with cheque",
+            date = Date(),
+            paymentMethod = PaymentMethod.CHEQUE,
+            installments = 6,
+            installmentAmount = 200.0
+        )
+        val userId = 1L
+        val transactionId = 456L
+        
+        every { mockTransactionRepository.insertTransaction(any()) } returns transactionId
+        
+        // When
+        viewModel.saveExpense(expenseData, userId)
+        
+        // Then
+        verify {
+            mockTransactionRepository.insertTransaction(match {
+                it.description == "Furniture Store" &&
+                it.amount == 1200.0 &&
+                it.paymentMethod == PaymentMethod.CHEQUE &&
+                it.installments == 6 &&
+                it.installmentAmount == 200.0
+            })
+        }
+        
+        // Wait for state to update
+        advanceUntilIdle()
+        assertEquals("Should return success state", AddExpenseUiState.Success(transactionId), viewModel.uiState.value)
     }
 }
 

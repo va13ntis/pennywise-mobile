@@ -16,18 +16,20 @@ import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.dao.CurrencyUsageDao
 import com.pennywise.app.data.local.dao.BankCardDao
+import com.pennywise.app.data.local.dao.SplitPaymentInstallmentDao
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.BankCardEntity
+import com.pennywise.app.data.local.entity.SplitPaymentInstallmentEntity
 import com.pennywise.app.data.local.migration.DatabaseMigrations
 
 /**
  * Room database for PennyWise app
  */
 @Database(
-    entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class],
-    version = 5,
+    entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class],
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(
@@ -44,6 +46,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun currencyUsageDao(): CurrencyUsageDao
     abstract fun bankCardDao(): BankCardDao
+    abstract fun splitPaymentInstallmentDao(): SplitPaymentInstallmentDao
     
     companion object {
         @Volatile
@@ -56,7 +59,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     "pennywise_database"
                 )
-                .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5)
+                .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
