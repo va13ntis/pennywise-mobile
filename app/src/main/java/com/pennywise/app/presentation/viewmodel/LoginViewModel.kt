@@ -59,10 +59,12 @@ class LoginViewModel @Inject constructor(
             val result = userRepository.authenticateUser(username, password)
             result.fold(
                 onSuccess = { user ->
+                    println("✅ LoginViewModel: Authentication successful for user: ${user.username} (ID: ${user.id})")
                     authManager.saveAuthenticatedUser(user)
                     _loginState.value = LoginState.Success(user)
                 },
                 onFailure = { error ->
+                    println("❌ LoginViewModel: Authentication failed: ${error.message}")
                     _loginState.value = LoginState.Error(error.message ?: "Authentication failed")
                 }
             )

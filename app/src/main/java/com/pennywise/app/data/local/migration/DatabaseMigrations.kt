@@ -159,4 +159,228 @@ object DatabaseMigrations {
             )
         }
     }
+    
+    /**
+     * Migration from version 6 to 7
+     * - Create payment_method_configs table for managing payment method configurations
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Create payment_method_configs table
+            database.execSQL(
+                """
+                CREATE TABLE payment_method_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    userId INTEGER NOT NULL,
+                    paymentMethod TEXT NOT NULL,
+                    alias TEXT NOT NULL,
+                    isDefault INTEGER NOT NULL,
+                    withdrawDay INTEGER,
+                    isActive INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Create indices for payment_method_configs table
+            database.execSQL(
+                "CREATE INDEX index_payment_method_configs_userId ON payment_method_configs (userId)"
+            )
+            database.execSQL(
+                "CREATE INDEX index_payment_method_configs_paymentMethod ON payment_method_configs (paymentMethod)"
+            )
+            database.execSQL(
+                "CREATE INDEX index_payment_method_configs_isDefault ON payment_method_configs (isDefault)"
+            )
+        }
+    }
+    
+    /**
+     * Migration from version 7 to 8
+     * - Fix payment_method_configs table schema to match entity definition
+     */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Drop and recreate the payment_method_configs table with correct schema
+            database.execSQL("DROP TABLE IF EXISTS payment_method_configs")
+            
+            // Recreate the table with the correct schema (no SQL default values)
+            database.execSQL(
+                """
+                CREATE TABLE payment_method_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    userId INTEGER NOT NULL,
+                    paymentMethod TEXT NOT NULL,
+                    alias TEXT NOT NULL,
+                    isDefault INTEGER NOT NULL,
+                    withdrawDay INTEGER,
+                    isActive INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Recreate indices
+            database.execSQL(
+                "CREATE INDEX index_payment_method_configs_userId ON payment_method_configs (userId)"
+            )
+            database.execSQL(
+                "CREATE INDEX index_payment_method_configs_paymentMethod ON payment_method_configs (paymentMethod)"
+            )
+            database.execSQL(
+                "CREATE INDEX index_payment_method_configs_isDefault ON payment_method_configs (isDefault)"
+            )
+        }
+    }
+    
+    /**
+     * Migration from version 8 to 9
+     * - Force complete database recreation to fix schema issues
+     */
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Drop all tables to force complete recreation
+            database.execSQL("DROP TABLE IF EXISTS payment_method_configs")
+            database.execSQL("DROP TABLE IF EXISTS split_payment_installments")
+            database.execSQL("DROP TABLE IF EXISTS bank_cards")
+            database.execSQL("DROP TABLE IF EXISTS currency_usage")
+            database.execSQL("DROP TABLE IF EXISTS transactions")
+            database.execSQL("DROP TABLE IF EXISTS users")
+            
+            // Recreate all tables with correct schema
+            
+            // Users table
+            database.execSQL(
+                """
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    username TEXT NOT NULL UNIQUE,
+                    passwordHash TEXT NOT NULL,
+                    email TEXT,
+                    defaultCurrency TEXT NOT NULL,
+                    locale TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """
+            )
+            
+            // Transactions table
+            database.execSQL(
+                """
+                CREATE TABLE transactions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    userId INTEGER NOT NULL,
+                    amount REAL NOT NULL,
+                    currency TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    date INTEGER NOT NULL,
+                    isRecurring INTEGER NOT NULL,
+                    recurringPeriod TEXT,
+                    paymentMethod TEXT NOT NULL,
+                    installments INTEGER,
+                    installmentAmount REAL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Create index for transactions table
+            database.execSQL("CREATE INDEX index_transactions_userId ON transactions (userId)")
+            
+            // Currency usage table
+            database.execSQL(
+                """
+                CREATE TABLE currency_usage (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    userId INTEGER NOT NULL,
+                    currency TEXT NOT NULL,
+                    usageCount INTEGER NOT NULL DEFAULT 0,
+                    lastUsed INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Bank cards table
+            database.execSQL(
+                """
+                CREATE TABLE bank_cards (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    userId INTEGER NOT NULL,
+                    alias TEXT NOT NULL,
+                    lastFourDigits TEXT NOT NULL,
+                    paymentDay INTEGER NOT NULL,
+                    isActive INTEGER NOT NULL DEFAULT 1,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Split payment installments table
+            database.execSQL(
+                """
+                CREATE TABLE split_payment_installments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    parentTransactionId INTEGER NOT NULL,
+                    userId INTEGER NOT NULL,
+                    amount REAL NOT NULL,
+                    currency TEXT NOT NULL DEFAULT 'USD',
+                    description TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    dueDate INTEGER NOT NULL,
+                    installmentNumber INTEGER NOT NULL,
+                    totalInstallments INTEGER NOT NULL,
+                    isPaid INTEGER NOT NULL DEFAULT 0,
+                    paidDate INTEGER,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (parentTransactionId) REFERENCES transactions(id) ON DELETE CASCADE
+                )
+                """
+            )
+            
+            // Payment method configs table
+            database.execSQL(
+                """
+                CREATE TABLE payment_method_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    userId INTEGER NOT NULL,
+                    paymentMethod TEXT NOT NULL,
+                    alias TEXT NOT NULL,
+                    isDefault INTEGER NOT NULL,
+                    withdrawDay INTEGER,
+                    isActive INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """
+            )
+            
+            // Create all indices
+            database.execSQL("CREATE INDEX index_currency_usage_userId ON currency_usage (userId)")
+            database.execSQL("CREATE UNIQUE INDEX index_currency_usage_userId_currency ON currency_usage (userId, currency)")
+            database.execSQL("CREATE INDEX index_bank_cards_userId ON bank_cards (userId)")
+            database.execSQL("CREATE INDEX index_split_payment_installments_userId ON split_payment_installments (userId)")
+            database.execSQL("CREATE INDEX index_split_payment_installments_parentTransactionId ON split_payment_installments (parentTransactionId)")
+            database.execSQL("CREATE INDEX index_split_payment_installments_dueDate ON split_payment_installments (dueDate)")
+            database.execSQL("CREATE INDEX index_split_payment_installments_isPaid ON split_payment_installments (isPaid)")
+        }
+    }
 }

@@ -28,11 +28,23 @@
     <string name="expenses">Расходы</string>
     <string name="net_balance">Чистый баланс</string>
     <string name="total_expenses">Общие расходы</string>
+    <string name="monthly_expenses">Месячные расходы</string>
+    <string name="all_payment_methods">Все способы</string>
+    <string name="all">Все</string>
+    
+    <!-- Payment Methods -->
+    <string name="payment_method_cash">Наличные</string>
+    <string name="payment_method_cheque">Чек</string>
     <string name="recurring_expenses">Регулярные расходы</string>
     <string name="week_format">Неделя %d</string>
     <string name="no_expenses_this_week">Нет расходов на этой неделе</string>
     <string name="previous_month">Предыдущий месяц</string>
     <string name="next_month">Следующий месяц</string>
+    <string name="current_month">Текущий месяц</string>
+    <string name="first_month">Первый месяц</string>
+    <string name="last_month">Последний месяц</string>
+    <string name="beginning_of_year">Начало года</string>
+    <string name="end_of_year">Конец года</string>
     <string name="add_expense">Добавить расход</string>
     <string name="no_transactions_yet">Пока нет транзакций</string>
     <string name="add_your_first_expense">Добавьте свой первый расход, чтобы начать</string>
@@ -44,8 +56,14 @@
     <string name="amount_required">Сумма обязательна</string>
     <string name="invalid_amount">Пожалуйста, введите действительную сумму</string>
     <string name="payment_type">Тип платежа</string>
+    <string name="payment_method">Способ платежа</string>
     <string name="one_time">Однократно</string>
     <string name="recurring">Регулярно</string>
+    <string name="recurring_period">Период повторения</string>
+    <string name="daily">День</string>
+    <string name="weekly">Неделя</string>
+    <string name="monthly">Месяц</string>
+    <string name="yearly">Год</string>
     <string name="notes">Заметки</string>
     <string name="notes_hint">Дополнительные заметки об этом расходе</string>
     <string name="category">Категория</string>
@@ -57,6 +75,16 @@
     <string name="category_utilities">Коммунальные услуги</string>
     <string name="category_health">Здравоохранение</string>
     <string name="category_other">Другое</string>
+    
+    <!-- Bank Cards -->
+    <string name="bank_cards_title">Банковские карты</string>
+    <string name="add_bank_card">Добавить банковскую карту</string>
+    <string name="edit_bank_card">Редактировать банковскую карту</string>
+    <string name="card_alias">Псевдоним карты</string>
+    <string name="last_four_digits">Последние четыре цифры</string>
+    <string name="payment_day">День платежа</string>
+    <string name="no_bank_cards_title">Нет банковских карт</string>
+    <string name="no_bank_cards_description">Добавьте свои банковские карты для отслеживания сроков платежей и лучшего управления расходами.</string>
     
     <!-- Authentication -->
     <string name="username">Имя пользователя</string>
@@ -96,9 +124,17 @@
     
     <!-- Language -->
     <string name="language">Язык</string>
+    <string name="select_language">Выберите язык</string>
+    <string name="detected_language">Обнаружен: %s</string>
+    <string name="language_auto_detected">Язык автоматически определен с вашего устройства</string>
     
     <!-- Currency -->
     <string name="currency">Валюта</string>
+    <string name="select_currency">Выберите валюту</string>
+    <string name="currency_selection_hint">Нажмите, чтобы открыть выпадающий список валют. Используйте поиск для поиска валют по коду, символу или названию.</string>
+    <string name="currency_required">Пожалуйста, выберите валюту</string>
+    <string name="most_popular_currencies">Самые популярные</string>
+    <string name="all_currencies">Все валюты</string>
     <string name="currency_usd">Доллар США ($)</string>
     <string name="currency_eur">Евро (€)</string>
     <string name="currency_gbp">Фунт стерлингов (£)</string>
@@ -135,6 +171,12 @@
     <string name="change_default_currency">Изменить валюту по умолчанию</string>
     <string name="updating_currency">Обновление валюты...</string>
     <string name="currency_updated_successfully">Валюта успешно обновлена</string>
+    <string name="currency_settings">Настройки валюты</string>
+    <string name="change">Изменить</string>
+    <string name="change_default_currency_confirmation">Вы уверены, что хотите изменить валюту по умолчанию на %s? Это повлияет на отображение сумм во всем приложении.</string>
+    <string name="default_currency_updated">Валюта по умолчанию успешно обновлена</string>
+    <string name="default_currency_update_failed">Не удалось обновить валюту по умолчанию</string>
+    <string name="currency_change_warning">Изменение с %s на %s может повлиять на существующие данные</string>
     
     <!-- Account -->
     <string name="account">Аккаунт</string>
@@ -165,4 +207,29 @@
     <string name="month_october">Октябрь</string>
     <string name="month_november">Ноябрь</string>
     <string name="month_december">Декабрь</string>
+    
+    <!-- Payment Method and Type -->
+    <string name="payment_method_and_type">Способ и тип платежа</string>
+    <string name="select_bank_card">Выберите банковскую карту</string>
+    <string name="payments_layout">Схема платежей</string>
+    <string name="number_of_payments">Количество платежей:</string>
+    <string name="monthly_payment">Ежемесячный платеж</string>
+    <string name="for_months">на %d месяцев</string>
+    <string name="select_number_of_installments">Выберите количество рассрочек</string>
+    <string name="choose_installment_months">Выберите, на сколько месяцев разделить этот платеж:</string>
+    <string name="custom_installments">Пользовательский (1-36)</string>
+    <string name="done">Готово</string>
+    
+    <!-- Bank Card Display -->
+    <string name="card_number_masked">**** **** **** %s</string>
+    <string name="payment_day_label">День платежа: %d</string>
+    
+    <!-- Currency Validation -->
+    <string name="currency_no_decimal_places">Эта валюта не использует десятичные знаки</string>
+    <string name="currency_decimal_places_info">%s - %d десятичных знаков</string>
+    
+    <!-- Content Descriptions -->
+    <string name="content_desc_calendar">Календарь</string>
+    <string name="content_desc_decrease_installments">Уменьшить количество рассрочек</string>
+    <string name="content_desc_increase_installments">Увеличить количество рассрочек</string>
 </resources>

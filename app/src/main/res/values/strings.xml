@@ -28,11 +28,46 @@
     <string name="expenses">Expenses</string>
     <string name="net_balance">Net Balance</string>
     <string name="total_expenses">Total Expenses</string>
+    <string name="monthly_expenses">Monthly Expenses</string>
+    <string name="all_payment_methods">All Methods</string>
+    <string name="all">All</string>
+    
+    <!-- Payment Methods -->
+    <string name="payment_method_cash">Cash</string>
+    <string name="payment_method_credit_card">Credit Card</string>
+    <string name="payment_method_cheque">Cheque</string>
+    
+    <!-- Payment Method Configuration -->
+    <string name="payment_methods">Payment Methods</string>
+    <string name="payment_method_configuration">Payment Method Configuration</string>
+    <string name="default_payment_method">Default Payment Method</string>
+    <string name="set_as_default">Set as Default</string>
+    <string name="add_payment_method">Add Payment Method</string>
+    <string name="edit_payment_method">Edit Payment Method</string>
+    <string name="payment_method_alias">Payment Method Alias</string>
+    <string name="alias_hint">e.g., Personal Visa, Corporate Card</string>
+    <string name="withdraw_day">Withdraw Day</string>
+    <string name="withdraw_day_hint">Day of month for credit card payment (1-31)</string>
+    <string name="withdraw_day_required">Withdraw day is required for credit cards</string>
+    <string name="invalid_withdraw_day">Withdraw day must be between 1 and 31</string>
+    <string name="no_payment_methods_title">No Payment Methods</string>
+    <string name="no_payment_methods_description">Add payment methods to better organize your expenses and set default payment options.</string>
+    <string name="payment_method_alias_required">Payment method alias is required</string>
+    <string name="credit_card_configuration">Credit Card Configuration</string>
+    <string name="manage_payment_methods">Manage Payment Methods</string>
+    <string name="current_default_payment_method">Current Default Payment Method</string>
+    <string name="other_payment_methods">Other Payment Methods</string>
+    <string name="updating">Updating…</string>
     <string name="recurring_expenses">Recurring Expenses</string>
     <string name="week_format">Week %d</string>
     <string name="no_expenses_this_week">No expenses this week</string>
     <string name="previous_month">Previous Month</string>
     <string name="next_month">Next Month</string>
+    <string name="current_month">Current Month</string>
+    <string name="first_month">First Month</string>
+    <string name="last_month">Last Month</string>
+    <string name="beginning_of_year">Beginning of Year</string>
+    <string name="end_of_year">End of Year</string>
     <string name="add_expense">Add Expense</string>
     <string name="no_transactions_yet">No transactions yet</string>
     <string name="add_your_first_expense">Add your first expense to get started</string>
@@ -44,7 +79,6 @@
     <string name="amount_required">Amount is required</string>
     <string name="invalid_amount">Please enter a valid amount</string>
     <string name="payment_type">Payment Type</string>
-    <string name="payment_method">Payment Method</string>
     <string name="one_time">One-time</string>
     <string name="recurring">Recurring</string>
     <string name="recurring_period">Recurring Period</string>
@@ -210,5 +244,30 @@
     <string name="month_october">October</string>
     <string name="month_november">November</string>
     <string name="month_december">December</string>
+    
+    <!-- Payment Method and Type -->
+    <string name="payment_method_and_type">Payment method and type</string>
+    <string name="select_bank_card">Select Bank Card</string>
+    <string name="payments_layout">Payments layout</string>
+    <string name="number_of_payments">Number of payments:</string>
+    <string name="monthly_payment">Monthly Payment</string>
+    <string name="for_months">for %d months</string>
+    <string name="select_number_of_installments">Select Number of Installments</string>
+    <string name="choose_installment_months">Choose how many months to split this payment:</string>
+    <string name="custom_installments">Custom (1-36)</string>
+    <string name="done">Done</string>
+    
+    <!-- Bank Card Display -->
+    <string name="card_number_masked">**** **** **** %s</string>
+    <string name="payment_day_label">Payment day: %d</string>
+    
+    <!-- Currency Validation -->
+    <string name="currency_no_decimal_places">This currency doesn\'t use decimal places</string>
+    <string name="currency_decimal_places_info">%s - %d decimal places</string>
+    
+    <!-- Content Descriptions -->
+    <string name="content_desc_calendar">Calendar</string>
+    <string name="content_desc_decrease_installments">Decrease installments</string>
+    <string name="content_desc_increase_installments">Increase installments</string>
 </resources>
 

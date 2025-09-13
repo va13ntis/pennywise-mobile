@@ -17,19 +17,21 @@ import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.dao.CurrencyUsageDao
 import com.pennywise.app.data.local.dao.BankCardDao
 import com.pennywise.app.data.local.dao.SplitPaymentInstallmentDao
+import com.pennywise.app.data.local.dao.PaymentMethodConfigDao
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.BankCardEntity
 import com.pennywise.app.data.local.entity.SplitPaymentInstallmentEntity
+import com.pennywise.app.data.local.entity.PaymentMethodConfigEntity
 import com.pennywise.app.data.local.migration.DatabaseMigrations
 
 /**
  * Room database for PennyWise app
  */
 @Database(
-    entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class],
-    version = 6,
+    entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class, PaymentMethodConfigEntity::class],
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(
@@ -47,6 +49,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun currencyUsageDao(): CurrencyUsageDao
     abstract fun bankCardDao(): BankCardDao
     abstract fun splitPaymentInstallmentDao(): SplitPaymentInstallmentDao
+    abstract fun paymentMethodConfigDao(): PaymentMethodConfigDao
     
     companion object {
         @Volatile
@@ -59,7 +62,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     "pennywise_database"
                 )
-                .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6)
+                .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

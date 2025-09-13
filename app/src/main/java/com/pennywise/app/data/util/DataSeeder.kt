@@ -49,7 +49,7 @@ class DataSeeder @Inject constructor(
             
             println("✅ Test data seeded successfully!")
             println("📝 Login credentials:")
-            println("   Email: ${testUser.email}")
+            println("   Username: ${testUser.username}")
             println("   Password: test123")
         } catch (e: Exception) {
             println("❌ Failed to seed test data: ${e.message}")
@@ -86,12 +86,19 @@ class DataSeeder @Inject constructor(
             createdAt = Date()
         )
         
+        println("🔄 Creating test user: ${testUser.username} with email: ${testUser.email}")
         val userId = userDao.insertUser(testUser)
         println("✅ Test user created with ID: $userId")
         
         // Verify the user was created correctly
         val createdUser = userDao.getUserByUsername("testuser")
         println("🔍 Verification - Created user: ${createdUser?.username} (ID: ${createdUser?.id})")
+        
+        // Test authentication to make sure it works
+        if (createdUser != null) {
+            val authTest = userDao.getUserByUsername("testuser")
+            println("🔍 Auth test - Retrieved user: ${authTest?.username} (ID: ${authTest?.id})")
+        }
         
         // Return the created user with the correct ID, not the original testUser
         return createdUser ?: testUser.copy(id = userId)

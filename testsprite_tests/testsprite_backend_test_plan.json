@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "user registration endpoint validation",
+    "description": "Test the /auth/register POST endpoint to ensure successful user registration with valid username, password, and email, and proper handling of invalid inputs or duplicate users."
+  },
+  {
+    "id": "TC002",
+    "title": "user login authentication",
+    "description": "Verify the /auth/login POST endpoint for successful user login with correct credentials and proper rejection with invalid credentials."
+  },
+  {
+    "id": "TC003",
+    "title": "fetch user transactions with filters",
+    "description": "Test the /transactions GET endpoint to retrieve user transactions filtered by userId, date range, category, and type, ensuring correct data is returned."
+  },
+  {
+    "id": "TC004",
+    "title": "create new financial transaction",
+    "description": "Validate the /transactions POST endpoint for creating a new transaction with all required fields, including recurring expense flag and payment method, and proper error handling for invalid data."
+  },
+  {
+    "id": "TC005",
+    "title": "update existing transaction",
+    "description": "Test the /transactions/{id} PUT endpoint to update an existing transaction by id, verifying successful update and handling of non-existent transaction ids."
+  },
+  {
+    "id": "TC006",
+    "title": "delete transaction by id",
+    "description": "Verify the /transactions/{id} DELETE endpoint to delete a transaction by id, ensuring successful deletion and proper response when transaction is not found."
+  },
+  {
+    "id": "TC007",
+    "title": "get supported currencies list",
+    "description": "Test the /currencies GET endpoint to retrieve the list of supported currencies and verify the response format and completeness."
+  },
+  {
+    "id": "TC008",
+    "title": "currency conversion functionality",
+    "description": "Validate the /currencies/convert POST endpoint for converting amounts between currencies, ensuring correct conversion results and error handling for invalid currency codes."
+  },
+  {
+    "id": "TC009",
+    "title": "retrieve user settings",
+    "description": "Test the /settings GET endpoint to fetch user settings by userId, verifying correct retrieval of preferences including theme, locale, and biometric enablement."
+  },
+  {
+    "id": "TC010",
+    "title": "update user settings preferences",
+    "description": "Verify the /settings PUT endpoint to update user settings such as default currency, locale, theme, and biometric enablement, ensuring successful update and validation of input data."
+  }
+]

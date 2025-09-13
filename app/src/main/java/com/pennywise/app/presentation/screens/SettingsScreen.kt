@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.pennywise.app.R
 import com.pennywise.app.presentation.viewmodel.SettingsViewModel
 import com.pennywise.app.presentation.util.LocaleManager
+import com.pennywise.app.domain.model.PaymentMethod
+import com.pennywise.app.domain.model.PaymentMethodConfig
 import javax.inject.Inject
 
 /**
@@ -93,11 +95,17 @@ fun SettingsScreen(
     val defaultCurrencyState by viewModel.defaultCurrencyState.collectAsState(initial = SettingsViewModel.DefaultCurrencyState.Loading)
     val currencyUpdateState by viewModel.currencyUpdateState.collectAsState(initial = SettingsViewModel.CurrencyUpdateState.Idle)
     
+    // Payment method states
+    val paymentMethodConfigs by viewModel.paymentMethodConfigs.collectAsState(initial = emptyList())
+    val defaultPaymentMethodState by viewModel.defaultPaymentMethodState.collectAsState(initial = SettingsViewModel.DefaultPaymentMethodState.Loading)
+    val paymentMethodUpdateState by viewModel.paymentMethodUpdateState.collectAsState(initial = SettingsViewModel.PaymentMethodUpdateState.Idle)
+    
     // State for tracking which sections are expanded (all collapsed by default)
     var isAppearanceExpanded by remember { mutableStateOf(false) }
     var isLanguageExpanded by remember { mutableStateOf(false) }
     var isDefaultCurrencyExpanded by remember { mutableStateOf(false) }
     var isCurrencyConversionExpanded by remember { mutableStateOf(false) }
+    var isPaymentMethodsExpanded by remember { mutableStateOf(false) }
     var isBackupExpanded by remember { mutableStateOf(false) }
     var isAccountExpanded by remember { mutableStateOf(false) }
     
@@ -485,6 +493,188 @@ fun SettingsScreen(
                 }
             }
             
+            // Payment Methods section
+            item {
+                CollapsibleSection(
+                    title = stringResource(R.string.payment_methods),
+                    isExpanded = isPaymentMethodsExpanded,
+                    onToggle = { isPaymentMethodsExpanded = !isPaymentMethodsExpanded }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        // Show current payment method configurations
+                        when (defaultPaymentMethodState) {
+                            is SettingsViewModel.DefaultPaymentMethodState.Loading -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.loading),
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            }
+                            is SettingsViewModel.DefaultPaymentMethodState.Success -> {
+                                val defaultConfig = (defaultPaymentMethodState as SettingsViewModel.DefaultPaymentMethodState.Success).config
+                                
+                                if (paymentMethodConfigs.isEmpty()) {
+                                    // No payment methods configured
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CreditCard,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = stringResource(R.string.no_payment_methods_title),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = stringResource(R.string.no_payment_methods_description),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Button(
+                                            onClick = { /* TODO: Open add payment method dialog */ }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(stringResource(R.string.add_payment_method))
+                                        }
+                                    }
+                                } else {
+                                    // Show current default payment method
+                                    if (defaultConfig != null) {
+                                        Text(
+                                            text = stringResource(R.string.current_default_payment_method),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                        )
+                                        
+                                        PaymentMethodConfigItem(
+                                            config = defaultConfig,
+                                            isDefault = true,
+                                            onSetAsDefault = { /* Already default */ },
+                                            onEdit = { /* TODO: Open edit dialog */ },
+                                            onDelete = { /* TODO: Confirm delete */ }
+                                        )
+                                        
+                                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                                    }
+                                    
+                                    // Show other payment methods
+                                    if (paymentMethodConfigs.size > 1) {
+                                        Text(
+                                            text = stringResource(R.string.other_payment_methods),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                        )
+                                        
+                                        paymentMethodConfigs.filter { it.id != defaultConfig?.id }.forEach { config ->
+                                            PaymentMethodConfigItem(
+                                                config = config,
+                                                isDefault = false,
+                                                onSetAsDefault = { viewModel.setDefaultPaymentMethodConfig(config.id) },
+                                                onEdit = { /* TODO: Open edit dialog */ },
+                                                onDelete = { /* TODO: Confirm delete */ }
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Add new payment method button
+                                    Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                                    Button(
+                                        onClick = { /* TODO: Open add payment method dialog */ },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(stringResource(R.string.add_payment_method))
+                                    }
+                                }
+                            }
+                            is SettingsViewModel.DefaultPaymentMethodState.Error -> {
+                                Text(
+                                    text = (defaultPaymentMethodState as SettingsViewModel.DefaultPaymentMethodState.Error).message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                                )
+                            }
+                        }
+                        
+                        // Show update state
+                        when (paymentMethodUpdateState) {
+                            is SettingsViewModel.PaymentMethodUpdateState.Loading -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.updating),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                            is SettingsViewModel.PaymentMethodUpdateState.Success -> {
+                                Text(
+                                    text = (paymentMethodUpdateState as SettingsViewModel.PaymentMethodUpdateState.Success).message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                                LaunchedEffect(Unit) {
+                                    kotlinx.coroutines.delay(2000)
+                                    viewModel.resetPaymentMethodUpdateState()
+                                }
+                            }
+                            is SettingsViewModel.PaymentMethodUpdateState.Error -> {
+                                Text(
+                                    text = (paymentMethodUpdateState as SettingsViewModel.PaymentMethodUpdateState.Error).message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            else -> { /* Idle state, do nothing */ }
+                        }
+                    }
+                }
+            }
+            
             // Cloud backup section
             item {
                 CollapsibleSection(
@@ -682,5 +872,113 @@ fun CurrencyOption(
                 selectedColor = MaterialTheme.colorScheme.primary
             )
         )
+    }
+}
+
+/**
+ * Payment method configuration item composable
+ */
+@Composable
+fun PaymentMethodConfigItem(
+    config: PaymentMethodConfig,
+    isDefault: Boolean,
+    onSetAsDefault: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Payment method icon
+                Icon(
+                    imageVector = when (config.paymentMethod) {
+                        PaymentMethod.CASH -> Icons.Default.AccountBalanceWallet
+                        PaymentMethod.CREDIT_CARD -> Icons.Default.CreditCard
+                        PaymentMethod.CHEQUE -> Icons.Default.Description
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                // Payment method info
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = config.getDisplayName(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (isDefault) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                    )
+                    
+                    if (isDefault) {
+                        Text(
+                            text = stringResource(R.string.default_payment_method),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    if (config.withdrawDay != null) {
+                        Text(
+                            text = "${stringResource(R.string.withdraw_day)}: ${config.withdrawDay}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Action buttons
+                if (!isDefault) {
+                    IconButton(
+                        onClick = onSetAsDefault,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.StarBorder,
+                            contentDescription = stringResource(R.string.set_as_default),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(R.string.edit),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete),
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
     }
 }

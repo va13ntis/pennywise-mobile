@@ -43,6 +43,7 @@ class HomeViewModel @Inject constructor(
     
     private val _userId = MutableStateFlow<Long?>(null)
     private val _currentMonth = MutableStateFlow(YearMonth.now())
+    private val _selectedPaymentMethod = MutableStateFlow<com.pennywise.app.domain.model.PaymentMethod?>(null)
     
     private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions.asStateFlow()
@@ -109,9 +110,17 @@ class HomeViewModel @Inject constructor(
         initialValue = 0.0
     )
     
-    val totalExpenses: StateFlow<Double> = _transactions.map { transactions ->
+    val totalExpenses: StateFlow<Double> = combine(
+        _transactions.asStateFlow(),
+        _selectedPaymentMethod.asStateFlow()
+    ) { transactions, selectedPaymentMethod ->
         transactions
             .filter { it.type == TransactionType.EXPENSE }
+            .filter { transaction ->
+                selectedPaymentMethod?.let { method ->
+                    transaction.paymentMethod == method
+                } ?: true // Show all if no filter selected
+            }
             .sumOf { it.amount }
     }.stateIn(
         scope = viewModelScope,
@@ -284,6 +293,27 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
+     * Navigate to the current month
+     */
+    fun navigateToCurrentMonth() {
+        _currentMonth.value = YearMonth.now()
+    }
+    
+    /**
+     * Navigate to the beginning of the current year (January)
+     */
+    fun navigateToBeginningOfYear() {
+        _currentMonth.value = _currentMonth.value.withMonth(1)
+    }
+    
+    /**
+     * Navigate to the end of the current year (December)
+     */
+    fun navigateToEndOfYear() {
+        _currentMonth.value = _currentMonth.value.withMonth(12)
+    }
+    
+    /**
      * Start observing transactions reactively based on user and month changes
      */
     private fun startObservingTransactions() {
@@ -402,6 +432,12 @@ class HomeViewModel @Inject constructor(
         }
     }
     
+    /**
+     * Update the payment method filter for expense calculations
+     */
+    fun setPaymentMethodFilter(paymentMethod: com.pennywise.app.domain.model.PaymentMethod?) {
+        _selectedPaymentMethod.value = paymentMethod
+    }
     
     /**
      * Clear any error messages

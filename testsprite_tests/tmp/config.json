@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8080",
+  "backendAuthType": "basic token",
+  "backendUsername": "val",
+  "backendPassword": "a12345",
+  "executionArgs": {
+    "projectName": "pennywise-mobile",
+    "projectPath": "C:\\dev\\pennywise\\pennywise-mobile",
+    "testIds": [],
+    "additionalInstruction": "This is an Android mobile application built with Kotlin, Jetpack Compose, Room database, and Hilt dependency injection. Focus on testing the business logic, data layer, repository implementations, and domain models. The app handles expense tracking, user authentication, currency conversion, and transaction management. Generate tests that can run in the Android testing environment using JUnit 5, MockK, and Robolectric for Android unit tests.",
+    "envs": {
+      "API_KEY": "sk-user-uq1HRweKNIn0m7iAB6zvdiyTat53viMS-cNtUG6Wo4yFVIUb7Sj_fnvTB5pHuFTIgsBnOpu94PSdh9IFjfjSD-iCItZpyciOeYJOBfdZb9Zl3EeBNYN43gMLMzmi2PFBQs0"
+    }
+  }
+}

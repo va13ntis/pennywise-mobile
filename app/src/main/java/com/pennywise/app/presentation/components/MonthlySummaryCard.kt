@@ -77,8 +77,8 @@ import java.time.YearMonth
 private fun getLocalizedPaymentMethodName(paymentMethod: PaymentMethod, context: android.content.Context): String {
     return when (paymentMethod) {
         PaymentMethod.CASH -> context.getString(R.string.payment_method_cash)
-        PaymentMethod.BANK_CARD -> context.getString(R.string.payment_method_bank_card)
         PaymentMethod.CHEQUE -> context.getString(R.string.payment_method_cheque)
+        PaymentMethod.CREDIT_CARD -> "Credit Card"
     }
 }
 
@@ -89,8 +89,8 @@ private fun getLocalizedPaymentMethodName(paymentMethod: PaymentMethod, context:
 private fun getPaymentMethodIcon(paymentMethod: PaymentMethod): androidx.compose.ui.graphics.vector.ImageVector {
     return when (paymentMethod) {
         PaymentMethod.CASH -> Icons.Default.AccountBalanceWallet
-        PaymentMethod.BANK_CARD -> Icons.Default.CreditCard
         PaymentMethod.CHEQUE -> Icons.Default.Receipt
+        PaymentMethod.CREDIT_CARD -> Icons.Default.CreditCard
     }
 }
 

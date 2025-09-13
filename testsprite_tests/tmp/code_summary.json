@@ -1,0 +1,317 @@
+{
+  "tech_stack": [
+    "Kotlin",
+    "Android",
+    "Jetpack Compose",
+    "Room Database",
+    "Hilt Dependency Injection",
+    "Retrofit",
+    "DataStore Preferences",
+    "Biometric Authentication",
+    "JUnit 5",
+    "Espresso",
+    "MockK",
+    "Robolectric"
+  ],
+  "features": [
+    {
+      "name": "User Authentication",
+      "description": "User registration, login, and authentication management with biometric support",
+      "files": [
+        "app/src/main/java/com/pennywise/app/presentation/screens/LoginScreen.kt",
+        "app/src/main/java/com/pennywise/app/presentation/screens/RegisterScreen.kt",
+        "app/src/main/java/com/pennywise/app/presentation/viewmodel/LoginViewModel.kt",
+        "app/src/main/java/com/pennywise/app/presentation/viewmodel/RegisterViewModel.kt",
+        "app/src/main/java/com/pennywise/app/presentation/viewmodel/AuthViewModel.kt",
+        "app/src/main/java/com/pennywise/app/presentation/auth/AuthManager.kt",
+        "app/src/main/java/com/pennywise/app/presentation/auth/BiometricAuthManager.kt",
+        "app/src/main/java/com/pennywise/app/domain/model/User.kt"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "User Authentication API",
+          "version": "1.0.0",
+          "description": "Authentication endpoints for user registration, login, and session management"
+        },
+        "paths": {
+          "/auth/register": {
+            "post": {
+              "summary": "Register a new user",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "username": {"type": "string"},
+                        "password": {"type": "string"},
+                        "email": {"type": "string", "format": "email"}
+                      },
+                      "required": ["username", "password"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {"description": "User registered successfully"},
+                "400": {"description": "Invalid input or user already exists"}
+              }
+            }
+          },
+          "/auth/login": {
+            "post": {
+              "summary": "Authenticate user",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "username": {"type": "string"},
+                        "password": {"type": "string"}
+                      },
+                      "required": ["username", "password"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {"description": "Login successful"},
+                "401": {"description": "Invalid credentials"}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Transaction Management",
+      "description": "Create, read, update, and delete financial transactions with categories and recurring support",
+      "files": [
+        "app/src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt",
+        "app/src/main/java/com/pennywise/app/presentation/viewmodel/AddExpenseViewModel.kt",
+        "app/src/main/java/com/pennywise/app/data/repository/TransactionRepositoryImpl.kt",
+        "app/src/main/java/com/pennywise/app/data/local/dao/TransactionDao.kt",
+        "app/src/main/java/com/pennywise/app/domain/model/Transaction.kt",
+        "app/src/main/java/com/pennywise/app/domain/model/PaymentMethod.kt"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Transaction Management API",
+          "version": "1.0.0",
+          "description": "CRUD operations for financial transactions"
+        },
+        "paths": {
+          "/transactions": {
+            "get": {
+              "summary": "Get user transactions",
+              "parameters": [
+                {"name": "userId", "in": "path", "required": true, "schema": {"type": "integer"}},
+                {"name": "startDate", "in": "query", "schema": {"type": "string", "format": "date"}},
+                {"name": "endDate", "in": "query", "schema": {"type": "string", "format": "date"}},
+                {"name": "category", "in": "query", "schema": {"type": "string"}},
+                {"name": "type", "in": "query", "schema": {"type": "string", "enum": ["INCOME", "EXPENSE"]}}
+              ],
+              "responses": {
+                "200": {"description": "List of transactions"}
+              }
+            },
+            "post": {
+              "summary": "Create a new transaction",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {"type": "integer"},
+                        "amount": {"type": "number"},
+                        "currency": {"type": "string"},
+                        "description": {"type": "string"},
+                        "category": {"type": "string"},
+                        "type": {"type": "string", "enum": ["INCOME", "EXPENSE"]},
+                        "date": {"type": "string", "format": "date-time"},
+                        "isRecurring": {"type": "boolean"},
+                        "paymentMethod": {"type": "string"}
+                      },
+                      "required": ["userId", "amount", "description", "category", "type", "date"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "201": {"description": "Transaction created successfully"},
+                "400": {"description": "Invalid transaction data"}
+              }
+            }
+          },
+          "/transactions/{id}": {
+            "put": {
+              "summary": "Update a transaction",
+              "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {"$ref": "#/components/schemas/Transaction"}
+                  }
+                }
+              },
+              "responses": {
+                "200": {"description": "Transaction updated successfully"},
+                "404": {"description": "Transaction not found"}
+              }
+            },
+            "delete": {
+              "summary": "Delete a transaction",
+              "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+              "responses": {
+                "204": {"description": "Transaction deleted successfully"},
+                "404": {"description": "Transaction not found"}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Currency Management",
+      "description": "Multi-currency support with conversion rates and currency formatting",
+      "files": [
+        "app/src/main/java/com/pennywise/app/domain/model/Currency.kt",
+        "app/src/main/java/com/pennywise/app/domain/model/CurrencyUsage.kt",
+        "app/src/main/java/com/pennywise/app/data/api/CurrencyApi.kt",
+        "app/src/main/java/com/pennywise/app/data/service/CurrencyConversionService.kt",
+        "app/src/main/java/com/pennywise/app/data/repository/CurrencyUsageRepositoryImpl.kt",
+        "app/src/main/java/com/pennywise/app/presentation/util/CurrencyFormatter.kt"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Currency Management API",
+          "version": "1.0.0",
+          "description": "Currency conversion and formatting services"
+        },
+        "paths": {
+          "/currencies": {
+            "get": {
+              "summary": "Get supported currencies",
+              "responses": {
+                "200": {"description": "List of supported currencies"}
+              }
+            }
+          },
+          "/currencies/convert": {
+            "post": {
+              "summary": "Convert amount between currencies",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "amount": {"type": "number"},
+                        "fromCurrency": {"type": "string"},
+                        "toCurrency": {"type": "string"}
+                      },
+                      "required": ["amount", "fromCurrency", "toCurrency"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {"description": "Conversion result"},
+                "400": {"description": "Invalid currency codes"}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Settings Management",
+      "description": "User preferences, theme settings, and app configuration",
+      "files": [
+        "app/src/main/java/com/pennywise/app/presentation/screens/SettingsScreen.kt",
+        "app/src/main/java/com/pennywise/app/presentation/theme/ThemeManager.kt",
+        "app/src/main/java/com/pennywise/app/presentation/util/LocaleManager.kt",
+        "app/src/main/java/com/pennywise/app/data/util/SettingsDataStore.kt"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Settings Management API",
+          "version": "1.0.0",
+          "description": "User settings and preferences management"
+        },
+        "paths": {
+          "/settings": {
+            "get": {
+              "summary": "Get user settings",
+              "parameters": [{"name": "userId", "in": "path", "required": true, "schema": {"type": "integer"}}],
+              "responses": {
+                "200": {"description": "User settings"}
+              }
+            },
+            "put": {
+              "summary": "Update user settings",
+              "parameters": [{"name": "userId", "in": "path", "required": true, "schema": {"type": "integer"}}],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "defaultCurrency": {"type": "string"},
+                        "locale": {"type": "string"},
+                        "theme": {"type": "string", "enum": ["LIGHT", "DARK", "SYSTEM"]},
+                        "biometricEnabled": {"type": "boolean"}
+                      }
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": {"description": "Settings updated successfully"}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Home Dashboard",
+      "description": "Main dashboard showing transaction summaries, charts, and quick actions",
+      "files": [
+        "app/src/main/java/com/pennywise/app/presentation/screens/HomeScreen.kt",
+        "app/src/main/java/com/pennywise/app/presentation/viewmodel/HomeViewModel.kt"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Home Dashboard API",
+          "version": "1.0.0",
+          "description": "Dashboard data and analytics"
+        },
+        "paths": {
+          "/dashboard": {
+            "get": {
+              "summary": "Get dashboard data",
+              "parameters": [{"name": "userId", "in": "path", "required": true, "schema": {"type": "integer"}}],
+              "responses": {
+                "200": {"description": "Dashboard summary data"}
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

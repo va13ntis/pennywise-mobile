@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.pennywise.app.data.util.SettingsDataStore
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.User
+import com.pennywise.app.domain.model.PaymentMethod
+import com.pennywise.app.domain.model.PaymentMethodConfig
 import com.pennywise.app.domain.repository.UserRepository
+import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.presentation.auth.AuthManager
 import com.pennywise.app.presentation.utils.CurrencyViewModelExtensions
@@ -25,7 +28,8 @@ class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val userRepository: UserRepository,
     private val authManager: AuthManager,
-    private val currencySortingService: CurrencySortingService
+    private val currencySortingService: CurrencySortingService,
+    private val paymentMethodConfigRepository: PaymentMethodConfigRepository
 ) : ViewModel() {
 
     // Theme mode state
@@ -59,11 +63,25 @@ class SettingsViewModel @Inject constructor(
     // Top currencies (most used)
     private val _topCurrencies = MutableStateFlow<List<Currency>>(emptyList())
     val topCurrencies: StateFlow<List<Currency>> = _topCurrencies
+    
+    // Payment method configurations state
+    private val _paymentMethodConfigs = MutableStateFlow<List<PaymentMethodConfig>>(emptyList())
+    val paymentMethodConfigs: StateFlow<List<PaymentMethodConfig>> = _paymentMethodConfigs
+    
+    // Default payment method state
+    private val _defaultPaymentMethodState = MutableStateFlow<DefaultPaymentMethodState>(DefaultPaymentMethodState.Loading)
+    val defaultPaymentMethodState: StateFlow<DefaultPaymentMethodState> = _defaultPaymentMethodState
+    
+    // Payment method update state
+    private val _paymentMethodUpdateState = MutableStateFlow<PaymentMethodUpdateState>(PaymentMethodUpdateState.Idle)
+    val paymentMethodUpdateState: StateFlow<PaymentMethodUpdateState> = _paymentMethodUpdateState
 
     init {
         loadSettings()
         loadDefaultCurrency()
         loadSortedCurrencies()
+        loadPaymentMethodConfigs()
+        loadDefaultPaymentMethod()
     }
 
     private fun loadSettings() {
@@ -138,6 +156,37 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+    
+    private fun loadPaymentMethodConfigs() {
+        viewModelScope.launch {
+            authManager.currentUser.collect { user ->
+                if (user != null) {
+                    paymentMethodConfigRepository.getPaymentMethodConfigsByUser(user.id).collect { configs ->
+                        _paymentMethodConfigs.value = configs
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun loadDefaultPaymentMethod() {
+        viewModelScope.launch {
+            try {
+                _defaultPaymentMethodState.value = DefaultPaymentMethodState.Loading
+                
+                authManager.currentUser.collect { currentUser ->
+                    if (currentUser != null) {
+                        val defaultConfig = paymentMethodConfigRepository.getDefaultPaymentMethodConfig(currentUser.id)
+                        _defaultPaymentMethodState.value = DefaultPaymentMethodState.Success(defaultConfig)
+                    } else {
+                        _defaultPaymentMethodState.value = DefaultPaymentMethodState.Error("User not authenticated")
+                    }
+                }
+            } catch (e: Exception) {
+                _defaultPaymentMethodState.value = DefaultPaymentMethodState.Error("Failed to load default payment method: ${e.message}")
+            }
+        }
+    }
 
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
@@ -204,6 +253,100 @@ class SettingsViewModel @Inject constructor(
     fun resetCurrencyUpdateState() {
         _currencyUpdateState.value = CurrencyUpdateState.Idle
     }
+    
+    // Payment Method Management Functions
+    
+    fun addPaymentMethodConfig(paymentMethod: PaymentMethod, alias: String, withdrawDay: Int? = null) {
+        viewModelScope.launch {
+            try {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Loading
+                
+                val currentUser = authManager.currentUser.value
+                if (currentUser != null) {
+                    val config = PaymentMethodConfig.createDefault(
+                        userId = currentUser.id,
+                        paymentMethod = paymentMethod,
+                        alias = alias
+                    ).copy(withdrawDay = withdrawDay)
+                    
+                    val configId = paymentMethodConfigRepository.insertPaymentMethodConfig(config)
+                    
+                    // If this is the first payment method, set it as default
+                    val configCount = paymentMethodConfigRepository.getPaymentMethodConfigCount(currentUser.id)
+                    if (configCount == 1) {
+                        paymentMethodConfigRepository.setDefaultPaymentMethodConfig(currentUser.id, configId)
+                    }
+                    
+                    _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Payment method added successfully")
+                } else {
+                    _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("User not authenticated")
+                }
+            } catch (e: Exception) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to add payment method: ${e.message}")
+            }
+        }
+    }
+    
+    fun updatePaymentMethodConfig(config: PaymentMethodConfig) {
+        viewModelScope.launch {
+            try {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Loading
+                
+                val updatedConfig = config.copy(updatedAt = System.currentTimeMillis())
+                paymentMethodConfigRepository.updatePaymentMethodConfig(updatedConfig)
+                
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Payment method updated successfully")
+            } catch (e: Exception) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to update payment method: ${e.message}")
+            }
+        }
+    }
+    
+    fun deletePaymentMethodConfig(configId: Long) {
+        viewModelScope.launch {
+            try {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Loading
+                
+                val currentUser = authManager.currentUser.value
+                if (currentUser != null) {
+                    paymentMethodConfigRepository.deletePaymentMethodConfig(configId)
+                    
+                    // If we deleted the default payment method, set a new default
+                    val remainingConfigs = paymentMethodConfigRepository.getPaymentMethodConfigsByUser(currentUser.id)
+                    // Note: This would need to be handled in the UI layer by calling setDefaultPaymentMethodConfig
+                    
+                    _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Payment method deleted successfully")
+                } else {
+                    _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("User not authenticated")
+                }
+            } catch (e: Exception) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to delete payment method: ${e.message}")
+            }
+        }
+    }
+    
+    fun setDefaultPaymentMethodConfig(configId: Long) {
+        viewModelScope.launch {
+            try {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Loading
+                
+                val currentUser = authManager.currentUser.value
+                if (currentUser != null) {
+                    paymentMethodConfigRepository.setDefaultPaymentMethodConfig(currentUser.id, configId)
+                    
+                    _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Default payment method updated successfully")
+                } else {
+                    _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("User not authenticated")
+                }
+            } catch (e: Exception) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to set default payment method: ${e.message}")
+            }
+        }
+    }
+    
+    fun resetPaymentMethodUpdateState() {
+        _paymentMethodUpdateState.value = PaymentMethodUpdateState.Idle
+    }
 
     enum class ThemeMode {
         LIGHT, DARK, SYSTEM
@@ -220,5 +363,18 @@ class SettingsViewModel @Inject constructor(
         object Loading : CurrencyUpdateState()
         object Success : CurrencyUpdateState()
         data class Error(val message: String) : CurrencyUpdateState()
+    }
+    
+    sealed class DefaultPaymentMethodState {
+        object Loading : DefaultPaymentMethodState()
+        data class Success(val config: PaymentMethodConfig?) : DefaultPaymentMethodState()
+        data class Error(val message: String) : DefaultPaymentMethodState()
+    }
+    
+    sealed class PaymentMethodUpdateState {
+        object Idle : PaymentMethodUpdateState()
+        object Loading : PaymentMethodUpdateState()
+        data class Success(val message: String) : PaymentMethodUpdateState()
+        data class Error(val message: String) : PaymentMethodUpdateState()
     }
 }

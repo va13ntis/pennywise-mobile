@@ -47,17 +47,27 @@ class UserRepositoryImpl @Inject constructor(
     
     override suspend fun authenticateUser(username: String, password: String): Result<User> {
         return try {
+            println("🔄 UserRepository: Attempting to authenticate user: $username")
+            
             // Get user by username
             val userEntity = userDao.getUserByUsername(username)
-                ?: return Result.failure(Exception("User not found"))
+            if (userEntity == null) {
+                println("❌ UserRepository: User not found: $username")
+                return Result.failure(Exception("User not found"))
+            }
+            
+            println("✅ UserRepository: User found: ${userEntity.username} (ID: ${userEntity.id})")
             
             // Verify password
             if (passwordHasher.verifyPassword(password, userEntity.passwordHash)) {
+                println("✅ UserRepository: Password verification successful")
                 Result.success(userEntity.toDomainModel())
             } else {
+                println("❌ UserRepository: Password verification failed")
                 Result.failure(Exception("Invalid password"))
             }
         } catch (e: Exception) {
+            println("❌ UserRepository: Authentication error: ${e.message}")
             Result.failure(e)
         }
     }

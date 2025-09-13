@@ -66,6 +66,13 @@ class MainActivity : ComponentActivity() {
             currentLanguageCode = languageCode
             if (languageCode.isNotEmpty()) {
                 applyLocaleChange(languageCode)
+            } else {
+                // If no language is saved, detect and apply system locale
+                val detectedLanguage = localeManager.detectDeviceLocale(this@MainActivity)
+                if (detectedLanguage.isNotEmpty()) {
+                    currentLanguageCode = detectedLanguage
+                    applyLocaleChange(detectedLanguage)
+                }
             }
         }
     }
@@ -95,11 +102,16 @@ class MainActivity : ComponentActivity() {
             localeManager.updateLocale(this, languageCode)
         }
         
-        // Update the base context configuration
-        baseContext.resources.updateConfiguration(
-            updatedContext.resources.configuration,
-            updatedContext.resources.displayMetrics
-        )
+        // Apply the locale change to the current context
+        // This is necessary for immediate effect
+        val configuration = updatedContext.resources.configuration
+        val displayMetrics = updatedContext.resources.displayMetrics
+        
+        // Update the current context's configuration
+        resources.updateConfiguration(configuration, displayMetrics)
+        
+        // Also update the base context
+        baseContext.resources.updateConfiguration(configuration, displayMetrics)
     }
     
     /**

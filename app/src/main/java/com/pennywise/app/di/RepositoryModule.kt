@@ -7,11 +7,13 @@ import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.dao.CurrencyUsageDao
 import com.pennywise.app.data.local.dao.BankCardDao
 import com.pennywise.app.data.local.dao.SplitPaymentInstallmentDao
+import com.pennywise.app.data.local.dao.PaymentMethodConfigDao
 import com.pennywise.app.data.repository.TransactionRepositoryImpl
 import com.pennywise.app.data.repository.UserRepositoryImpl
 import com.pennywise.app.data.repository.CurrencyUsageRepositoryImpl
 import com.pennywise.app.data.repository.BankCardRepositoryImpl
 import com.pennywise.app.data.repository.SplitPaymentInstallmentRepositoryImpl
+import com.pennywise.app.data.repository.PaymentMethodConfigRepositoryImpl
 import com.pennywise.app.data.util.PasswordHasher
 import com.pennywise.app.data.util.DataSeeder
 import com.pennywise.app.data.util.DataMigrationService
@@ -22,6 +24,7 @@ import com.pennywise.app.domain.repository.UserRepository
 import com.pennywise.app.domain.repository.CurrencyUsageRepository
 import com.pennywise.app.domain.repository.BankCardRepository
 import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
+import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.presentation.auth.UserRegistrationManager
 import com.pennywise.app.presentation.auth.AuthMigrationManager
@@ -93,6 +96,15 @@ object RepositoryModule {
     @Singleton
     fun provideSplitPaymentInstallmentDao(database: PennyWiseDatabase): SplitPaymentInstallmentDao {
         return database.splitPaymentInstallmentDao()
+    }
+    
+    /**
+     * Provides the PaymentMethodConfigDao
+     */
+    @Provides
+    @Singleton
+    fun providePaymentMethodConfigDao(database: PennyWiseDatabase): PaymentMethodConfigDao {
+        return database.paymentMethodConfigDao()
     }
     
     /**
@@ -197,6 +209,17 @@ object RepositoryModule {
         splitPaymentInstallmentDao: SplitPaymentInstallmentDao
     ): SplitPaymentInstallmentRepository {
         return SplitPaymentInstallmentRepositoryImpl(splitPaymentInstallmentDao)
+    }
+    
+    /**
+     * Provides the PaymentMethodConfigRepository implementation
+     */
+    @Provides
+    @Singleton
+    fun providePaymentMethodConfigRepository(
+        paymentMethodConfigDao: PaymentMethodConfigDao
+    ): PaymentMethodConfigRepository {
+        return PaymentMethodConfigRepositoryImpl(paymentMethodConfigDao)
     }
     
     /**

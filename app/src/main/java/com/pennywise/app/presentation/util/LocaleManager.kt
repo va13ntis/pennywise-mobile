@@ -47,8 +47,12 @@ class LocaleManager @Inject constructor() {
      * @return The current locale
      */
     fun getCurrentLocale(context: Context): Locale {
-        // Use Locale.getDefault() which is more reliable than configuration.locales[0]
-        return Locale.getDefault()
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            context.resources.configuration.locales[0]
+        } else {
+            @Suppress("DEPRECATION")
+            context.resources.configuration.locale
+        }
     }
     
     /**
@@ -58,6 +62,7 @@ class LocaleManager @Inject constructor() {
      * @return The updated context
      */
     private fun updateResources(context: Context, locale: Locale): Context {
+        // Set the default locale for the entire app
         Locale.setDefault(locale)
         
         val configuration = Configuration(context.resources.configuration)
@@ -69,7 +74,13 @@ class LocaleManager @Inject constructor() {
             configuration.locale = locale
         }
         
-        return context.createConfigurationContext(configuration)
+        // Create a new context with the updated configuration
+        val updatedContext = context.createConfigurationContext(configuration)
+        
+        // Also update the resources configuration directly
+        context.resources.updateConfiguration(configuration, context.resources.displayMetrics)
+        
+        return updatedContext
     }
     
     /**

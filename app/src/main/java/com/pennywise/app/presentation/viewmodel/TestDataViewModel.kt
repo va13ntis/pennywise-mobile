@@ -37,7 +37,7 @@ class TestDataViewModel @Inject constructor(
             
             try {
                 dataSeeder.seedTestData()
-                _message.value = "✅ Test data seeded successfully! You can now log in with:\nEmail: test@pennywise.com\nPassword: test123"
+                _message.value = "✅ Test data seeded successfully! You can now log in with:\nUsername: testuser\nPassword: test123"
             } catch (e: Exception) {
                 _message.value = "❌ Failed to seed test data: ${e.message}"
             } finally {

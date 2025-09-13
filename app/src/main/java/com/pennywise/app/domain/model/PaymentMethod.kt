@@ -3,9 +3,9 @@ package com.pennywise.app.domain.model
 /**
  * Enum representing different payment methods for expenses
  */
-enum class PaymentMethod(val displayName: String) {
+enum class PaymentMethod(val displayName: String, val isCreditCard: Boolean = false) {
     CASH("Cash"),
-    BANK_CARD("Bank Card"),
+    CREDIT_CARD("Credit Card", isCreditCard = true),
     CHEQUE("Cheque");
     
     companion object {

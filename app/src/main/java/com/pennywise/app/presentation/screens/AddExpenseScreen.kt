@@ -344,6 +344,18 @@ fun ModernTextField(
 }
 
 /**
+ * Get localized payment method name
+ */
+@Composable
+private fun getLocalizedPaymentMethodName(paymentMethod: com.pennywise.app.domain.model.PaymentMethod, context: android.content.Context): String {
+    return when (paymentMethod) {
+        PaymentMethod.CASH -> context.getString(R.string.payment_method_cash)
+        PaymentMethod.CHEQUE -> context.getString(R.string.payment_method_cheque)
+        PaymentMethod.CREDIT_CARD -> context.getString(R.string.payment_method_credit_card)
+    }
+}
+
+/**
  * Modern redesigned Add Expense Screen with card-based layout and improved UX
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -401,12 +413,13 @@ fun AddExpenseScreen(
     val currencyLabelText = stringResource(R.string.currency)
     val currencyHintText = stringResource(R.string.currency_selection_hint)
     val currencyContentDesc = stringResource(R.string.select_currency)
-    
+    val currencyNoDecimalPlaces = stringResource(R.string.currency_no_decimal_places)
+
     // Currency-specific validation messages
     val currencyValidationMessages = remember {
         mapOf(
-            "JPY" to "Japanese Yen uses whole numbers only (no decimal places)",
-            "KRW" to "Korean Won uses whole numbers only (no decimal places)"
+            "JPY" to currencyNoDecimalPlaces,
+            "KRW" to currencyNoDecimalPlaces
         )
     }
     
@@ -455,7 +468,7 @@ fun AddExpenseScreen(
                     0 -> amount.contains(".")
                     else -> false
                 }
-            } == true -> currencyValidationMessages[selectedCurrency?.code] ?: "This currency doesn't use decimal places"
+            } == true -> currencyValidationMessages[selectedCurrency?.code] ?: currencyNoDecimalPlaces
             else -> null
         }
         
@@ -482,7 +495,7 @@ fun AddExpenseScreen(
     
     // Reset bank card selection when payment method changes
     LaunchedEffect(selectedPaymentMethod) {
-        if (selectedPaymentMethod != PaymentMethod.BANK_CARD) {
+        if (selectedPaymentMethod != PaymentMethod.CREDIT_CARD) {
             selectedBankCardId = null
         }
     }
@@ -560,7 +573,7 @@ fun AddExpenseScreen(
                         if (isFormValid && selectedCurrency != null) {
                             Log.d("AddExpenseScreen", "Proceeding with save...")
                             val totalAmount = amount.toDouble()
-                            val installmentAmount = if ((selectedPaymentMethod == PaymentMethod.BANK_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) {
+                            val installmentAmount = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) {
                                 viewModel.calculateInstallmentAmount(totalAmount, installments)
                             } else null
                             
@@ -574,9 +587,9 @@ fun AddExpenseScreen(
                                 notes = notes.ifBlank { null },
                                 date = selectedDate,
                                 paymentMethod = selectedPaymentMethod,
-                                installments = if ((selectedPaymentMethod == PaymentMethod.BANK_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) installments else null,
+                                installments = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) installments else null,
                                 installmentAmount = installmentAmount,
-                                selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.BANK_CARD) selectedBankCardId else null
+                                selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedBankCardId else null
                             )
                             Log.d("AddExpenseScreen", "Calling viewModel.saveExpense with data: $expenseData")
                             viewModel.saveExpense(expenseData, userId)
@@ -655,7 +668,7 @@ fun AddExpenseScreen(
                     ) {
                         Icon(
                             Icons.Default.CalendarToday,
-                            contentDescription = "Calendar",
+                            contentDescription = stringResource(R.string.content_desc_calendar),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
@@ -766,7 +779,7 @@ fun AddExpenseScreen(
                 } else {
                     selectedCurrency?.let { currency ->
                         Text(
-                            text = "${currency.displayName} - ${currency.decimalPlaces} decimal places",
+                            text = stringResource(R.string.currency_decimal_places_info, currency.displayName, currency.decimalPlaces),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
@@ -891,7 +904,7 @@ fun AddExpenseScreen(
             
             // Payment Method and Type Card
             FormSectionCard(
-                title = "Payment method and type",
+                title = stringResource(R.string.payment_method_and_type),
                 icon = Icons.Default.Payment
             ) {
                 Column(
@@ -927,7 +940,7 @@ fun AddExpenseScreen(
                     ) {
                         PaymentMethod.values().forEach { paymentMethod ->
                             PillToggleButton(
-                                text = paymentMethod.displayName,
+                                text = getLocalizedPaymentMethodName(paymentMethod, LocalContext.current),
                                 isSelected = selectedPaymentMethod == paymentMethod,
                                 onClick = { selectedPaymentMethod = paymentMethod },
                                 modifier = Modifier.weight(1f)
@@ -976,14 +989,14 @@ fun AddExpenseScreen(
                 }
             }
             
-            // Bank Card Selection (only shown when Bank card is selected)
+            // Bank Card Selection (only shown when Credit card is selected)
             AnimatedVisibility(
-                visible = selectedPaymentMethod == PaymentMethod.BANK_CARD && bankCards.isNotEmpty(),
+                visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD && bankCards.isNotEmpty(),
                 enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
                 exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
             ) {
                 FormSectionCard(
-                    title = "Select Bank Card",
+                    title = stringResource(R.string.select_bank_card),
                     icon = Icons.Default.CreditCard
                 ) {
                     Column(
@@ -1013,12 +1026,12 @@ fun AddExpenseScreen(
                                         style = MaterialTheme.typography.bodyLarge
                                     )
                                     Text(
-                                        text = "**** **** **** ${card.lastFourDigits}",
+                                        text = stringResource(R.string.card_number_masked, card.lastFourDigits),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Payment day: ${card.paymentDay}",
+                                        text = stringResource(R.string.payment_day_label, card.paymentDay),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1029,14 +1042,14 @@ fun AddExpenseScreen(
                 }
             }
             
-            // Split Payment Options (only shown when Bank card or Cheque is selected)
+            // Split Payment Options (only shown when Credit card or Cheque is selected)
             AnimatedVisibility(
-                visible = selectedPaymentMethod == PaymentMethod.BANK_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE,
+                visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE,
                 enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
                 exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
             ) {
                 FormSectionCard(
-                    title = "Payments layout",
+                    title = stringResource(R.string.payments_layout),
                     icon = Icons.Default.Repeat
                 ) {
                     Column(
@@ -1049,7 +1062,7 @@ fun AddExpenseScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Number of payments:",
+                                text = stringResource(R.string.number_of_payments),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -1069,7 +1082,7 @@ fun AddExpenseScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.Remove,
-                                        contentDescription = "Decrease installments",
+                                        contentDescription = stringResource(R.string.content_desc_decrease_installments),
                                         tint = if (installments > 1) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
@@ -1099,7 +1112,7 @@ fun AddExpenseScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.Add,
-                                        contentDescription = "Increase installments",
+                                        contentDescription = stringResource(R.string.content_desc_increase_installments),
                                         tint = if (installments < 36) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
@@ -1126,7 +1139,7 @@ fun AddExpenseScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = "Monthly Payment",
+                                        text = stringResource(R.string.monthly_payment),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
@@ -1136,7 +1149,7 @@ fun AddExpenseScreen(
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                     Text(
-                                        text = "for $installments months",
+                                        text = stringResource(R.string.for_months, installments),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
@@ -1192,7 +1205,7 @@ fun AddExpenseScreen(
     if (showInstallmentOptions) {
         AlertDialog(
             onDismissRequest = { showInstallmentOptions = false },
-            title = { Text("Select Number of Installments") },
+            title = { Text(stringResource(R.string.select_number_of_installments)) },
             text = {
                 Column(
                     modifier = Modifier
@@ -1200,7 +1213,7 @@ fun AddExpenseScreen(
                         .heightIn(max = 300.dp)
                 ) {
                     Text(
-                        text = "Choose how many months to split this payment:",
+                        text = stringResource(R.string.choose_installment_months),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
@@ -1234,7 +1247,7 @@ fun AddExpenseScreen(
                                 installments = newInstallments
                             }
                         },
-                        label = { Text("Custom (1-36)") },
+                        label = { Text(stringResource(R.string.custom_installments)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1242,7 +1255,7 @@ fun AddExpenseScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showInstallmentOptions = false }) {
-                    Text("Done")
+                    Text(stringResource(R.string.done))
                 }
             }
         )
@@ -1294,5 +1307,5 @@ data class ExpenseFormData(
     val paymentMethod: PaymentMethod,
     val installments: Int? = null, // Only used for split payments
     val installmentAmount: Double? = null, // Calculated monthly payment amount
-    val selectedBankCardId: Long? = null // Selected bank card ID when payment method is BANK_CARD
+    val selectedBankCardId: Long? = null // Selected bank card ID when payment method is CREDIT_CARD
 )

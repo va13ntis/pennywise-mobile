@@ -28,11 +28,23 @@
     <string name="expenses">הוצאות</string>
     <string name="net_balance">יתרה נטו</string>
     <string name="total_expenses">סך הוצאות</string>
+    <string name="monthly_expenses">הוצאות חודשיות</string>
+    <string name="all_payment_methods">כל השיטות</string>
+    <string name="all">הכל</string>
+    
+    <!-- Payment Methods -->
+    <string name="payment_method_cash">מזומן</string>
+    <string name="payment_method_cheque">צ\'ק</string>
     <string name="recurring_expenses">הוצאות קבועות</string>
     <string name="week_format">שבוע %d</string>
     <string name="no_expenses_this_week">אין הוצאות השבוע</string>
     <string name="previous_month">חודש קודם</string>
     <string name="next_month">חודש הבא</string>
+    <string name="current_month">חודש נוכחי</string>
+    <string name="first_month">חודש ראשון</string>
+    <string name="last_month">חודש אחרון</string>
+    <string name="beginning_of_year">תחילת השנה</string>
+    <string name="end_of_year">סוף השנה</string>
     <string name="add_expense">הוסף הוצאה</string>
     <string name="no_transactions_yet">אין עסקאות עדיין</string>
     <string name="add_your_first_expense">הוסף את ההוצאה הראשונה שלך כדי להתחיל</string>

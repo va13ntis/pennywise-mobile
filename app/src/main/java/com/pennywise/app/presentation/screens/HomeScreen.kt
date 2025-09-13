@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Today
 
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -170,25 +171,24 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Month navigation
-                    item {
-                        MonthNavigation(
-                            currentMonth = currentMonth,
-                            onPreviousMonth = { viewModel.changeMonth(-1) },
-                            onNextMonth = { viewModel.changeMonth(1) }
-                        )
-                    }
-                    
-                    // Monthly summary card
+                    // Monthly summary card with integrated month navigation
                     item {
                         MonthlySummaryCard(
-                            totalIncome = totalIncome,
                             totalExpenses = totalExpenses,
+                            currentMonth = currentMonth,
                             currency = currency,
                             currencyConversionEnabled = currencyConversionEnabled,
                             originalCurrency = originalCurrency,
                             conversionState = conversionState,
-                            onConvertAmount = { amount -> viewModel.convertAmount(amount) }
+                            onConvertAmount = { amount -> viewModel.convertAmount(amount) },
+                            onPaymentMethodFilterChanged = { paymentMethod -> 
+                                viewModel.setPaymentMethodFilter(paymentMethod) 
+                            },
+                            onPreviousMonth = { viewModel.changeMonth(-1) },
+                            onNextMonth = { viewModel.changeMonth(1) },
+                            onCurrentMonth = { viewModel.navigateToCurrentMonth() },
+                            onBeginningOfYear = { viewModel.navigateToBeginningOfYear() },
+                            onEndOfYear = { viewModel.navigateToEndOfYear() }
                         )
                     }
                     
@@ -315,56 +315,89 @@ fun TestDataSection(
 }
 
 /**
- * Month navigation component with previous/next buttons
+ * Month navigation component with previous/next/current buttons
  */
 @Composable
 fun MonthNavigation(
     currentMonth: java.time.YearMonth,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    onCurrentMonth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        IconButton(
-            onClick = onPreviousMonth,
-            modifier = Modifier.padding(4.dp)
+        // Top row with navigation arrows and current month button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.ChevronLeft,
-                contentDescription = stringResource(R.string.previous_month),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.graphicsLayer(
-                    scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
+            IconButton(
+                onClick = onPreviousMonth,
+                modifier = Modifier.padding(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronLeft,
+                    contentDescription = stringResource(R.string.previous_month),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.graphicsLayer(
+                        scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
+                    )
                 )
-            )
+            }
+            
+            // Current month button
+            Button(
+                onClick = onCurrentMonth,
+                modifier = Modifier.padding(horizontal = 8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Today,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.current_month),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            
+            IconButton(
+                onClick = onNextMonth,
+                modifier = Modifier.padding(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = stringResource(R.string.next_month),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.graphicsLayer(
+                        scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
+                    )
+                )
+            }
         }
         
+        // Month/Year display
         Text(
             text = DateFormatter.formatMonthYear(LocalContext.current, currentMonth),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 8.dp)
         )
-        
-        IconButton(
-            onClick = onNextMonth,
-            modifier = Modifier.padding(4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = stringResource(R.string.next_month),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.graphicsLayer(
-                    scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
-                )
-            )
-        }
     }
 }
 
