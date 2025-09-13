@@ -44,8 +44,14 @@
     <string name="amount_required">הסכום נדרש</string>
     <string name="invalid_amount">אנא הכנס סכום תקין</string>
     <string name="payment_type">סוג תשלום</string>
+    <string name="payment_method">שיטת תשלום</string>
     <string name="one_time">פעם אחת</string>
     <string name="recurring">קבוע</string>
+    <string name="recurring_period">תקופת חזרה</string>
+    <string name="daily">יום</string>
+    <string name="weekly">שבוע</string>
+    <string name="monthly">חודש</string>
+    <string name="yearly">שנה</string>
     <string name="notes">הערות</string>
     <string name="notes_hint">הערות אופציונליות על הוצאה זו</string>
     <string name="category">קטגוריה</string>
@@ -57,6 +63,16 @@
     <string name="category_utilities">חשבונות</string>
     <string name="category_health">בריאות</string>
     <string name="category_other">אחר</string>
+    
+    <!-- Bank Cards -->
+    <string name="bank_cards_title">כרטיסי אשראי</string>
+    <string name="add_bank_card">הוסף כרטיס אשראי</string>
+    <string name="edit_bank_card">ערוך כרטיס אשראי</string>
+    <string name="card_alias">כינוי כרטיס</string>
+    <string name="last_four_digits">ארבע ספרות אחרונות</string>
+    <string name="payment_day">יום תשלום</string>
+    <string name="no_bank_cards_title">אין כרטיסי אשראי</string>
+    <string name="no_bank_cards_description">הוסף את כרטיסי האשראי שלך כדי לעקוב אחר תאריכי תשלום ולנהל את ההוצאות שלך טוב יותר.</string>
     
     <!-- Authentication -->
     <string name="username">שם משתמש</string>
@@ -96,9 +112,17 @@
     
     <!-- Language -->
     <string name="language">שפה</string>
+    <string name="select_language">בחר שפה</string>
+    <string name="detected_language">זוהה: %s</string>
+    <string name="language_auto_detected">השפה זוהתה אוטומטית מהמכשיר שלך</string>
     
     <!-- Currency -->
     <string name="currency">מטבע</string>
+    <string name="select_currency">בחר מטבע</string>
+    <string name="currency_selection_hint">הקש כדי לפתוח את תפריט בחירת המטבע. השתמש בחיפוש כדי למצוא מטבעות לפי קוד, סמל או שם.</string>
+    <string name="currency_required">אנא בחר מטבע</string>
+    <string name="most_popular_currencies">הפופולריים ביותר</string>
+    <string name="all_currencies">כל המטבעות</string>
     <string name="currency_usd">דולר אמריקאי ($)</string>
     <string name="currency_eur">אירו (€)</string>
     <string name="currency_gbp">לירה שטרלינג (£)</string>
@@ -135,6 +159,12 @@
     <string name="change_default_currency">שנה מטבע ברירת מחדל</string>
     <string name="updating_currency">מעדכן מטבע...</string>
     <string name="currency_updated_successfully">המטבע עודכן בהצלחה</string>
+    <string name="currency_settings">הגדרות מטבע</string>
+    <string name="change">שנה</string>
+    <string name="change_default_currency_confirmation">האם אתה בטוח שברצונך לשנות את מטבע ברירת המחדל שלך ל-%s? זה ישפיע על אופן הצגת הסכומים בכל האפליקציה.</string>
+    <string name="default_currency_updated">מטבע ברירת המחדל עודכן בהצלחה</string>
+    <string name="default_currency_update_failed">נכשל בעדכון מטבע ברירת המחדל</string>
+    <string name="currency_change_warning">שינוי מ-%s ל-%s עלול להשפיע על נתונים קיימים</string>
     
     <!-- Account -->
     <string name="account">חשבון</string>
@@ -165,4 +195,29 @@
     <string name="month_october">אוקטובר</string>
     <string name="month_november">נובמבר</string>
     <string name="month_december">דצמבר</string>
+    
+    <!-- Payment Method and Type -->
+    <string name="payment_method_and_type">שיטת תשלום וסוג</string>
+    <string name="select_bank_card">בחר כרטיס אשראי</string>
+    <string name="payments_layout">פריסת תשלומים</string>
+    <string name="number_of_payments">מספר תשלומים:</string>
+    <string name="monthly_payment">תשלום חודשי</string>
+    <string name="for_months">ל-%d חודשים</string>
+    <string name="select_number_of_installments">בחר מספר תשלומים</string>
+    <string name="choose_installment_months">בחר על כמה חודשים לחלק את התשלום הזה:</string>
+    <string name="custom_installments">מותאם אישית (1-36)</string>
+    <string name="done">סיום</string>
+    
+    <!-- Bank Card Display -->
+    <string name="card_number_masked">**** **** **** %s</string>
+    <string name="payment_day_label">יום תשלום: %d</string>
+    
+    <!-- Currency Validation -->
+    <string name="currency_no_decimal_places">המטבע הזה לא משתמש במקומות עשרוניים</string>
+    <string name="currency_decimal_places_info">%s - %d מקומות עשרוניים</string>
+    
+    <!-- Content Descriptions -->
+    <string name="content_desc_calendar">לוח שנה</string>
+    <string name="content_desc_decrease_installments">הקטן מספר תשלומים</string>
+    <string name="content_desc_increase_installments">הגדל מספר תשלומים</string>
 </resources>

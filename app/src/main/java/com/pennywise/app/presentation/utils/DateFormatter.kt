@@ -23,7 +23,7 @@ object DateFormatter {
                 val monthName = getRussianMonthName(context, monthValue)
                 "$monthName $year"
             }
-            "he" -> {
+            "iw" -> {
                 val monthName = getHebrewMonthName(context, monthValue)
                 "$monthName $year"
             }
