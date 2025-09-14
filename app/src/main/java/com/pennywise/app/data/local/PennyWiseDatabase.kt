@@ -31,7 +31,7 @@ import com.pennywise.app.data.local.migration.DatabaseMigrations
  */
 @Database(
     entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class, PaymentMethodConfigEntity::class],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(
@@ -62,7 +62,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     "pennywise_database"
                 )
-                .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9)
+                .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

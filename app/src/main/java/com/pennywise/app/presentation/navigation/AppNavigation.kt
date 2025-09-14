@@ -11,33 +11,29 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material3.Text
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import com.pennywise.app.presentation.viewmodel.AuthViewModel
-import com.pennywise.app.presentation.viewmodel.LoginViewModel
-import com.pennywise.app.presentation.viewmodel.RegisterViewModel
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
-import com.pennywise.app.presentation.screens.LoginScreen
-import com.pennywise.app.presentation.screens.RegisterScreen
+import com.pennywise.app.presentation.screens.FirstRunSetupScreen
+import com.pennywise.app.presentation.screens.DeviceAuthPromptScreen
 import com.pennywise.app.presentation.screens.HomeScreen
 import com.pennywise.app.presentation.screens.AddExpenseScreen
 import com.pennywise.app.presentation.screens.SettingsScreen
-import com.pennywise.app.presentation.navigation.LOGIN_ROUTE
-import com.pennywise.app.presentation.navigation.REGISTER_ROUTE
 
 /**
- * Main app navigation that handles authentication state and routes
+ * Main app navigation that handles simplified authentication flow
  */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
+    
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
-    val isAuthenticated = currentUser != null
+    val isDeviceAuthEnabled by authViewModel.isDeviceAuthEnabled.collectAsState(initial = false)
     
     // Show loading state initially
     var isInitialized by remember { mutableStateOf(false) }
@@ -64,48 +60,48 @@ fun AppNavigation() {
         return
     }
     
-    // Handle navigation when authentication state changes
-    LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            // User is authenticated, navigate to main app
-            navController.navigate(MAIN_ROUTE) {
-                // Clear the back stack so user can't go back to login/register
-                popUpTo(LOGIN_ROUTE) { inclusive = true }
-            }
-        } else {
-            // User is not authenticated, navigate to login
-            navController.navigate(LOGIN_ROUTE) {
-                // Clear the back stack so user can't go back to main app
-                popUpTo(MAIN_ROUTE) { inclusive = true }
-            }
-        }
+    // Determine the appropriate start destination
+    val startDestination = when {
+        currentUser == null -> FIRST_RUN_SETUP_ROUTE
+        isDeviceAuthEnabled -> DEVICE_AUTH_PROMPT_ROUTE
+        else -> MAIN_ROUTE
     }
     
     NavHost(
         navController = navController,
-        startDestination = if (currentUser != null) MAIN_ROUTE else LOGIN_ROUTE
+        startDestination = startDestination
     ) {
-        // Login screen
-        composable(LOGIN_ROUTE) {
-            val viewModel = hiltViewModel<LoginViewModel>()
-            LoginScreen(
-                viewModel = viewModel,
-                onNavigateToRegister = { navController.navigate(REGISTER_ROUTE) },
-                onLoginSuccess = { user ->
-                    // Navigation will be handled automatically by the isAuthenticated state change
+        // First run setup screen
+        composable(FIRST_RUN_SETUP_ROUTE) {
+            FirstRunSetupScreen(
+                onSetupComplete = {
+                    // Navigate to device auth prompt if enabled, otherwise to main
+                    if (isDeviceAuthEnabled) {
+                        navController.navigate(DEVICE_AUTH_PROMPT_ROUTE) {
+                            popUpTo(FIRST_RUN_SETUP_ROUTE) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(MAIN_ROUTE) {
+                            popUpTo(FIRST_RUN_SETUP_ROUTE) { inclusive = true }
+                        }
+                    }
                 }
             )
         }
         
-        // Register screen
-        composable(REGISTER_ROUTE) {
-            val viewModel = hiltViewModel<RegisterViewModel>()
-            RegisterScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onRegisterSuccess = { 
-                    // Navigation will be handled automatically by the authentication state change
-                    // No need to navigate manually here
+        // Device authentication prompt screen
+        composable(DEVICE_AUTH_PROMPT_ROUTE) {
+            DeviceAuthPromptScreen(
+                onAuthSuccess = {
+                    navController.navigate(MAIN_ROUTE) {
+                        popUpTo(DEVICE_AUTH_PROMPT_ROUTE) { inclusive = true }
+                    }
+                },
+                onAuthCancel = {
+                    // User cancelled authentication, go back to first run setup
+                    navController.navigate(FIRST_RUN_SETUP_ROUTE) {
+                        popUpTo(DEVICE_AUTH_PROMPT_ROUTE) { inclusive = true }
+                    }
                 }
             )
         }
@@ -151,7 +147,11 @@ fun AppNavigation() {
                 viewModel = settingsViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onLogout = {
+                    // For simplified auth, logout just clears the user and goes to first run setup
                     authViewModel.logout()
+                    navController.navigate(FIRST_RUN_SETUP_ROUTE) {
+                        popUpTo(MAIN_ROUTE) { inclusive = true }
+                    }
                 }
             )
         }
@@ -161,6 +161,8 @@ fun AppNavigation() {
 /**
  * Navigation routes for the main app
  */
+const val FIRST_RUN_SETUP_ROUTE = "first_run_setup"
+const val DEVICE_AUTH_PROMPT_ROUTE = "device_auth_prompt"
 const val MAIN_ROUTE = "main"
 const val ADD_EXPENSE_ROUTE = "add_expense"
 const val SETTINGS_ROUTE = "settings"

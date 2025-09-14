@@ -122,11 +122,23 @@
     <string name="passwords_dont_match">Passwords do not match</string>
     <string name="password_too_short">Password must be at least 6 characters</string>
     
-    <!-- Biometric Authentication -->
-    <string name="biometric_login_title">Login with Biometric</string>
-    <string name="biometric_login_subtitle">Use your fingerprint or face to log in</string>
-    <string name="biometric_login_use_password">Use password</string>
-    <string name="login_with_biometric">Login with Biometric</string>
+    <!-- Device Authentication -->
+    <string name="device_auth_title">Unlock PennyWise</string>
+    <string name="device_auth_subtitle">Use your fingerprint, face, or device PIN to continue</string>
+    <string name="device_auth_cancel">Cancel</string>
+    <string name="biometric_auth_title">Biometric Authentication</string>
+    <string name="biometric_auth_subtitle">Use your fingerprint or face to continue</string>
+    <string name="biometric_auth_cancel">Cancel</string>
+    <string name="enable_device_auth">Enable Device Authentication</string>
+    <string name="disable_device_auth">Disable Device Authentication</string>
+    <string name="device_auth_setup_title">Secure Your App</string>
+    <string name="device_auth_setup_subtitle">Protect your financial data with device authentication</string>
+    <string name="device_auth_setup_description">You can use your fingerprint, face recognition, or device PIN to secure access to your financial information.</string>
+    <string name="skip_device_auth">Skip for now</string>
+    <string name="setup_device_auth">Set up security</string>
+    <string name="device_auth_not_available">Device authentication is not available on this device</string>
+    <string name="welcome_to_pennywise">Welcome to PennyWise</string>
+    <string name="welcome_description">Let\'s set up your personal finance tracker with your device preferences</string>
     
     <!-- Date Picker -->
     <string name="ok">OK</string>

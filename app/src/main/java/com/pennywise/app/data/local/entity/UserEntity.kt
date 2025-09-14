@@ -13,17 +13,16 @@ import java.util.Date
 
 /**
  * Room entity for users
+ * Simplified for single-user per app with device authentication
  */
 @Entity(tableName = "users")
 @TypeConverters(DateConverter::class, UserRoleConverter::class, UserStatusConverter::class)
 data class UserEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val username: String,
-    val passwordHash: String,
-    val email: String? = null,
     val defaultCurrency: String = "USD",
     val locale: String = "en",
+    val deviceAuthEnabled: Boolean = false,
     val role: UserRole = UserRole.USER,
     val status: UserStatus = UserStatus.ACTIVE,
     val createdAt: Date = Date(),
@@ -32,11 +31,9 @@ data class UserEntity(
     fun toDomainModel(): User {
         return User(
             id = id,
-            username = username,
-            passwordHash = passwordHash,
-            email = email,
             defaultCurrency = defaultCurrency,
             locale = locale,
+            deviceAuthEnabled = deviceAuthEnabled,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
@@ -46,11 +43,9 @@ data class UserEntity(
         fun fromDomainModel(user: User): UserEntity {
             return UserEntity(
                 id = user.id,
-                username = user.username,
-                passwordHash = user.passwordHash,
-                email = user.email,
                 defaultCurrency = user.defaultCurrency,
                 locale = user.locale,
+                deviceAuthEnabled = user.deviceAuthEnabled,
                 createdAt = user.createdAt,
                 updatedAt = user.updatedAt
             )

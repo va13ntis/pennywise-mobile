@@ -1,0 +1,74 @@
+# Simplify Auth Flow - Product Requirements Document
+
+## Overview
+Simplify the authentication flow for PennyWise mobile app to support single-user per app with device-based authentication.
+
+## Current State
+The app currently has a complex authentication system with:
+- User registration with username/password
+- Login with username/password  
+- Biometric authentication as optional secondary method
+- Multiple user support in database
+
+## Requirements
+
+### 1. Single User Per App
+- Remove registration and login screens
+- Eliminate username/password authentication
+- Support only one user per app installation
+- Remove multi-user database support
+
+### 2. First Run Setup
+On first app launch, automatically set up user with:
+- **Language**: Auto-detect from device locale when possible, fallback to English
+- **Currency**: Auto-detect from device locale when possible, fallback to USD
+- **Payment Method**: Set default payment method (to be defined)
+
+### 3. Device Authentication
+- Propose device authentication on first run
+- Support PIN code, pattern, fingerprint, face unlock
+- Make device auth optional but recommended
+- Use Android's built-in device authentication mechanisms
+
+## Technical Implementation
+
+### Database Changes
+- Modify User entity to remove username/password fields
+- Add device_auth_enabled boolean field
+- Simplify user creation to single user per app
+
+### Authentication Flow
+1. **First Launch**: 
+   - Check if user exists in database
+   - If no user exists, create default user with device settings
+   - Show device auth setup dialog
+   - Navigate to main app
+
+2. **Subsequent Launches**:
+   - Check if device auth is enabled
+   - If enabled, prompt for device authentication
+   - If disabled or successful, navigate to main app
+
+### UI Changes
+- Remove LoginScreen and RegisterScreen
+- Create FirstRunSetupScreen for initial configuration
+- Create DeviceAuthPromptScreen for authentication
+- Update navigation to skip auth screens
+
+### Security
+- Use Android's BiometricPrompt for biometric authentication
+- Use Android's DeviceCredentialManager for PIN/pattern
+- Store only device auth preference, no sensitive data
+
+## Success Criteria
+- App launches directly to main screen after first setup
+- No username/password required
+- Device authentication works reliably
+- Single user per app installation
+- Smooth onboarding experience
+
+## Dependencies
+- Android BiometricPrompt API
+- Android DeviceCredentialManager API
+- Existing LocaleManager for device locale detection
+- Existing SettingsDataStore for preferences

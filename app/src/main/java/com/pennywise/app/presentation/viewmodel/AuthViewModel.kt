@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.presentation.auth.AuthManager
+import com.pennywise.app.presentation.auth.DeviceAuthService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,12 +17,14 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val deviceAuthService: DeviceAuthService
 ) : ViewModel() {
     
     private val _isAuthenticated = MutableStateFlow(false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
     val currentUser: StateFlow<User?> = authManager.currentUser
+    val isDeviceAuthEnabled: Flow<Boolean> = deviceAuthService.isDeviceAuthEnabled
     
     init {
         // Observe the authentication state from AuthManager

@@ -383,4 +383,32 @@ object DatabaseMigrations {
             database.execSQL("CREATE INDEX index_split_payment_installments_isPaid ON split_payment_installments (isPaid)")
         }
     }
+    
+    /**
+     * Migration from version 9 to 10
+     * - Simplify users table for single-user per app with device authentication
+     * - Remove username, passwordHash, email fields
+     * - Add deviceAuthEnabled field
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Create new users table with simplified schema
+            database.execSQL("DROP TABLE IF EXISTS users")
+            
+            database.execSQL(
+                """
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    defaultCurrency TEXT NOT NULL,
+                    locale TEXT NOT NULL,
+                    deviceAuthEnabled INTEGER NOT NULL DEFAULT 0,
+                    role TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """
+            )
+        }
+    }
 }

@@ -2,7 +2,6 @@ package com.pennywise.app.data.repository
 
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.entity.UserEntity
-import com.pennywise.app.data.util.PasswordHasher
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.domain.model.UserStatus
 import com.pennywise.app.domain.repository.UserRepository
@@ -12,29 +11,25 @@ import javax.inject.Inject
 
 /**
  * Implementation of UserRepository that handles user data operations
+ * Simplified for single-user per app
  */
 class UserRepositoryImpl @Inject constructor(
-    private val userDao: UserDao,
-    private val passwordHasher: PasswordHasher
+    private val userDao: UserDao
 ) : UserRepository {
     
-    override suspend fun registerUser(username: String, password: String, defaultCurrency: String, locale: String): Result<Long> {
+    override suspend fun createUser(defaultCurrency: String, locale: String): Result<Long> {
         return try {
-            // Check if username already exists
-            val existingUser = userDao.getUserByUsername(username)
+            // Check if user already exists
+            val existingUser = userDao.getSingleUser()
             if (existingUser != null) {
-                return Result.failure(Exception("Username already exists"))
+                return Result.failure(Exception("User already exists"))
             }
-            
-            // Hash the password
-            val passwordHash = passwordHasher.hashPassword(password)
             
             // Create new user entity
             val userEntity = UserEntity(
-                username = username,
-                passwordHash = passwordHash,
                 defaultCurrency = defaultCurrency,
-                locale = locale
+                locale = locale,
+                deviceAuthEnabled = false
             )
             
             // Insert user and return the generated ID
@@ -45,43 +40,16 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun authenticateUser(username: String, password: String): Result<User> {
-        return try {
-            println("🔄 UserRepository: Attempting to authenticate user: $username")
-            
-            // Get user by username
-            val userEntity = userDao.getUserByUsername(username)
-            if (userEntity == null) {
-                println("❌ UserRepository: User not found: $username")
-                return Result.failure(Exception("User not found"))
-            }
-            
-            println("✅ UserRepository: User found: ${userEntity.username} (ID: ${userEntity.id})")
-            
-            // Verify password
-            if (passwordHasher.verifyPassword(password, userEntity.passwordHash)) {
-                println("✅ UserRepository: Password verification successful")
-                Result.success(userEntity.toDomainModel())
-            } else {
-                println("❌ UserRepository: Password verification failed")
-                Result.failure(Exception("Invalid password"))
-            }
-        } catch (e: Exception) {
-            println("❌ UserRepository: Authentication error: ${e.message}")
-            Result.failure(e)
-        }
-    }
-    
     override suspend fun getUserById(userId: Long): User? {
         return userDao.getUserById(userId)?.toDomainModel()
     }
     
-    override suspend fun getUserByUsername(username: String): User? {
-        return userDao.getUserByUsername(username)?.toDomainModel()
+    override suspend fun getSingleUser(): User? {
+        return userDao.getSingleUser()?.toDomainModel()
     }
     
-    override suspend fun getUserByEmail(email: String): User? {
-        return userDao.getUserByEmail(email)?.toDomainModel()
+    override fun getSingleUserFlow(): Flow<User?> {
+        return userDao.getSingleUserFlow().map { it?.toDomainModel() }
     }
     
     override suspend fun updateUser(user: User) {
@@ -102,23 +70,11 @@ class UserRepositoryImpl @Inject constructor(
         userDao.updateDefaultCurrency(userId, currency, System.currentTimeMillis())
     }
     
-    override suspend fun isUsernameTaken(username: String): Boolean {
-        return userDao.isUsernameTaken(username) > 0
+    override suspend fun updateDeviceAuthEnabled(userId: Long, enabled: Boolean) {
+        userDao.updateDeviceAuthEnabled(userId, enabled, System.currentTimeMillis())
     }
     
-    override suspend fun isEmailTaken(email: String): Boolean {
-        return userDao.isEmailTaken(email) > 0
-    }
-    
-    override fun getUsersByStatus(status: UserStatus): Flow<List<User>> {
-        return userDao.getUsersByStatus(status).map { entities ->
-            entities.map { it.toDomainModel() }
-        }
-    }
-    
-    override fun getAllUsers(): Flow<List<User>> {
-        return userDao.getAllUsers().map { entities ->
-            entities.map { it.toDomainModel() }
-        }
+    override suspend fun getUserCount(): Int {
+        return userDao.getUserCount()
     }
 }

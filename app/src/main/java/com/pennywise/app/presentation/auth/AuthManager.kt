@@ -21,18 +21,15 @@ import javax.inject.Singleton
 
 /**
  * Central authentication state manager to handle user session persistence
- * and provide the current authentication state to the rest of the application
+ * Simplified for single-user per app with device authentication
  */
 @Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val userRepository: UserRepository,
-    private val userRegistrationManager: UserRegistrationManager,
-    private val authMigrationManager: AuthMigrationManager
+    private val userRepository: UserRepository
 ) {
     
     private val userIdKey = intPreferencesKey("user_id")
-    private val usernameKey = stringPreferencesKey("username")
     private val isLoggedInKey = booleanPreferencesKey("is_logged_in")
     
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -48,31 +45,25 @@ class AuthManager @Inject constructor(
             // First, try to restore the current user from storage
             val preferences = context.dataStore.data.first()
             val userId = preferences[userIdKey]
-            val username = preferences[usernameKey]
             val isLoggedIn = preferences[isLoggedInKey] ?: false
             
-            if (isLoggedIn && userId != null && username != null) {
+            if (isLoggedIn && userId != null) {
                 // Verify the user still exists in the database
                 val user = userRepository.getUserById(userId.toLong())
                 if (user != null) {
                     _currentUser.value = user
-                    println("✅ AuthManager: User restored from storage: ${user.username} (ID: ${user.id})")
+                    println("✅ AuthManager: User restored from storage (ID: ${user.id})")
                 } else {
                     // User no longer exists, clear stored credentials
                     logout()
                 }
-            }
-            
-            // Perform migrations after restoring user state (if not cancelled)
-            try {
-                authMigrationManager.performMigrations()
-                authMigrationManager.handleAuthenticationEdgeCases()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                // Migration was cancelled (likely due to activity restart) - this is OK
-                println("ℹ️ AuthManager: Migration cancelled during restart - continuing with current state")
-            } catch (e: Exception) {
-                // Other migration errors - log but don't affect auth state
-                println("❌ AuthManager: Migration error: ${e.message}")
+            } else {
+                // No stored user, try to get the single user from database
+                val user = userRepository.getSingleUser()
+                if (user != null) {
+                    _currentUser.value = user
+                    println("✅ AuthManager: Single user found in database (ID: ${user.id})")
+                }
             }
         } catch (e: Exception) {
             // If there's any error during initialization, just clear the state
@@ -86,14 +77,11 @@ class AuthManager @Inject constructor(
      */
     suspend fun saveAuthenticatedUser(user: User) {
         try {
-            println("🔄 AuthManager: Saving authenticated user ${user.username} (ID: ${user.id})")
+            println("🔄 AuthManager: Saving authenticated user (ID: ${user.id})")
             context.dataStore.edit { preferences ->
                 preferences[userIdKey] = user.id.toInt()
-                preferences[usernameKey] = user.username
                 preferences[isLoggedInKey] = true
             }
-            // Mark user as registered on this device
-            userRegistrationManager.setUserRegistered(true)
             _currentUser.value = user
             println("✅ AuthManager: User saved successfully")
         } catch (e: Exception) {
@@ -110,11 +98,8 @@ class AuthManager @Inject constructor(
         try {
             context.dataStore.edit { preferences ->
                 preferences.remove(userIdKey)
-                preferences.remove(usernameKey)
                 preferences[isLoggedInKey] = false
             }
-            // Clear registration status when logging out
-            userRegistrationManager.clearRegistrationStatus()
         } catch (e: Exception) {
             // If there's an error clearing preferences, just clear the current user
         } finally {
@@ -127,7 +112,7 @@ class AuthManager @Inject constructor(
      */
     fun getCurrentUser(): User? {
         val user = _currentUser.value
-        println("🔄 AuthManager: getCurrentUser() called, returning: ${user?.username} (ID: ${user?.id})")
+        println("🔄 AuthManager: getCurrentUser() called, returning user (ID: ${user?.id})")
         return user
     }
     
@@ -136,7 +121,7 @@ class AuthManager @Inject constructor(
      */
     suspend fun updateCurrentUser(updatedUser: User) {
         try {
-            println("🔄 AuthManager: Updating current user to ${updatedUser.username} (ID: ${updatedUser.id})")
+            println("🔄 AuthManager: Updating current user (ID: ${updatedUser.id})")
             // Update the user in the database
             userRepository.updateUser(updatedUser)
             // Update the current user state
@@ -153,10 +138,6 @@ class AuthManager @Inject constructor(
      */
     fun isUserAuthenticated(): Boolean = _currentUser.value != null
     
-    /**
-     * Get the registration status flow
-     */
-    fun getRegistrationStatus(): Flow<Boolean> = userRegistrationManager.isUserRegistered
     
     companion object {
         private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_preferences")

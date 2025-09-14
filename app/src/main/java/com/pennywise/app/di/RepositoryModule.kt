@@ -14,7 +14,6 @@ import com.pennywise.app.data.repository.CurrencyUsageRepositoryImpl
 import com.pennywise.app.data.repository.BankCardRepositoryImpl
 import com.pennywise.app.data.repository.SplitPaymentInstallmentRepositoryImpl
 import com.pennywise.app.data.repository.PaymentMethodConfigRepositoryImpl
-import com.pennywise.app.data.util.PasswordHasher
 import com.pennywise.app.data.util.DataSeeder
 import com.pennywise.app.data.util.DataMigrationService
 import com.pennywise.app.data.util.SettingsDataStore
@@ -26,10 +25,9 @@ import com.pennywise.app.domain.repository.BankCardRepository
 import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
-import com.pennywise.app.presentation.auth.UserRegistrationManager
-import com.pennywise.app.presentation.auth.AuthMigrationManager
-import com.pennywise.app.presentation.auth.BiometricAuthManager
 import com.pennywise.app.presentation.util.LocaleManager
+import com.pennywise.app.presentation.auth.DeviceAuthService
+import com.pennywise.app.presentation.auth.AuthManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -108,24 +106,14 @@ object RepositoryModule {
     }
     
     /**
-     * Provides the PasswordHasher utility
-     */
-    @Provides
-    @Singleton
-    fun providePasswordHasher(): PasswordHasher {
-        return PasswordHasher()
-    }
-    
-    /**
      * Provides the UserRepository implementation
      */
     @Provides
     @Singleton
     fun provideUserRepository(
-        userDao: UserDao,
-        passwordHasher: PasswordHasher
+        userDao: UserDao
     ): UserRepository {
-        return UserRepositoryImpl(userDao, passwordHasher)
+        return UserRepositoryImpl(userDao)
     }
     
     /**
@@ -157,10 +145,9 @@ object RepositoryModule {
     @Singleton
     fun provideDataSeeder(
         userDao: UserDao,
-        transactionDao: TransactionDao,
-        passwordHasher: PasswordHasher
+        transactionDao: TransactionDao
     ): DataSeeder {
-        return DataSeeder(userDao, transactionDao, passwordHasher)
+        return DataSeeder(userDao, transactionDao)
     }
     
     /**
@@ -241,34 +228,24 @@ object RepositoryModule {
     }
     
     /**
-     * Provides the UserRegistrationManager
+     * Provides the DeviceAuthService
      */
     @Provides
     @Singleton
-    fun provideUserRegistrationManager(@ApplicationContext context: Context): UserRegistrationManager {
-        return UserRegistrationManager(context)
+    fun provideDeviceAuthService(@ApplicationContext context: Context): DeviceAuthService {
+        return DeviceAuthService(context)
     }
     
     /**
-     * Provides the BiometricAuthManager
+     * Provides the AuthManager
      */
     @Provides
     @Singleton
-    fun provideBiometricAuthManager(@ApplicationContext context: Context): BiometricAuthManager {
-        return BiometricAuthManager(context)
-    }
-    
-    /**
-     * Provides the AuthMigrationManager
-     */
-    @Provides
-    @Singleton
-    fun provideAuthMigrationManager(
+    fun provideAuthManager(
         @ApplicationContext context: Context,
-        userRepository: UserRepository,
-        userRegistrationManager: UserRegistrationManager,
-        biometricAuthManager: BiometricAuthManager
-    ): AuthMigrationManager {
-        return AuthMigrationManager(context, userRepository, userRegistrationManager, biometricAuthManager)
+        userRepository: UserRepository
+    ): AuthManager {
+        return AuthManager(context, userRepository)
     }
+    
 }

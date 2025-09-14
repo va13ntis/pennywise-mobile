@@ -18,7 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class AuthErrorHandler @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val biometricAuthManager: BiometricAuthManager
+    private val deviceAuthService: DeviceAuthService
 ) {
     
     private val failedAttemptsKey = intPreferencesKey("auth_failed_attempts")
@@ -45,8 +45,8 @@ class AuthErrorHandler @Inject constructor(
             }
             
             if (newAttempts >= MAX_FAILED_ATTEMPTS) {
-                // Disable biometric authentication temporarily
-                biometricAuthManager.setBiometricEnabled(false)
+                // Disable device authentication temporarily
+                deviceAuthService.setDeviceAuthEnabled(false)
             }
         } catch (e: Exception) {
             // Log error but don't crash
