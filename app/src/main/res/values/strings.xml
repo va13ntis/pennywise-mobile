@@ -281,5 +281,17 @@
     <string name="content_desc_calendar">Calendar</string>
     <string name="content_desc_decrease_installments">Decrease installments</string>
     <string name="content_desc_increase_installments">Increase installments</string>
+    
+    <!-- Developer Options -->
+    <string name="developer_options">Developer Options</string>
+    <string name="test_data_controls">Test Data Controls</string>
+    <string name="seed_test_data">Seed Test Data</string>
+    <string name="clear_test_data">Clear Test Data</string>
+    <string name="seeding_data">Seeding Data...</string>
+    <string name="clearing_data">Clearing Data...</string>
+    <string name="developer_options_enabled">Developer options enabled</string>
+    <string name="developer_options_disabled">Developer options disabled</string>
+    <string name="tap_to_enable_developer_options">Tap 12 times to enable developer options</string>
+    <string name="tap_to_disable_developer_options">Tap 6 times to disable developer options</string>
 </resources>
 

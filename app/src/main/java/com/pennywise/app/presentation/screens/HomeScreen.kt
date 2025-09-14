@@ -59,7 +59,6 @@ import com.pennywise.app.presentation.components.MonthlySummaryCard
 import com.pennywise.app.presentation.components.RecurringExpensesSection
 import com.pennywise.app.presentation.utils.DateFormatter
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
-import com.pennywise.app.presentation.viewmodel.TestDataViewModel
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -72,8 +71,7 @@ fun HomeScreen(
     onAddExpense: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel,
-    testDataViewModel: TestDataViewModel = hiltViewModel()
+    viewModel: HomeViewModel
 ) {
     val transactions by viewModel.transactions.collectAsState()
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
@@ -94,24 +92,11 @@ fun HomeScreen(
     
     val snackbarHostState = remember { SnackbarHostState() }
     
-    // Test data states
-    val isSeeding by testDataViewModel.isSeeding.collectAsState()
-    val isClearing by testDataViewModel.isClearing.collectAsState()
-    val testMessage by testDataViewModel.message.collectAsState()
-    
     // Show error messages in snackbar
     LaunchedEffect(error) {
         error?.let { errorMessage ->
             snackbarHostState.showSnackbar(message = errorMessage)
             viewModel.clearError()
-        }
-    }
-    
-    // Show test data messages in snackbar
-    LaunchedEffect(testMessage) {
-        testMessage?.let { message ->
-            snackbarHostState.showSnackbar(message = message)
-            testDataViewModel.clearMessage()
         }
     }
     
@@ -225,94 +210,16 @@ fun HomeScreen(
                     // Empty state if no transactions
                     if (transactions.isEmpty() && recurringTransactions.isEmpty() && splitPaymentInstallments.isEmpty()) {
                         item {
-                            EmptyState(
-                                onSeedTestData = { testDataViewModel.seedTestData() },
-                                onClearTestData = { testDataViewModel.clearTestData() },
-                                isSeeding = isSeeding,
-                                isClearing = isClearing
-                            )
+                            EmptyState()
                         }
                     }
                     
-                    // Always show test data section for debugging (remove this later)
-                    item {
-                        TestDataSection(
-                            onSeedTestData = { testDataViewModel.seedTestData() },
-                            onClearTestData = { testDataViewModel.clearTestData() },
-                            isSeeding = isSeeding,
-                            isClearing = isClearing
-                        )
-                    }
                 }
             }
         }
     }
 }
 
-/**
- * Test data section that's always visible for debugging
- */
-@Composable
-fun TestDataSection(
-    modifier: Modifier = Modifier,
-    onSeedTestData: () -> Unit = {},
-    onClearTestData: () -> Unit = {},
-    isSeeding: Boolean = false,
-    isClearing: Boolean = false
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "🧪 Test Data Controls",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Button(
-            onClick = onSeedTestData,
-            enabled = !isSeeding && !isClearing,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isSeeding) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = if (isSeeding) "Seeding Data..." else "Seed Test Data"
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Button(
-            onClick = onClearTestData,
-            enabled = !isSeeding && !isClearing,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            if (isClearing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onError
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = if (isClearing) "Clearing Data..." else "Clear All Data"
-            )
-        }
-    }
-}
 
 /**
  * Month navigation component with previous/next/current buttons
@@ -406,11 +313,7 @@ fun MonthNavigation(
  */
 @Composable
 fun EmptyState(
-    modifier: Modifier = Modifier,
-    onSeedTestData: () -> Unit = {},
-    onClearTestData: () -> Unit = {},
-    isSeeding: Boolean = false,
-    isClearing: Boolean = false
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
@@ -430,60 +333,5 @@ fun EmptyState(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Test data section
-        Text(
-            text = "🧪 Test Data",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Seed the database with sample transactions to test the app",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = onSeedTestData,
-            enabled = !isSeeding && !isClearing,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isSeeding) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = if (isSeeding) "Seeding Data..." else "Seed Test Data"
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Button(
-            onClick = onClearTestData,
-            enabled = !isSeeding && !isClearing,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            if (isClearing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onError
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = if (isClearing) "Clearing Data..." else "Clear All Data"
-            )
-        }
     }
 }

@@ -21,9 +21,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.pennywise.app.R
 import com.pennywise.app.presentation.viewmodel.SettingsViewModel
+import com.pennywise.app.presentation.viewmodel.TestDataViewModel
 import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.PaymentMethodConfig
+import androidx.hilt.navigation.compose.hiltViewModel
 import javax.inject.Inject
 
 /**
@@ -86,7 +88,8 @@ fun CollapsibleSection(
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    testDataViewModel: TestDataViewModel = hiltViewModel()
 ) {
     val themeMode by viewModel.themeMode.collectAsState(initial = SettingsViewModel.ThemeMode.SYSTEM)
     val language by viewModel.language.collectAsState(initial = "")
@@ -108,6 +111,19 @@ fun SettingsScreen(
     var isPaymentMethodsExpanded by remember { mutableStateOf(false) }
     var isBackupExpanded by remember { mutableStateOf(false) }
     var isAccountExpanded by remember { mutableStateOf(false) }
+    var isDeveloperOptionsExpanded by remember { mutableStateOf(false) }
+    
+    // Developer options state
+    val developerOptionsEnabled by viewModel.developerOptionsEnabled.collectAsState(initial = false)
+    
+    // Test data state
+    val testDataMessage by testDataViewModel.message.collectAsState(initial = "")
+    val isSeeding by testDataViewModel.isSeeding.collectAsState(initial = false)
+    val isClearing by testDataViewModel.isClearing.collectAsState(initial = false)
+    
+    // Tap counter for app version
+    var tapCount by remember { mutableStateOf(0) }
+    var lastTapTime by remember { mutableStateOf(0L) }
     
     Scaffold(
         topBar = {
@@ -759,7 +775,86 @@ fun SettingsScreen(
                 }
             }
             
-            // App version info
+            // Developer options section (only show if enabled)
+            if (developerOptionsEnabled) {
+                item {
+                    CollapsibleSection(
+                        title = stringResource(R.string.developer_options),
+                        isExpanded = isDeveloperOptionsExpanded,
+                        onToggle = { isDeveloperOptionsExpanded = !isDeveloperOptionsExpanded }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.test_data_controls),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                            
+                            // Seed test data button
+                            Button(
+                                onClick = { testDataViewModel.seedTestData() },
+                                enabled = !isSeeding && !isClearing,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            ) {
+                                if (isSeeding) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (isSeeding) stringResource(R.string.seeding_data) else stringResource(R.string.seed_test_data)
+                                )
+                            }
+                            
+                            // Clear test data button
+                            Button(
+                                onClick = { testDataViewModel.clearTestData() },
+                                enabled = !isSeeding && !isClearing,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                if (isClearing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = MaterialTheme.colorScheme.onError
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (isClearing) stringResource(R.string.clearing_data) else stringResource(R.string.clear_test_data)
+                                )
+                            }
+                            
+                            // Show test data messages
+                            testDataMessage?.let { message ->
+                                if (message.isNotEmpty()) {
+                                    Text(
+                                        text = message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (message.startsWith("✅")) 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // App version info with tap counter
             item {
                 Box(
                     modifier = Modifier
@@ -770,7 +865,30 @@ fun SettingsScreen(
                     Text(
                         text = stringResource(R.string.app_version),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable {
+                            val currentTime = System.currentTimeMillis()
+                            
+                            // Reset counter if more than 2 seconds have passed
+                            if (currentTime - lastTapTime > 2000) {
+                                tapCount = 0
+                            }
+                            
+                            tapCount++
+                            lastTapTime = currentTime
+                            
+                            // Enable developer options after 12 taps
+                            if (tapCount >= 12 && !developerOptionsEnabled) {
+                                viewModel.setDeveloperOptionsEnabled(true)
+                                tapCount = 0
+                            }
+                            // Disable developer options after 6 taps (when already enabled)
+                            else if (tapCount >= 6 && developerOptionsEnabled) {
+                                viewModel.setDeveloperOptionsEnabled(false)
+                                isDeveloperOptionsExpanded = false
+                                tapCount = 0
+                            }
+                        }
                     )
                 }
             }

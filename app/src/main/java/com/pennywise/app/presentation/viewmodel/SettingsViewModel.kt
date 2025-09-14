@@ -75,6 +75,10 @@ class SettingsViewModel @Inject constructor(
     // Payment method update state
     private val _paymentMethodUpdateState = MutableStateFlow<PaymentMethodUpdateState>(PaymentMethodUpdateState.Idle)
     val paymentMethodUpdateState: StateFlow<PaymentMethodUpdateState> = _paymentMethodUpdateState
+    
+    // Developer options state
+    private val _developerOptionsEnabled = MutableStateFlow(false)
+    val developerOptionsEnabled: StateFlow<Boolean> = _developerOptionsEnabled
 
     init {
         loadSettings()
@@ -346,6 +350,16 @@ class SettingsViewModel @Inject constructor(
     
     fun resetPaymentMethodUpdateState() {
         _paymentMethodUpdateState.value = PaymentMethodUpdateState.Idle
+    }
+    
+    // Developer Options Management
+    
+    fun toggleDeveloperOptions() {
+        _developerOptionsEnabled.value = !_developerOptionsEnabled.value
+    }
+    
+    fun setDeveloperOptionsEnabled(enabled: Boolean) {
+        _developerOptionsEnabled.value = enabled
     }
 
     enum class ThemeMode {
