@@ -143,4 +143,3 @@ class AuthManager @Inject constructor(
         private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_preferences")
     }
 }
-

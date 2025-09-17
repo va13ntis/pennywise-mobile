@@ -26,7 +26,6 @@ import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.presentation.util.LocaleManager
-import com.pennywise.app.presentation.auth.DeviceAuthService
 import com.pennywise.app.presentation.auth.AuthManager
 import dagger.Module
 import dagger.Provides
@@ -225,15 +224,6 @@ object RepositoryModule {
     @Singleton
     fun provideLocaleManager(): LocaleManager {
         return LocaleManager()
-    }
-    
-    /**
-     * Provides the DeviceAuthService
-     */
-    @Provides
-    @Singleton
-    fun provideDeviceAuthService(@ApplicationContext context: Context): DeviceAuthService {
-        return DeviceAuthService(context)
     }
     
     /**

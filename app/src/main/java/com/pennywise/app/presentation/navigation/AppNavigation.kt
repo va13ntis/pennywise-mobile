@@ -34,6 +34,7 @@ fun AppNavigation() {
     
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
     val isDeviceAuthEnabled by authViewModel.isDeviceAuthEnabled.collectAsState(initial = false)
+    val shouldRequireDeviceAuth by authViewModel.shouldRequireDeviceAuth.collectAsState(initial = false)
     
     // Show loading state initially
     var isInitialized by remember { mutableStateOf(false) }
@@ -63,8 +64,38 @@ fun AppNavigation() {
     // Determine the appropriate start destination
     val startDestination = when {
         currentUser == null -> FIRST_RUN_SETUP_ROUTE
-        isDeviceAuthEnabled -> DEVICE_AUTH_PROMPT_ROUTE
+        shouldRequireDeviceAuth -> DEVICE_AUTH_PROMPT_ROUTE
         else -> MAIN_ROUTE
+    }
+    
+    // Handle navigation based on authentication state changes
+    LaunchedEffect(currentUser, shouldRequireDeviceAuth, isInitialized) {
+        val currentRoute = navController.currentDestination?.route
+        println("🔍 AppNavigation: currentUser = $currentUser, shouldRequireDeviceAuth = $shouldRequireDeviceAuth, isInitialized = $isInitialized, currentRoute = $currentRoute")
+        
+        if (!isInitialized) return@LaunchedEffect
+        
+        if (currentUser != null) {
+            if (shouldRequireDeviceAuth && currentRoute != DEVICE_AUTH_PROMPT_ROUTE) {
+                // User exists and device auth is required, navigate to auth prompt
+                println("🔍 AppNavigation: Navigating to DEVICE_AUTH_PROMPT_ROUTE")
+                navController.navigate(DEVICE_AUTH_PROMPT_ROUTE) {
+                    popUpTo(0) { inclusive = true }
+                }
+            } else if (!shouldRequireDeviceAuth && currentRoute != MAIN_ROUTE) {
+                // User exists and device auth is not required, go to main
+                println("🔍 AppNavigation: Navigating to MAIN_ROUTE")
+                navController.navigate(MAIN_ROUTE) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        } else if (currentRoute != FIRST_RUN_SETUP_ROUTE) {
+            // No user, go to first run setup
+            println("🔍 AppNavigation: Navigating to FIRST_RUN_SETUP_ROUTE")
+            navController.navigate(FIRST_RUN_SETUP_ROUTE) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
     }
     
     NavHost(
@@ -93,6 +124,8 @@ fun AppNavigation() {
         composable(DEVICE_AUTH_PROMPT_ROUTE) {
             DeviceAuthPromptScreen(
                 onAuthSuccess = {
+                    // Mark user as authenticated and navigate to main
+                    authViewModel.markUserAsAuthenticated()
                     navController.navigate(MAIN_ROUTE) {
                         popUpTo(DEVICE_AUTH_PROMPT_ROUTE) { inclusive = true }
                     }
@@ -109,11 +142,11 @@ fun AppNavigation() {
         // Main app content after authentication
         composable(MAIN_ROUTE) {
             val homeViewModel = hiltViewModel<HomeViewModel>()
-            val currentUser = authViewModel.getCurrentUser()
+            val mainCurrentUser = authViewModel.getCurrentUser()
             
             // Set the user ID for the HomeViewModel
-            LaunchedEffect(currentUser) {
-                currentUser?.let { user ->
+            LaunchedEffect(mainCurrentUser) {
+                mainCurrentUser?.let { user ->
                     println("🔄 AppNavigation: Setting user ID ${user.id} for HomeViewModel")
                     homeViewModel.setUserId(user.id)
                 } ?: run {

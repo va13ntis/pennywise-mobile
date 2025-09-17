@@ -2,8 +2,11 @@ package com.pennywise.app.presentation.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
+import com.pennywise.app.presentation.viewmodel.AuthMethod
 import com.pennywise.app.presentation.viewmodel.FirstRunSetupViewModel
 
 /**
@@ -121,6 +125,54 @@ fun FirstRunSetupScreen(
                     
                     Spacer(modifier = Modifier.height(20.dp))
                     
+                    // Authentication method selection
+                    if (uiState.canUseBiometric || uiState.canUseDeviceCredentials) {
+                        Text(
+                            text = stringResource(R.string.choose_auth_method),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Biometric option
+                        if (uiState.canUseBiometric) {
+                            AuthMethodCard(
+                                title = stringResource(R.string.biometric_auth_title),
+                                description = stringResource(R.string.biometric_auth_description),
+                                icon = Icons.Default.Fingerprint,
+                                isSelected = uiState.selectedAuthMethod == AuthMethod.BIOMETRIC,
+                                onClick = { viewModel.selectAuthMethod(AuthMethod.BIOMETRIC) }
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        
+                        // Device credentials option
+                        if (uiState.canUseDeviceCredentials) {
+                            AuthMethodCard(
+                                title = stringResource(R.string.device_credentials_title),
+                                description = stringResource(R.string.device_credentials_description),
+                                icon = Icons.Default.Lock,
+                                isSelected = uiState.selectedAuthMethod == AuthMethod.DEVICE_CREDENTIALS,
+                                onClick = { viewModel.selectAuthMethod(AuthMethod.DEVICE_CREDENTIALS) }
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        
+                        // No authentication option
+                        AuthMethodCard(
+                            title = stringResource(R.string.no_auth_title),
+                            description = stringResource(R.string.no_auth_description),
+                            icon = Icons.Default.Security,
+                            isSelected = uiState.selectedAuthMethod == AuthMethod.NONE,
+                            onClick = { viewModel.selectAuthMethod(AuthMethod.NONE) }
+                        )
+                        
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                    
                     // Action buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -134,15 +186,15 @@ fun FirstRunSetupScreen(
                         }
                         
                         Button(
-                            onClick = { viewModel.setupDeviceAuth() },
+                            onClick = { viewModel.setupSelectedAuth() },
                             modifier = Modifier.weight(1f),
-                            enabled = uiState.canUseDeviceAuth
+                            enabled = uiState.selectedAuthMethod != null
                         ) {
-                            Text(stringResource(R.string.setup_device_auth))
+                            Text(stringResource(R.string.continue_setup))
                         }
                     }
                     
-                    if (!uiState.canUseDeviceAuth) {
+                    if (!uiState.canUseBiometric && !uiState.canUseDeviceCredentials) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.device_auth_not_available),
@@ -170,6 +222,93 @@ fun FirstRunSetupScreen(
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
+        }
+    }
+}
+
+/**
+ * Card component for selecting authentication method
+ */
+@Composable
+private fun AuthMethodCard(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = isSelected,
+                onClick = onClick
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        border = if (isSelected) {
+            androidx.compose.foundation.BorderStroke(
+                2.dp,
+                MaterialTheme.colorScheme.primary
+            )
+        } else null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+            
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = MaterialTheme.colorScheme.primary
+                )
+            )
         }
     }
 }

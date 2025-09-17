@@ -68,7 +68,8 @@ class FirstRunSetupViewModel @Inject constructor(
                     onSuccess = { userId ->
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            canUseDeviceAuth = deviceAuthService.canUseDeviceAuth(),
+                            canUseBiometric = deviceAuthService.canUseBiometric(),
+                            canUseDeviceCredentials = deviceAuthService.canUseDeviceCredentials(),
                             isSetupComplete = false
                         )
                     },
@@ -88,21 +89,39 @@ class FirstRunSetupViewModel @Inject constructor(
         }
     }
     
-    fun setupDeviceAuth() {
+    fun selectAuthMethod(authMethod: AuthMethod) {
+        _uiState.value = _uiState.value.copy(selectedAuthMethod = authMethod)
+    }
+    
+    fun setupSelectedAuth() {
         viewModelScope.launch {
             try {
+                val selectedMethod = _uiState.value.selectedAuthMethod
+                if (selectedMethod == null) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Please select an authentication method"
+                    )
+                    return@launch
+                }
+                
                 _uiState.value = _uiState.value.copy(
                     isLoading = true,
-                    loadingMessage = "Setting up device authentication..."
+                    loadingMessage = when (selectedMethod) {
+                        AuthMethod.BIOMETRIC -> "Setting up biometric authentication..."
+                        AuthMethod.DEVICE_CREDENTIALS -> "Setting up device credentials..."
+                        AuthMethod.NONE -> "Completing setup..."
+                    }
                 )
                 
-                // Enable device authentication
-                deviceAuthService.setDeviceAuthEnabled(true)
+                // Enable device authentication if not NONE
+                val enableAuth = selectedMethod != AuthMethod.NONE
+                println("🔍 FirstRunSetupViewModel: Setting device auth enabled = $enableAuth for method = $selectedMethod")
+                deviceAuthService.setDeviceAuthEnabled(enableAuth)
                 
                 // Get the user and update device auth setting
                 val user = userRepository.getSingleUser()
                 if (user != null) {
-                    userRepository.updateDeviceAuthEnabled(user.id, true)
+                    userRepository.updateDeviceAuthEnabled(user.id, enableAuth)
                 }
                 
                 _uiState.value = _uiState.value.copy(
@@ -112,34 +131,15 @@ class FirstRunSetupViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message ?: "Failed to setup device authentication"
+                    errorMessage = e.message ?: "Failed to setup authentication"
                 )
             }
         }
     }
     
     fun skipDeviceAuth() {
-        viewModelScope.launch {
-            try {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = true,
-                    loadingMessage = "Completing setup..."
-                )
-                
-                // Keep device auth disabled (default)
-                deviceAuthService.setDeviceAuthEnabled(false)
-                
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isSetupComplete = true
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Failed to complete setup"
-                )
-            }
-        }
+        selectAuthMethod(AuthMethod.NONE)
+        setupSelectedAuth()
     }
     
     fun clearError() {
@@ -166,6 +166,17 @@ data class FirstRunSetupUiState(
     val isLoading: Boolean = false,
     val loadingMessage: String = "",
     val isSetupComplete: Boolean = false,
-    val canUseDeviceAuth: Boolean = false,
+    val canUseBiometric: Boolean = false,
+    val canUseDeviceCredentials: Boolean = false,
+    val selectedAuthMethod: AuthMethod? = null,
     val errorMessage: String? = null
 )
+
+/**
+ * Available authentication methods
+ */
+enum class AuthMethod {
+    BIOMETRIC,
+    DEVICE_CREDENTIALS,
+    NONE
+}

@@ -28,16 +28,20 @@ class DeviceAuthService @Inject constructor(
     private val deviceAuthEnabledKey = booleanPreferencesKey("device_auth_enabled")
     
     val isDeviceAuthEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[deviceAuthEnabledKey] ?: false
+        val enabled = preferences[deviceAuthEnabledKey] ?: false
+        println("🔍 DeviceAuthService: isDeviceAuthEnabled = $enabled")
+        enabled
     }
     
     /**
      * Set whether device authentication is enabled
      */
     suspend fun setDeviceAuthEnabled(enabled: Boolean) {
+        println("🔍 DeviceAuthService: Setting device auth enabled = $enabled")
         context.dataStore.edit { preferences ->
             preferences[deviceAuthEnabledKey] = enabled
         }
+        println("🔍 DeviceAuthService: Device auth enabled set to $enabled")
     }
     
     /**
@@ -97,7 +101,6 @@ class DeviceAuthService @Inject constructor(
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(context.getString(R.string.device_auth_title))
             .setSubtitle(context.getString(R.string.device_auth_subtitle))
-            .setNegativeButtonText(context.getString(R.string.device_auth_cancel))
             .setAllowedAuthenticators(
                 BiometricManager.Authenticators.BIOMETRIC_STRONG or 
                 BiometricManager.Authenticators.DEVICE_CREDENTIAL

@@ -12,6 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.presentation.viewmodel.DeviceAuthPromptViewModel
@@ -38,7 +39,13 @@ fun DeviceAuthPromptScreen(
     
     LaunchedEffect(Unit) {
         // Automatically trigger device authentication when screen loads
-        viewModel.authenticate()
+        val activity = context as? FragmentActivity
+        if (activity != null) {
+            viewModel.authenticate(activity)
+        } else {
+            // If we can't get a FragmentActivity, show an error
+            println("❌ DeviceAuthPromptScreen: Cannot get FragmentActivity from context")
+        }
     }
     
     Column(
@@ -90,7 +97,14 @@ fun DeviceAuthPromptScreen(
         } else {
             // Manual authentication button
             Button(
-                onClick = { viewModel.authenticate() },
+                onClick = { 
+                    val activity = context as? FragmentActivity
+                    if (activity != null) {
+                        viewModel.authenticate(activity)
+                    } else {
+                        println("❌ DeviceAuthPromptScreen: Cannot get FragmentActivity from context")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Authenticate")

@@ -16,6 +16,7 @@ import com.pennywise.app.domain.validation.CurrencyValidator
 import com.pennywise.app.domain.validation.CurrencyErrorHandler
 import com.pennywise.app.presentation.auth.AuthManager
 import com.pennywise.app.presentation.screens.ExpenseFormData
+import com.pennywise.app.presentation.util.SoundManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,8 @@ class AddExpenseViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val currencyValidator: CurrencyValidator,
     private val currencyErrorHandler: CurrencyErrorHandler,
-    private val currencySortingService: CurrencySortingService
+    private val currencySortingService: CurrencySortingService,
+    private val soundManager: SoundManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow<AddExpenseUiState>(AddExpenseUiState.Idle)
@@ -236,6 +238,9 @@ class AddExpenseViewModel @Inject constructor(
                 }
                 
                 _uiState.value = AddExpenseUiState.Success(transactionId)
+                
+                // Play kaching sound to celebrate the successful expense addition
+                soundManager.playKachingSound()
             } catch (e: Exception) {
                 _uiState.value = AddExpenseUiState.Error(e.message ?: "Failed to save expense")
             }

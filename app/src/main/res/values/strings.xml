@@ -128,6 +128,7 @@
     <string name="device_auth_cancel">Cancel</string>
     <string name="biometric_auth_title">Biometric Authentication</string>
     <string name="biometric_auth_subtitle">Use your fingerprint or face to continue</string>
+    <string name="biometric_auth_description">Use your fingerprint or face recognition</string>
     <string name="biometric_auth_cancel">Cancel</string>
     <string name="enable_device_auth">Enable Device Authentication</string>
     <string name="disable_device_auth">Disable Device Authentication</string>
@@ -137,6 +138,12 @@
     <string name="skip_device_auth">Skip for now</string>
     <string name="setup_device_auth">Set up security</string>
     <string name="device_auth_not_available">Device authentication is not available on this device</string>
+    <string name="choose_auth_method">Choose your preferred authentication method:</string>
+    <string name="device_credentials_title">Device Credentials</string>
+    <string name="device_credentials_description">Use your device PIN, pattern, or password</string>
+    <string name="no_auth_title">No Authentication</string>
+    <string name="no_auth_description">Do not use device authentication (not recommended)</string>
+    <string name="continue_setup">Continue Setup</string>
     <string name="welcome_to_pennywise">Welcome to PennyWise</string>
     <string name="welcome_description">Let\'s set up your personal finance tracker with your device preferences</string>
     
