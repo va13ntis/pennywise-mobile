@@ -131,4 +131,3 @@ class MainActivity : FragmentActivity() {
         finish()
     }
 }
-

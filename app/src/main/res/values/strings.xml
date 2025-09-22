@@ -144,7 +144,7 @@
     <string name="no_auth_title">No Authentication</string>
     <string name="no_auth_description">Do not use device authentication (not recommended)</string>
     <string name="continue_setup">Continue Setup</string>
-    <string name="next">Next</string>
+    <string name="next_step">Next</string>
     <string name="welcome_to_pennywise">Welcome to PennyWise</string>
     <string name="welcome_description">Let\'s set up your personal finance tracker with your device preferences</string>
     
@@ -301,5 +301,16 @@
     <string name="developer_options_disabled">Developer options disabled</string>
     <string name="tap_to_enable_developer_options">Tap 12 times to enable developer options</string>
     <string name="tap_to_disable_developer_options">Tap 6 times to disable developer options</string>
+    
+    <!-- First Run Setup -->
+    <string name="language_region_title">Language &amp; Region</string>
+    <string name="default_currency_title">Default Currency</string>
+    <string name="setup_summary_title">Setup Summary</string>
+    <string name="setup_summary_language">Language: %s</string>
+    <string name="setup_summary_currency">Currency: %s</string>
+    <string name="setup_summary_payment_method">Payment method: %s</string>
+    <string name="finish_setup">Finish</string>
+    <string name="not_selected">-</string>
+    <string name="finalizing_setup">Finalizing setup…</string>
 </resources>
 

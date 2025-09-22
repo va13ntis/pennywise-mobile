@@ -7,13 +7,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,15 +57,6 @@ fun FirstRunSetupScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // App logo/icon placeholder
-        Icon(
-            imageVector = Icons.Default.Security,
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
         
         // Welcome title
         Text(
@@ -97,6 +93,57 @@ fun FirstRunSetupScreen(
             }
         } else {
             when (uiState.step) {
+                FirstRunStep.LANGUAGE -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Public,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = stringResource(R.string.language_region_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            val supported = remember { com.pennywise.app.presentation.util.LocaleManager().getSupportedLocales() }
+                            supported.forEach { (code, name) ->
+                                AuthMethodCard(
+                                    title = name,
+                                    description = "",
+                                    icon = null,
+                                    isSelected = uiState.selectedLanguage == code,
+                                    onClick = { viewModel.setLanguage(code) }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                // No back button for first step
+                                Spacer(modifier = Modifier.width(0.dp))
+                                
+                                Button(
+                                    onClick = { viewModel.continueFromLanguage() },
+                                    enabled = uiState.selectedLanguage != null
+                                ) {
+                                    Text(stringResource(R.string.next_step))
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 FirstRunStep.AUTH -> {
                     // Device authentication setup
                     Card(
@@ -106,11 +153,21 @@ fun FirstRunSetupScreen(
                         Column(
                             modifier = Modifier.padding(20.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.device_auth_setup_title),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = stringResource(R.string.device_auth_setup_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                             
                             Spacer(modifier = Modifier.height(8.dp))
                             
@@ -184,7 +241,7 @@ fun FirstRunSetupScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 // Back button (not shown for first step)
-                                if (uiState.step != FirstRunStep.AUTH) {
+                                if (uiState.step != FirstRunStep.LANGUAGE) {
                                     OutlinedButton(
                                         onClick = { viewModel.goBack() }
                                     ) {
@@ -198,7 +255,7 @@ fun FirstRunSetupScreen(
                                     onClick = { viewModel.setupSelectedAuth() },
                                     enabled = uiState.selectedAuthMethod != null
                                 ) {
-                                    Text(stringResource(R.string.next))
+                                    Text(stringResource(R.string.next_step))
                                 }
                             }
                             
@@ -214,67 +271,39 @@ fun FirstRunSetupScreen(
                     }
                 }
                 
-                FirstRunStep.LANGUAGE -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = "Language & Region",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            val supported = remember { com.pennywise.app.presentation.util.LocaleManager().getSupportedLocales() }
-                            supported.forEach { (code, name) ->
-                                AuthMethodCard(
-                                    title = name,
-                                    description = code,
-                                    icon = Icons.Default.Security,
-                                    isSelected = uiState.selectedLanguage == code,
-                                    onClick = { viewModel.setLanguage(code) }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                OutlinedButton(
-                                    onClick = { viewModel.goBack() }
-                                ) {
-                                    Text(stringResource(R.string.back))
-                                }
-                                
-                                Button(
-                                    onClick = { viewModel.continueFromLanguage() },
-                                    enabled = uiState.selectedLanguage != null
-                                ) {
-                                    Text(stringResource(R.string.next))
-                                }
-                            }
-                        }
-                    }
-                }
-                
                 FirstRunStep.CURRENCY -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = "Default Currency",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Paid,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = stringResource(R.string.default_currency_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                             Spacer(modifier = Modifier.height(12.dp))
-                            listOf("USD","ILS","RUB","EUR").forEach { code ->
+                            listOf(
+                                "USD" to "$",
+                                "ILS" to "₪",
+                                "RUB" to "₽",
+                                "EUR" to "€"
+                            ).forEach { (code, symbol) ->
                                 AuthMethodCard(
                                     title = code,
                                     description = "",
-                                    icon = Icons.Default.Security,
+                                    icon = null,
+                                    currencySymbol = symbol,
                                     isSelected = uiState.selectedCurrency == code,
                                     onClick = { viewModel.setCurrency(code) }
                                 )
@@ -294,7 +323,7 @@ fun FirstRunSetupScreen(
                                     onClick = { viewModel.continueFromCurrency() },
                                     enabled = uiState.selectedCurrency != null
                                 ) {
-                                    Text(stringResource(R.string.next))
+                                    Text(stringResource(R.string.next_step))
                                 }
                             }
                         }
@@ -307,17 +336,32 @@ fun FirstRunSetupScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = stringResource(R.string.default_payment_method),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalanceWallet,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = stringResource(R.string.default_payment_method),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                             Spacer(modifier = Modifier.height(12.dp))
                             listOf(PaymentMethod.CASH, PaymentMethod.CREDIT_CARD, PaymentMethod.CHEQUE).forEach { method ->
+                                val title = when (method) {
+                                    PaymentMethod.CASH -> stringResource(R.string.payment_method_cash)
+                                    PaymentMethod.CREDIT_CARD -> stringResource(R.string.payment_method_credit_card)
+                                    PaymentMethod.CHEQUE -> stringResource(R.string.payment_method_cheque)
+                                }
                                 AuthMethodCard(
-                                    title = method.displayName,
+                                    title = title,
                                     description = "",
-                                    icon = Icons.Default.Security,
+                                    icon = null,
                                     isSelected = uiState.selectedPaymentMethod == method,
                                     onClick = { viewModel.setPaymentMethod(method) }
                                 )
@@ -337,7 +381,7 @@ fun FirstRunSetupScreen(
                                     onClick = { viewModel.continueFromPaymentMethod() },
                                     enabled = uiState.selectedPaymentMethod != null
                                 ) {
-                                    Text(stringResource(R.string.next))
+                                    Text(stringResource(R.string.next_step))
                                 }
                             }
                         }
@@ -350,15 +394,31 @@ fun FirstRunSetupScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = "Setup Summary",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = stringResource(R.string.setup_summary_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text("Language: ${uiState.selectedLanguage ?: "-"}")
-                            Text("Currency: ${uiState.selectedCurrency ?: "-"}")
-                            Text("Payment method: ${uiState.selectedPaymentMethod?.displayName ?: "-"}")
+                            Text(stringResource(R.string.setup_summary_language, uiState.selectedLanguage?.let { com.pennywise.app.presentation.util.LocaleManager().getLanguageDisplayName(it) } ?: stringResource(R.string.not_selected)))
+                            Text(stringResource(R.string.setup_summary_currency, uiState.selectedCurrency ?: stringResource(R.string.not_selected)))
+                            Text(stringResource(R.string.setup_summary_payment_method, uiState.selectedPaymentMethod?.let { method ->
+                                when (method) {
+                                    PaymentMethod.CASH -> stringResource(R.string.payment_method_cash)
+                                    PaymentMethod.CREDIT_CARD -> stringResource(R.string.payment_method_credit_card)
+                                    PaymentMethod.CHEQUE -> stringResource(R.string.payment_method_cheque)
+                                }
+                            } ?: stringResource(R.string.not_selected)))
                             Spacer(modifier = Modifier.height(20.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -371,7 +431,7 @@ fun FirstRunSetupScreen(
                                 }
                                 
                                 Button(onClick = { viewModel.finishSetup() }) {
-                                    Text("Finish")
+                                    Text(stringResource(R.string.finish_setup))
                                 }
                             }
                         }
@@ -407,7 +467,8 @@ fun FirstRunSetupScreen(
 private fun AuthMethodCard(
     title: String,
     description: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    currencySymbol: String? = null,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -438,21 +499,41 @@ private fun AuthMethodCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = if (isSelected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
+            if (currencySymbol != null) {
+                Text(
+                    text = currencySymbol,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .size(24.dp),
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .align(Alignment.CenterVertically),
+                    tint = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
             
             Spacer(modifier = Modifier.width(12.dp))
             
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .align(Alignment.CenterVertically)
             ) {
                 Text(
                     text = title,
@@ -465,15 +546,17 @@ private fun AuthMethodCard(
                     }
                 )
                 
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
+                if (description.isNotEmpty()) {
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
             }
             
             RadioButton(

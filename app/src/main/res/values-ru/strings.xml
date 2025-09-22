@@ -34,6 +34,7 @@
     
     <!-- Payment Methods -->
     <string name="payment_method_cash">Наличные</string>
+    <string name="payment_method_credit_card">Кредитная карта</string>
     <string name="payment_method_cheque">Чек</string>
     <string name="recurring_expenses">Регулярные расходы</string>
     <string name="week_format">Неделя %d</string>
@@ -176,7 +177,7 @@
     <string name="change_default_currency_confirmation">Вы уверены, что хотите изменить валюту по умолчанию на %s? Это повлияет на отображение сумм во всем приложении.</string>
     <string name="default_currency_updated">Валюта по умолчанию успешно обновлена</string>
     <string name="default_currency_update_failed">Не удалось обновить валюту по умолчанию</string>
-    <string name="currency_change_warning">Изменение с %s на %s может повлиять на существующие данные</string>
+    <string name="currency_change_warning" formatted="false">Изменение с %s на %s может повлиять на существующие данные</string>
     
     <!-- Account -->
     <string name="account">Аккаунт</string>
@@ -209,6 +210,7 @@
     <string name="month_december">Декабрь</string>
     
     <!-- Payment Method and Type -->
+    <string name="payment_methods">Метод оплаты</string>
     <string name="payment_method_and_type">Способ и тип платежа</string>
     <string name="select_bank_card">Выберите банковскую карту</string>
     <string name="payments_layout">Схема платежей</string>
@@ -226,10 +228,38 @@
     
     <!-- Currency Validation -->
     <string name="currency_no_decimal_places">Эта валюта не использует десятичные знаки</string>
-    <string name="currency_decimal_places_info">%s - %d десятичных знаков</string>
+    <string name="currency_decimal_places_info" formatted="false">%s - %d десятичных знаков</string>
     
     <!-- Content Descriptions -->
     <string name="content_desc_calendar">Календарь</string>
     <string name="content_desc_decrease_installments">Уменьшить количество рассрочек</string>
     <string name="content_desc_increase_installments">Увеличить количество рассрочек</string>
+    
+    <!-- First Run Setup -->
+    <string name="welcome_to_pennywise">Добро пожаловать в PennyWise</string>
+    <string name="welcome_description">Давайте настроим ваш персональный трекер финансов с предпочтениями устройства</string>
+    <string name="device_auth_setup_title">Защитите приложение</string>
+    <string name="device_auth_setup_subtitle">Защитите ваши финансовые данные с помощью аутентификации устройства</string>
+    <string name="device_auth_setup_description">Вы можете использовать отпечаток пальца, распознавание лица или PIN-код устройства для защиты доступа к вашей финансовой информации.</string>
+    <string name="choose_auth_method">Выберите предпочитаемый метод аутентификации:</string>
+    <string name="biometric_auth_title">Биометрическая аутентификация</string>
+    <string name="biometric_auth_description">Используйте отпечаток пальца или распознавание лица</string>
+    <string name="device_credentials_title">Учетные данные устройства</string>
+    <string name="device_credentials_description">Используйте PIN-код, графический ключ или пароль устройства</string>
+    <string name="no_auth_title">Без аутентификации</string>
+    <string name="no_auth_description">Не использовать аутентификацию устройства (не рекомендуется)</string>
+    <string name="device_auth_not_available">Аутентификация устройства недоступна на этом устройстве</string>
+    
+    <!-- First Run Setup Additional -->
+    <string name="language_region_title">Язык и регион</string>
+    <string name="default_currency_title">Валюта по умолчанию</string>
+    <string name="default_payment_method">Метод оплаты по умолчанию</string>
+    <string name="setup_summary_title">Сводка настройки</string>
+    <string name="setup_summary_language">Язык: %s</string>
+    <string name="setup_summary_currency">Валюта: %s</string>
+    <string name="setup_summary_payment_method">Метод оплаты: %s</string>
+    <string name="finish_setup">Завершить</string>
+    <string name="not_selected">-</string>
+    <string name="next_step">Дальше</string>
+    <string name="finalizing_setup">Завершение настройки…</string>
 </resources>
