@@ -22,7 +22,7 @@ class DeviceAuthPromptViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
-    private val _uiState = MutableStateFlow(DeviceAuthPromptUiState())
+    private val _uiState = MutableStateFlow(DeviceAuthPromptUiState(isLoading = true))
     val uiState: StateFlow<DeviceAuthPromptUiState> = _uiState.asStateFlow()
     
     fun authenticate(activity: FragmentActivity? = null) {

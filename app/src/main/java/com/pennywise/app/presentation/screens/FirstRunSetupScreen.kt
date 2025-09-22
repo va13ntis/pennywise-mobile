@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.presentation.viewmodel.AuthMethod
+import com.pennywise.app.presentation.viewmodel.FirstRunStep
+import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.presentation.viewmodel.FirstRunSetupViewModel
 
 /**
@@ -93,114 +96,285 @@ fun FirstRunSetupScreen(
                 )
             }
         } else {
-            // Device authentication setup
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.device_auth_setup_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = stringResource(R.string.device_auth_setup_subtitle),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Text(
-                        text = stringResource(R.string.device_auth_setup_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    Spacer(modifier = Modifier.height(20.dp))
-                    
-                    // Authentication method selection
-                    if (uiState.canUseBiometric || uiState.canUseDeviceCredentials) {
-                        Text(
-                            text = stringResource(R.string.choose_auth_method),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        // Biometric option
-                        if (uiState.canUseBiometric) {
-                            AuthMethodCard(
-                                title = stringResource(R.string.biometric_auth_title),
-                                description = stringResource(R.string.biometric_auth_description),
-                                icon = Icons.Default.Fingerprint,
-                                isSelected = uiState.selectedAuthMethod == AuthMethod.BIOMETRIC,
-                                onClick = { viewModel.selectAuthMethod(AuthMethod.BIOMETRIC) }
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        
-                        // Device credentials option
-                        if (uiState.canUseDeviceCredentials) {
-                            AuthMethodCard(
-                                title = stringResource(R.string.device_credentials_title),
-                                description = stringResource(R.string.device_credentials_description),
-                                icon = Icons.Default.Lock,
-                                isSelected = uiState.selectedAuthMethod == AuthMethod.DEVICE_CREDENTIALS,
-                                onClick = { viewModel.selectAuthMethod(AuthMethod.DEVICE_CREDENTIALS) }
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        
-                        // No authentication option
-                        AuthMethodCard(
-                            title = stringResource(R.string.no_auth_title),
-                            description = stringResource(R.string.no_auth_description),
-                            icon = Icons.Default.Security,
-                            isSelected = uiState.selectedAuthMethod == AuthMethod.NONE,
-                            onClick = { viewModel.selectAuthMethod(AuthMethod.NONE) }
-                        )
-                        
-                        Spacer(modifier = Modifier.height(20.dp))
-                    }
-                    
-                    // Action buttons
-                    Row(
+            when (uiState.step) {
+                FirstRunStep.AUTH -> {
+                    // Device authentication setup
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = { viewModel.skipDeviceAuth() },
-                            modifier = Modifier.weight(1f)
+                        Column(
+                            modifier = Modifier.padding(20.dp)
                         ) {
-                            Text(stringResource(R.string.skip_device_auth))
-                        }
-                        
-                        Button(
-                            onClick = { viewModel.setupSelectedAuth() },
-                            modifier = Modifier.weight(1f),
-                            enabled = uiState.selectedAuthMethod != null
-                        ) {
-                            Text(stringResource(R.string.continue_setup))
+                            Text(
+                                text = stringResource(R.string.device_auth_setup_title),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = stringResource(R.string.device_auth_setup_subtitle),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Text(
+                                text = stringResource(R.string.device_auth_setup_description),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            Spacer(modifier = Modifier.height(20.dp))
+                            
+                            // Authentication method selection
+                            if (uiState.canUseBiometric || uiState.canUseDeviceCredentials) {
+                                Text(
+                                    text = stringResource(R.string.choose_auth_method),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // Biometric option
+                                if (uiState.canUseBiometric) {
+                                    AuthMethodCard(
+                                        title = stringResource(R.string.biometric_auth_title),
+                                        description = stringResource(R.string.biometric_auth_description),
+                                        icon = Icons.Default.Fingerprint,
+                                        isSelected = uiState.selectedAuthMethod == AuthMethod.BIOMETRIC,
+                                        onClick = { viewModel.selectAuthMethod(AuthMethod.BIOMETRIC) }
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                
+                                // Device credentials option
+                                if (uiState.canUseDeviceCredentials) {
+                                    AuthMethodCard(
+                                        title = stringResource(R.string.device_credentials_title),
+                                        description = stringResource(R.string.device_credentials_description),
+                                        icon = Icons.Default.Lock,
+                                        isSelected = uiState.selectedAuthMethod == AuthMethod.DEVICE_CREDENTIALS,
+                                        onClick = { viewModel.selectAuthMethod(AuthMethod.DEVICE_CREDENTIALS) }
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                
+                                // No authentication option
+                                AuthMethodCard(
+                                    title = stringResource(R.string.no_auth_title),
+                                    description = stringResource(R.string.no_auth_description),
+                                    icon = Icons.Default.LockOpen,
+                                    isSelected = uiState.selectedAuthMethod == AuthMethod.NONE,
+                                    onClick = { viewModel.selectAuthMethod(AuthMethod.NONE) }
+                                )
+                                
+                                Spacer(modifier = Modifier.height(20.dp))
+                            }
+                            
+                            // Action buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                // Back button (not shown for first step)
+                                if (uiState.step != FirstRunStep.AUTH) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.goBack() }
+                                    ) {
+                                        Text(stringResource(R.string.back))
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.width(0.dp))
+                                }
+                                
+                                Button(
+                                    onClick = { viewModel.setupSelectedAuth() },
+                                    enabled = uiState.selectedAuthMethod != null
+                                ) {
+                                    Text(stringResource(R.string.next))
+                                }
+                            }
+                            
+                            if (!uiState.canUseBiometric && !uiState.canUseDeviceCredentials) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.device_auth_not_available),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
-                    
-                    if (!uiState.canUseBiometric && !uiState.canUseDeviceCredentials) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.device_auth_not_available),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                }
+                
+                FirstRunStep.LANGUAGE -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = "Language & Region",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            val supported = remember { com.pennywise.app.presentation.util.LocaleManager().getSupportedLocales() }
+                            supported.forEach { (code, name) ->
+                                AuthMethodCard(
+                                    title = name,
+                                    description = code,
+                                    icon = Icons.Default.Security,
+                                    isSelected = uiState.selectedLanguage == code,
+                                    onClick = { viewModel.setLanguage(code) }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                OutlinedButton(
+                                    onClick = { viewModel.goBack() }
+                                ) {
+                                    Text(stringResource(R.string.back))
+                                }
+                                
+                                Button(
+                                    onClick = { viewModel.continueFromLanguage() },
+                                    enabled = uiState.selectedLanguage != null
+                                ) {
+                                    Text(stringResource(R.string.next))
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                FirstRunStep.CURRENCY -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = "Default Currency",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            listOf("USD","ILS","RUB","EUR").forEach { code ->
+                                AuthMethodCard(
+                                    title = code,
+                                    description = "",
+                                    icon = Icons.Default.Security,
+                                    isSelected = uiState.selectedCurrency == code,
+                                    onClick = { viewModel.setCurrency(code) }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                OutlinedButton(
+                                    onClick = { viewModel.goBack() }
+                                ) {
+                                    Text(stringResource(R.string.back))
+                                }
+                                
+                                Button(
+                                    onClick = { viewModel.continueFromCurrency() },
+                                    enabled = uiState.selectedCurrency != null
+                                ) {
+                                    Text(stringResource(R.string.next))
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                FirstRunStep.PAYMENT_METHOD -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = stringResource(R.string.default_payment_method),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            listOf(PaymentMethod.CASH, PaymentMethod.CREDIT_CARD, PaymentMethod.CHEQUE).forEach { method ->
+                                AuthMethodCard(
+                                    title = method.displayName,
+                                    description = "",
+                                    icon = Icons.Default.Security,
+                                    isSelected = uiState.selectedPaymentMethod == method,
+                                    onClick = { viewModel.setPaymentMethod(method) }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                OutlinedButton(
+                                    onClick = { viewModel.goBack() }
+                                ) {
+                                    Text(stringResource(R.string.back))
+                                }
+                                
+                                Button(
+                                    onClick = { viewModel.continueFromPaymentMethod() },
+                                    enabled = uiState.selectedPaymentMethod != null
+                                ) {
+                                    Text(stringResource(R.string.next))
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                FirstRunStep.SUMMARY -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = "Setup Summary",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Language: ${uiState.selectedLanguage ?: "-"}")
+                            Text("Currency: ${uiState.selectedCurrency ?: "-"}")
+                            Text("Payment method: ${uiState.selectedPaymentMethod?.displayName ?: "-"}")
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                OutlinedButton(
+                                    onClick = { viewModel.goBack() }
+                                ) {
+                                    Text(stringResource(R.string.back))
+                                }
+                                
+                                Button(onClick = { viewModel.finishSetup() }) {
+                                    Text("Finish")
+                                }
+                            }
+                        }
                     }
                 }
             }

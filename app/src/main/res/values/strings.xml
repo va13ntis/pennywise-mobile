@@ -144,6 +144,7 @@
     <string name="no_auth_title">No Authentication</string>
     <string name="no_auth_description">Do not use device authentication (not recommended)</string>
     <string name="continue_setup">Continue Setup</string>
+    <string name="next">Next</string>
     <string name="welcome_to_pennywise">Welcome to PennyWise</string>
     <string name="welcome_description">Let\'s set up your personal finance tracker with your device preferences</string>
     

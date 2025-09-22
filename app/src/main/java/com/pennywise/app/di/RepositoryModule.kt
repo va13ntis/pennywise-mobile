@@ -1,6 +1,8 @@
 package com.pennywise.app.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
@@ -213,8 +215,11 @@ object RepositoryModule {
      */
     @Provides
     @Singleton
-    fun provideSettingsDataStore(@ApplicationContext context: Context): SettingsDataStore {
-        return SettingsDataStore(context)
+    fun provideSettingsDataStore(
+        dataStore: DataStore<Preferences>,
+        @ApplicationContext context: Context
+    ): SettingsDataStore {
+        return SettingsDataStore(dataStore, context)
     }
     
     /**

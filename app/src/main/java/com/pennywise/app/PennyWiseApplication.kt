@@ -5,8 +5,12 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.res.Configuration
 import android.os.Build
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
+import com.pennywise.app.presentation.util.LocaleManager
+import com.pennywise.app.presentation.util.SettingsManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -20,8 +24,14 @@ import javax.inject.Inject
 @HiltAndroidApp
 class PennyWiseApplication : Application() {
     
+    @Inject 
+    lateinit var localeManager: LocaleManager
+    
     @Inject
-    lateinit var localeManager: com.pennywise.app.presentation.util.LocaleManager
+    lateinit var settingsManager: SettingsManager
+    
+    @Inject
+    lateinit var dataStore: DataStore<Preferences>
     
     override fun onCreate() {
         super.onCreate()
@@ -34,19 +44,56 @@ class PennyWiseApplication : Application() {
         Timber.d("PennyWise Application initialized")
     }
     
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyPreferredLocale()
+    }
+    
     override fun attachBaseContext(base: Context) {
         // Apply saved locale before creating the base context
         val contextWithLocale = applySavedLocale(base)
         super.attachBaseContext(contextWithLocale)
     }
     
+    private fun applyPreferredLocale() {
+        try {
+            // Re-apply saved locale when configuration changes
+            val languageCode = runBlocking { settingsManager.getLanguagePreference().first() }
+            Timber.d("Re-applying saved locale: $languageCode")
+            val resources = resources
+            val configuration = Configuration(resources.configuration)
+            
+            val locale = when (languageCode) {
+                "en" -> Locale("en")
+                "iw" -> Locale("iw")
+                "ru" -> Locale("ru")
+                else -> Locale.getDefault()
+            }
+            
+            Locale.setDefault(locale)
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                configuration.setLocales(android.os.LocaleList(locale))
+            } else {
+                @Suppress("DEPRECATION")
+                configuration.locale = locale
+            }
+            
+            resources.updateConfiguration(configuration, resources.displayMetrics)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to apply preferred locale")
+        }
+    }
+    
     private fun applySavedLocale(context: Context): Context {
         return try {
-            // Get saved language preference
-            val preferences = context.settingsDataStore.data
-            val languageCode = runBlocking { preferences.first()[stringPreferencesKey("language")] ?: "" }
+            // Use SharedPreferences for initial locale detection to avoid DataStore conflicts
+            val sharedPrefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+            val languageCode = sharedPrefs.getString("language", "")
             
-            if (languageCode.isNotEmpty()) {
+            Timber.d("Applying saved locale at app startup: $languageCode")
+            
+            if (!languageCode.isNullOrEmpty()) {
                 // Apply the saved locale
                 val locale = when (languageCode) {
                     "en" -> Locale("en")
@@ -73,12 +120,8 @@ class PennyWiseApplication : Application() {
                 context
             }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to apply saved locale")
+            Timber.e(e, "Failed to apply saved locale: ${e.message}")
             context
         }
-    }
-    
-    companion object {
-        private val Context.settingsDataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> by preferencesDataStore(name = "settings_preferences")
     }
 }

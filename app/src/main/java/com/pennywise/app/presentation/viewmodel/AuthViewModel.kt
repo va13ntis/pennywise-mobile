@@ -27,6 +27,8 @@ class AuthViewModel @Inject constructor(
     
     private val _isAuthenticated = MutableStateFlow(false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
+    private val _isInitialized = MutableStateFlow(false)
+    val isInitialized: StateFlow<Boolean> = _isInitialized
     val currentUser: StateFlow<User?> = authManager.currentUser
     val isDeviceAuthEnabled: Flow<Boolean> = deviceAuthService.isDeviceAuthEnabled
     
@@ -36,6 +38,10 @@ class AuthViewModel @Inject constructor(
         deviceAuthService.isDeviceAuthEnabled,
         _isAuthenticated
     ) { user, deviceAuthEnabled, isAuthenticated ->
+        // Require device auth if:
+        // 1. User exists AND
+        // 2. Device auth is enabled AND  
+        // 3. User is not yet authenticated
         val result = user != null && deviceAuthEnabled && !isAuthenticated
         println("🔍 AuthViewModel: shouldRequireDeviceAuth calculation - user=${user != null}, deviceAuthEnabled=$deviceAuthEnabled, isAuthenticated=$isAuthenticated, result=$result")
         result
@@ -44,6 +50,7 @@ class AuthViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = false
     )
+
     
     init {
         // Don't automatically sync with AuthManager.isAuthenticated
@@ -54,6 +61,17 @@ class AuthViewModel @Inject constructor(
             isDeviceAuthEnabled.collect { deviceAuthEnabled ->
                 println("🔍 AuthViewModel: isDeviceAuthEnabled = $deviceAuthEnabled")
             }
+        }
+        
+        // Debug: Log current user and device auth state changes
+        viewModelScope.launch {
+            combine(
+                authManager.currentUser,
+                deviceAuthService.isDeviceAuthEnabled,
+                _isAuthenticated
+            ) { user, deviceAuthEnabled, isAuthenticated ->
+                println("🔍 AuthViewModel DEBUG: user=${user?.id}, deviceAuthEnabled=$deviceAuthEnabled, isAuthenticated=$isAuthenticated, shouldRequireDeviceAuth=${user != null && deviceAuthEnabled && !isAuthenticated}")
+            }.collect { }
         }
     }
     
@@ -74,7 +92,7 @@ class AuthViewModel @Inject constructor(
                     _isAuthenticated.value = true
                     println("✅ AuthViewModel: User authenticated (no device auth required)")
                 } else if (user != null && deviceAuthEnabled) {
-                    // User exists and device auth is required, keep _isAuthenticated as false
+                    // User exists and device auth is enabled, require device auth
                     _isAuthenticated.value = false
                     println("🔍 AuthViewModel: User found, device auth required")
                 } else {
@@ -87,6 +105,9 @@ class AuthViewModel @Inject constructor(
             } catch (e: Exception) {
                 println("❌ AuthViewModel: Error initializing auth state: ${e.message}")
                 _isAuthenticated.value = false
+            } finally {
+                // Signal to UI that initialization work has completed
+                _isInitialized.value = true
             }
         }
     }
@@ -114,13 +135,18 @@ class AuthViewModel @Inject constructor(
      * Mark user as authenticated after successful device authentication
      */
     fun markUserAsAuthenticated() {
+        // Set authentication state immediately (synchronous)
+        _isAuthenticated.value = true
+        println("✅ AuthViewModel: User marked as authenticated (immediate)")
+        
+        // Save to persistent storage (async)
         viewModelScope.launch {
             val user = authManager.getCurrentUser()
             if (user != null) {
                 authManager.saveAuthenticatedUser(user)
-                _isAuthenticated.value = true
-                println("✅ AuthViewModel: User marked as authenticated")
+                println("✅ AuthViewModel: User authentication persisted to storage")
             }
         }
     }
+
 }
