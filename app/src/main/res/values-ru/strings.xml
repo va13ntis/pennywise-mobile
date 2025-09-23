@@ -181,6 +181,7 @@
     
     <!-- Account -->
     <string name="account">Аккаунт</string>
+    <string name="security">Безопасность</string>
     <string name="logout">Выйти</string>
     
     <!-- Language Names -->
@@ -262,4 +263,21 @@
     <string name="not_selected">-</string>
     <string name="next_step">Дальше</string>
     <string name="finalizing_setup">Завершение настройки…</string>
+    
+    <!-- Authentication Method Configuration -->
+    <string name="authentication_method">Метод аутентификации</string>
+    <string name="current_auth_method">Текущий метод аутентификации</string>
+    <string name="change_auth_method">Изменить метод аутентификации</string>
+    <string name="auth_method_biometric">Биометрическая аутентификация</string>
+    <string name="auth_method_device_credentials">Учетные данные устройства</string>
+    <string name="auth_method_none">Без аутентификации</string>
+    <string name="auth_method_biometric_description">Используйте отпечаток пальца или распознавание лица</string>
+    <string name="auth_method_device_credentials_description">Используйте PIN-код, графический ключ или пароль устройства</string>
+    <string name="auth_method_none_description">Аутентификация не требуется</string>
+    <string name="auth_method_updated">Метод аутентификации успешно обновлен</string>
+    <string name="auth_method_update_failed">Не удалось обновить метод аутентификации</string>
+    <string name="updating_auth_method">Обновление метода аутентификации…</string>
+    
+    <!-- Copyright -->
+    <string name="copyright">© Quantum Doodles, 2025</string>
 </resources>

@@ -181,6 +181,7 @@
     
     <!-- Account -->
     <string name="account">חשבון</string>
+    <string name="security">אבטחה</string>
     <string name="logout">התנתקות</string>
     
     <!-- Language Names -->
@@ -262,4 +263,21 @@
     <string name="not_selected">-</string>
     <string name="next_step">הבא</string>
     <string name="finalizing_setup">מיישם הגדרות…</string>
+    
+    <!-- Authentication Method Configuration -->
+    <string name="authentication_method">שיטת אימות</string>
+    <string name="current_auth_method">שיטת אימות נוכחית</string>
+    <string name="change_auth_method">שנה שיטת אימות</string>
+    <string name="auth_method_biometric">אימות ביומטרי</string>
+    <string name="auth_method_device_credentials">פרטי מכשיר</string>
+    <string name="auth_method_none">ללא אימות</string>
+    <string name="auth_method_biometric_description">השתמש בטביעת אצבע או זיהוי פנים</string>
+    <string name="auth_method_device_credentials_description">השתמש בקוד PIN, תבנית או סיסמה של המכשיר</string>
+    <string name="auth_method_none_description">לא נדרש אימות</string>
+    <string name="auth_method_updated">שיטת האימות עודכנה בהצלחה</string>
+    <string name="auth_method_update_failed">נכשל בעדכון שיטת האימות</string>
+    <string name="updating_auth_method">מעדכן שיטת אימות…</string>
+    
+    <!-- Copyright -->
+    <string name="copyright">© Quantum Doodles, 2025</string>
 </resources>

@@ -203,14 +203,7 @@ fun AppNavigation() {
             val settingsViewModel = hiltViewModel<com.pennywise.app.presentation.viewmodel.SettingsViewModel>()
             SettingsScreen(
                 viewModel = settingsViewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onLogout = {
-                    // For simplified auth, logout just clears the user and goes to first run setup
-                    authViewModel.logout()
-                    navController.navigate(FIRST_RUN_SETUP_ROUTE) {
-                        popUpTo(MAIN_ROUTE) { inclusive = true }
-                    }
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

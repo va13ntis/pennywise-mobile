@@ -237,6 +237,7 @@
     
     <!-- Account -->
     <string name="account">Account</string>
+    <string name="security">Security</string>
     <string name="logout">Logout</string>
     
     <!-- Language Names -->
@@ -312,5 +313,22 @@
     <string name="finish_setup">Finish</string>
     <string name="not_selected">-</string>
     <string name="finalizing_setup">Finalizing setup…</string>
+    
+    <!-- Authentication Method Configuration -->
+    <string name="authentication_method">Authentication Method</string>
+    <string name="current_auth_method">Current Authentication Method</string>
+    <string name="change_auth_method">Change Authentication Method</string>
+    <string name="auth_method_biometric">Biometric Authentication</string>
+    <string name="auth_method_device_credentials">Device Credentials</string>
+    <string name="auth_method_none">No Authentication</string>
+    <string name="auth_method_biometric_description">Use fingerprint or face recognition</string>
+    <string name="auth_method_device_credentials_description">Use device PIN, pattern, or password</string>
+    <string name="auth_method_none_description">No authentication required</string>
+    <string name="auth_method_updated">Authentication method updated successfully</string>
+    <string name="auth_method_update_failed">Failed to update authentication method</string>
+    <string name="updating_auth_method">Updating authentication method…</string>
+    
+    <!-- Copyright -->
+    <string name="copyright">© Quantum Doodles, 2025</string>
 </resources>
 
