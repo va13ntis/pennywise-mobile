@@ -34,17 +34,60 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
+    - name: Run test configuration verification
+      run: ./gradlew testDebugUnitTest --tests "*TestConfigurationTest*" --stacktrace --info
+      continue-on-error: false
+      
+    - name: Check for common test issues
+      run: |
+        echo "Checking for common test issues..."
+        # Check if test classes exist
+        if [ -d "app/src/test" ]; then
+          echo "✅ Test source directory exists"
+          test_count=$(find app/src/test -name "*Test*.kt" | wc -l)
+          echo "Found $test_count test files"
+        else
+          echo "❌ Test source directory not found"
+          exit 1
+        fi
+        
+        # Check if test dependencies are available
+        if [ -f "app/build.gradle.kts" ]; then
+          echo "✅ Build file exists"
+        else
+          echo "❌ Build file not found"
+          exit 1
+        fi
+      
     - name: Validate Gradle build
       run: ./gradlew build --dry-run
       
     - name: Run fast unit tests (currency-related only)
-      run: ./gradlew testDebugUnitTest --tests "*Currency*Test*" --continue
+      run: ./gradlew testDebugUnitTest --tests "*Currency*Test*" --continue --stacktrace --info
+      continue-on-error: false
+      
+    - name: Check test results
+      run: |
+        if [ -f "app/build/reports/tests/testDebugUnitTest/index.html" ]; then
+          echo "✅ Currency test reports generated successfully"
+          # Check for test failures in the report
+          if grep -q "FAILED" app/build/reports/tests/testDebugUnitTest/index.html; then
+            echo "❌ Some currency tests failed - check the test report"
+            exit 1
+          else
+            echo "✅ All currency tests passed"
+          fi
+        else
+          echo "❌ Currency test reports not found - tests may have failed"
+          exit 1
+        fi
       
     - name: Check code style
       run: ./gradlew ktlintCheck || echo "Ktlint not configured, skipping..."
       
     - name: Generate test coverage for currency tests
-      run: ./gradlew jacocoCurrencyCoverageReport
+      run: ./gradlew jacocoCurrencyCoverageReport --stacktrace
+      continue-on-error: false
       
     - name: Comment PR with test results
       uses: actions/github-script@v7
