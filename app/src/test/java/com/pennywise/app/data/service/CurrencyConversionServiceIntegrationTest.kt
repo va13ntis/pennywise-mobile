@@ -77,9 +77,12 @@ class CurrencyConversionServiceIntegrationTest {
             val fromCurrency = "USD"
             val toCurrency = "EUR"
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             // No cache initially
@@ -184,9 +187,12 @@ class CurrencyConversionServiceIntegrationTest {
             val fromCurrency = "USD"
             val toCurrency = "EUR"
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             // First call - no cache
@@ -273,9 +279,12 @@ class CurrencyConversionServiceIntegrationTest {
             val fromCurrency = "USD"
             val toCurrency = "EUR"
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
@@ -374,9 +383,12 @@ class CurrencyConversionServiceIntegrationTest {
             val fromCurrency = "USD"
             val toCurrency = "EUR"
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
@@ -432,9 +444,12 @@ class CurrencyConversionServiceIntegrationTest {
             val fromCurrency = "USD"
             val toCurrency = "EUR"
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
@@ -455,9 +470,12 @@ class CurrencyConversionServiceIntegrationTest {
             val fromCurrency = "USD"
             val toCurrency = "EUR"
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
@@ -467,7 +485,7 @@ class CurrencyConversionServiceIntegrationTest {
             val result = service.convertCurrency(amount, fromCurrency, toCurrency)
             
             // Then
-            assertEquals(849999999.99, result, 0.01)
+            assertEquals(849999999.99, result ?: 0.0, 0.01)
         }
 
         @Test
@@ -478,9 +496,12 @@ class CurrencyConversionServiceIntegrationTest {
             val fromCurrency = "USD"
             val toCurrency = "EUR"
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
@@ -502,10 +523,13 @@ class CurrencyConversionServiceIntegrationTest {
         @DisplayName("Should handle multiple concurrent conversions")
         fun `should handle multiple concurrent conversions`() = runTest {
             // Given
-            val apiResponse = ExchangeRateResponse(
+            val apiResponse =             ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
@@ -519,7 +543,7 @@ class CurrencyConversionServiceIntegrationTest {
             // Then
             assertEquals(10, results.size)
             results.forEachIndexed { index, result ->
-                assertEquals((index + 1) * 0.85, result, 0.01)
+                assertEquals((index + 1) * 0.85, result ?: 0.0, 0.01)
             }
             
             // API should be called only once due to caching
@@ -534,9 +558,12 @@ class CurrencyConversionServiceIntegrationTest {
             val toCurrency = "EUR"
             val expiredTime = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(25)
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns 

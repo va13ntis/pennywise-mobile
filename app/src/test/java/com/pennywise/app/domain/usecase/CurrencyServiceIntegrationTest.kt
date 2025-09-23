@@ -14,6 +14,8 @@ import io.mockk.*
 import io.mockk.junit5.MockKExtension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.test.*
 import org.junit.jupiter.api.AfterEach
@@ -280,10 +282,9 @@ class CurrencyServiceIntegrationTest {
             // Setup user with default currency
             val user = com.pennywise.app.domain.model.User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = userDefaultCurrency,
+            defaultCurrency = userDefaultCurrency,
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -309,10 +310,9 @@ class CurrencyServiceIntegrationTest {
             // Setup user without default currency
             val user = com.pennywise.app.domain.model.User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = null,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -478,7 +478,7 @@ class CurrencyServiceIntegrationTest {
             assertEquals(85.0, convertedAmount)
             
             // 5. Format amount with validation
-            val formattedAmount = currencyValidator.formatAmountWithValidation(convertedAmount, currencyCode)
+            val formattedAmount = currencyValidator.formatAmountWithValidation(convertedAmount ?: 0.0, currencyCode)
             assertEquals("€85.00", formattedAmount)
         }
 

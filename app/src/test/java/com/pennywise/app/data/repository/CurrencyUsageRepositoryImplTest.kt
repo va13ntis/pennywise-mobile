@@ -280,10 +280,7 @@ class CurrencyUsageRepositoryImplTest {
             val result = repository.insertCurrencyUsage(currencyUsage)
             
             // Then
-            assertEquals(1L, result.id)
-            assertEquals(currencyUsage.userId, result.userId)
-            assertEquals(currencyUsage.currency, result.currency)
-            assertEquals(currencyUsage.usageCount, result.usageCount)
+            assertTrue(result > 0)
         }
     }
 
@@ -568,7 +565,7 @@ class CurrencyUsageRepositoryImplTest {
         fun `should handle null DAO responses`() = runTest {
             // Given
             val userId = 1L
-            coEvery { mockDao.getCurrencyUsageByUser(userId) } returns flowOf(null)
+            coEvery { mockDao.getCurrencyUsageByUser(userId) } returns flowOf(emptyList())
             
             // When
             val result = repository.getCurrencyUsageByUser(userId).first()

@@ -156,7 +156,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(userCurrencyUsage)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             val firstResult = service.getSortedCurrenciesSuspend(userId)
             
@@ -180,7 +180,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(userCurrencyUsage)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             // First call
             service.getSortedCurrenciesSuspend(userId)
@@ -207,7 +207,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(userCurrencyUsage)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "GBP", Date(), Date())
+                User(1L, "GBP", "en", false, Date(), Date())
             
             val result = service.getSortedCurrenciesSuspend(userId)
             
@@ -346,7 +346,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(userCurrencyUsage)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             // Populate cache
             service.getSortedCurrenciesSuspend(userId)
@@ -372,7 +372,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(any()) } returns 
                 flowOf(userCurrencyUsage)
             coEvery { mockUserRepository.getUserById(any()) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             // Populate cache for two users
             service.getSortedCurrenciesSuspend(userId1)
@@ -400,7 +400,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(userCurrencyUsage)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             // Populate cache
             service.getSortedCurrenciesSuspend(userId)
@@ -483,7 +483,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(emptyList())
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             val result = service.getSortedCurrenciesSuspend(userId)
             
@@ -504,7 +504,7 @@ class CurrencySortingServiceTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(userCurrencyUsage)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             val result = service.getSortedCurrenciesSuspend(userId)
             

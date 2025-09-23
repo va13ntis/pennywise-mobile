@@ -92,9 +92,12 @@ class CurrencyConverterTest {
             every { mockSharedPreferences.getString(any(), null) } returns null
             
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = rate
+                conversionRate = rate,
+                lastUpdateTime = "2023-01-01 00:00:00",
+                nextUpdateTime = "2023-01-02 00:00:00"
             )
             coEvery { mockCurrencyApi.getExchangeRate(fromCurrency, toCurrency) } returns apiResponse
             
@@ -102,7 +105,7 @@ class CurrencyConverterTest {
             val result = conversionService.convertCurrency(amount, fromCurrency, toCurrency)
             
             // Then
-            assertEquals(expected, result, 0.01)
+            assertEquals(expected, result ?: 0.0, 0.01)
         }
         
         @Test
@@ -113,16 +116,22 @@ class CurrencyConverterTest {
             
             // EUR to USD (1.18)
             val euroToUsdResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "EUR",
                 targetCode = "USD",
-                conversionRate = 1.18
+                conversionRate = 1.18,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             // USD to EUR (0.85)
             val usdToEuroResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             coEvery { mockCurrencyApi.getExchangeRate("EUR", "USD") } returns euroToUsdResponse
@@ -132,13 +141,13 @@ class CurrencyConverterTest {
             val euroToUsd = conversionService.convertCurrency(100.0, "EUR", "USD")
             
             // Then - Should be around 118 USD
-            assertEquals(118.0, euroToUsd, 0.01)
+            assertEquals(118.0, euroToUsd ?: 0.0, 0.01)
             
             // When - Convert back USD to EUR
             val usdToEuro = conversionService.convertCurrency(118.0, "USD", "EUR")
             
             // Then - Should be around 100 EUR
-            assertEquals(100.3, usdToEuro, 0.1)
+            assertEquals(100.3, usdToEuro ?: 0.0, 0.1)
         }
     }
 
@@ -154,16 +163,22 @@ class CurrencyConverterTest {
             
             // USD -> EUR at 0.85
             val usdToEurResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             // EUR -> GBP at 0.86
             val eurToGbpResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "EUR",
                 targetCode = "GBP",
-                conversionRate = 0.86
+                conversionRate = 0.86,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns usdToEurResponse
@@ -173,13 +188,13 @@ class CurrencyConverterTest {
             val usdToEur = conversionService.convertCurrency(100.0, "USD", "EUR")
             
             // Then - Should be 85 EUR
-            assertEquals(85.0, usdToEur, 0.01)
+            assertEquals(85.0, usdToEur ?: 0.0, 0.01)
             
             // When - Convert the resulting EUR to GBP
             val eurToGbp = conversionService.convertCurrency(usdToEur!!, "EUR", "GBP")
             
             // Then - Should be 73.1 GBP (85 * 0.86)
-            assertEquals(73.1, eurToGbp, 0.01)
+            assertEquals(73.1, eurToGbp ?: 0.0, 0.01)
             
             // The effective USD to GBP rate should be approximately 0.731 (0.85 * 0.86)
             val effectiveRate = eurToGbp!! / 100.0
@@ -204,9 +219,12 @@ class CurrencyConverterTest {
             rates.forEach { (pair, rate) ->
                 val (from, to) = pair.split("_")
                 val response = ExchangeRateResponse(
+                    result = "success",
                     baseCode = from,
                     targetCode = to,
-                    conversionRate = rate
+                    conversionRate = rate,
+                    lastUpdateTime = "2023-01-01T00:00:00Z",
+                    nextUpdateTime = "2023-01-02T00:00:00Z"
                 )
                 coEvery { mockCurrencyApi.getExchangeRate(from, to) } returns response
             }
@@ -245,9 +263,12 @@ class CurrencyConverterTest {
             
             // Very small exchange rate (e.g., VND to USD)
             val smallRateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "VND",
                 targetCode = "USD",
-                conversionRate = 0.000043
+                conversionRate = 0.000043,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("VND", "USD") } returns smallRateResponse
             
@@ -255,7 +276,7 @@ class CurrencyConverterTest {
             val result = conversionService.convertCurrency(1000000.0, "VND", "USD")
             
             // Then - Should be around 43 USD
-            assertEquals(43.0, result, 0.01)
+            assertEquals(43.0, result ?: 0.0, 0.01)
         }
         
         @Test
@@ -266,9 +287,12 @@ class CurrencyConverterTest {
             
             // Very large exchange rate (e.g., USD to VND)
             val largeRateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "VND",
-                conversionRate = 23255.814
+                conversionRate = 23255.814,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "VND") } returns largeRateResponse
             
@@ -276,7 +300,7 @@ class CurrencyConverterTest {
             val result = conversionService.convertCurrency(100.0, "USD", "VND")
             
             // Then - Should be around 2,325,581.4 VND
-            assertEquals(2325581.4, result, 0.1)
+            assertEquals(2325581.4, result ?: 0.0, 0.1)
         }
         
         @Test
@@ -286,19 +310,22 @@ class CurrencyConverterTest {
             every { mockSharedPreferences.getString(any(), null) } returns null
             
             val rateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns rateResponse
             
             // When/Then - Test with extremely large value
             val largeResult = conversionService.convertCurrency(1e15, "USD", "EUR")
-            assertEquals(8.5e14, largeResult, 0.1e14)
+            assertEquals(8.5e14, largeResult ?: 0.0, 0.1e14)
             
             // When/Then - Test with extremely small positive value
             val smallResult = conversionService.convertCurrency(1e-10, "USD", "EUR")
-            assertEquals(8.5e-11, smallResult, 0.1e-11)
+            assertEquals(8.5e-11, smallResult ?: 0.0, 0.1e-11)
         }
     }
 
@@ -313,9 +340,12 @@ class CurrencyConverterTest {
             every { mockSharedPreferences.getString(any(), null) } returns null
             
             val rateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns rateResponse
             
@@ -326,7 +356,7 @@ class CurrencyConverterTest {
             
             // Then - All results should be the same
             results.forEach { result ->
-                assertEquals(85.0, result, 0.01)
+                assertEquals(85.0, result ?: 0.0, 0.01)
             }
             
             // API should be called only once due to caching
@@ -341,16 +371,22 @@ class CurrencyConverterTest {
             
             // First rate response
             val initialRateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             // Changed rate response (after cache expiry)
             val updatedRateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.88
+                conversionRate = 0.88,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             // First call returns initial rate
@@ -358,7 +394,7 @@ class CurrencyConverterTest {
             
             // When/Then - First conversion
             val initialResult = conversionService.convertCurrency(100.0, "USD", "EUR")
-            assertEquals(85.0, initialResult, 0.01)
+            assertEquals(85.0, initialResult ?: 0.0, 0.01)
             
             // Given - Now mock the cached rate as expired
             val expiredTime = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(25)
@@ -372,7 +408,7 @@ class CurrencyConverterTest {
             val updatedResult = conversionService.convertCurrency(100.0, "USD", "EUR")
             
             // Then - Should use the new rate
-            assertEquals(88.0, updatedResult, 0.01)
+            assertEquals(88.0, updatedResult ?: 0.0, 0.01)
         }
     }
 
@@ -391,22 +427,31 @@ class CurrencyConverterTest {
             
             // Define direct rate for USD->GBP
             val directRateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "GBP",
-                conversionRate = 0.73
+                conversionRate = 0.73,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             // Define rates for USD->EUR and EUR->GBP
             val usdToEurResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             val eurToGbpResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "EUR",
                 targetCode = "GBP",
-                conversionRate = 0.86
+                conversionRate = 0.86,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             
             // Setup mock responses
@@ -418,7 +463,7 @@ class CurrencyConverterTest {
             val directResult = conversionService.convertCurrency(100.0, "USD", "GBP")
             
             // Then - Should be 73 GBP
-            assertEquals(73.0, directResult, 0.01)
+            assertEquals(73.0, directResult ?: 0.0, 0.01)
             
             // When - Convert through EUR
             val intermediateResult = conversionService.convertCurrency(100.0, "USD", "EUR")!!
@@ -426,7 +471,7 @@ class CurrencyConverterTest {
             
             // Then - Cross rate result (100 USD -> 85 EUR -> 73.1 GBP) should be close to direct result
             // The implied rate is 0.85 * 0.86 = 0.731, which is very close to the direct rate of 0.73
-            assertEquals(73.1, crossRateResult, 0.1)
+            assertEquals(73.1, crossRateResult ?: 0.0, 0.1)
             assertEquals(directResult!!, crossRateResult!!, 0.5) // Allow small difference due to cross-rate calculation
         }
     }
@@ -445,9 +490,12 @@ class CurrencyConverterTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
             val rateResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns rateResponse
             
@@ -460,7 +508,7 @@ class CurrencyConverterTest {
             // Then - Results should match expected conversions
             val expectedResults = amounts.map { it * 0.85 }
             for (i in results.indices) {
-                assertEquals(expectedResults[i], results[i], 0.01)
+                assertEquals(expectedResults[i], results[i] ?: 0.0, 0.01)
             }
             
             // API should be called only once due to caching

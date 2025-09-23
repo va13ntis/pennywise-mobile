@@ -1,6 +1,7 @@
 package com.pennywise.app.testutils
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Rule

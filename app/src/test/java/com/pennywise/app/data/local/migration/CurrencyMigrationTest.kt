@@ -4,11 +4,13 @@ import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.*
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
+import com.pennywise.app.data.local.migration.DatabaseMigrations.MIGRATION_1_2
 import com.pennywise.app.domain.model.Currency
 import org.junit.Rule
 import org.junit.Test

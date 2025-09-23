@@ -3,22 +3,24 @@ package com.pennywise.app.data.local.config
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.pennywise.app.data.local.PennywiseDatabase
+import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.dao.CurrencyUsageDao
 import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
+import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Date
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 
 /**
  * Integration tests for database module configuration
@@ -27,7 +29,7 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class DatabaseModuleTest {
 
-    private lateinit var database: PennywiseDatabase
+    private lateinit var database: PennyWiseDatabase
     private lateinit var userDao: UserDao
     private lateinit var transactionDao: TransactionDao
     private lateinit var currencyUsageDao: CurrencyUsageDao
@@ -36,7 +38,7 @@ class DatabaseModuleTest {
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
-            PennywiseDatabase::class.java
+            PennyWiseDatabase::class.java
         ).allowMainThreadQueries().build()
 
         userDao = database.userDao()
@@ -62,8 +64,9 @@ class DatabaseModuleTest {
         // Test that all DAOs are properly configured
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -75,6 +78,7 @@ class DatabaseModuleTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -84,9 +88,9 @@ class DatabaseModuleTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -103,8 +107,9 @@ class DatabaseModuleTest {
         // Test that all dependencies are properly injected
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -117,6 +122,7 @@ class DatabaseModuleTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -127,9 +133,9 @@ class DatabaseModuleTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -141,8 +147,8 @@ class DatabaseModuleTest {
 
         assertNotNull(userTransactions)
         assertNotNull(userCurrencyUsages)
-        assertEquals(1, userTransactions.size)
-        assertEquals(1, userCurrencyUsages.size)
+        assertEquals(1, userTransactions.first().size)
+        assertEquals(1, userCurrencyUsages.first().size)
     }
 
     @Test
@@ -150,8 +156,9 @@ class DatabaseModuleTest {
         // Test database module performance
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -168,6 +175,7 @@ class DatabaseModuleTest {
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -180,9 +188,9 @@ class DatabaseModuleTest {
             val currencyUsage = CurrencyUsageEntity(
                 id = i,
                 userId = 1,
-                currencyCode = "USD",
+                currency = "USD",
                 usageCount = i,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -196,8 +204,8 @@ class DatabaseModuleTest {
         assert(duration < 5000) { "Database module operations took too long: ${duration}ms" }
 
         // Verify all data was inserted
-        val transactionCount = transactionDao.getTransactionsByUser(1).size
-        val currencyUsageCount = currencyUsageDao.getCurrencyUsageByUser(1).size
+        val transactionCount = transactionDao.getTransactionsByUser(1).first().size
+        val currencyUsageCount = currencyUsageDao.getCurrencyUsageByUser(1).first().size
 
         assertEquals(100, transactionCount)
         assertEquals(50, currencyUsageCount)
@@ -208,8 +216,9 @@ class DatabaseModuleTest {
         // Test database module concurrency
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -226,6 +235,7 @@ class DatabaseModuleTest {
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -241,9 +251,9 @@ class DatabaseModuleTest {
             CurrencyUsageEntity(
                 id = i,
                 userId = 1,
-                currencyCode = "USD",
+                currency = "USD",
                 usageCount = i,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -260,8 +270,8 @@ class DatabaseModuleTest {
         assert(duration < 3000) { "Concurrent operations took too long: ${duration}ms" }
 
         // Verify all data was inserted
-        val transactionCount = transactionDao.getTransactionsByUser(1).size
-        val currencyUsageCount = currencyUsageDao.getCurrencyUsageByUser(1).size
+        val transactionCount = transactionDao.getTransactionsByUser(1).first().size
+        val currencyUsageCount = currencyUsageDao.getCurrencyUsageByUser(1).first().size
 
         assertEquals(50, transactionCount)
         assertEquals(25, currencyUsageCount)
@@ -272,8 +282,9 @@ class DatabaseModuleTest {
         // Test database module data integrity
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -286,6 +297,7 @@ class DatabaseModuleTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -295,9 +307,9 @@ class DatabaseModuleTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -322,8 +334,9 @@ class DatabaseModuleTest {
         // Test database module cleanup
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -335,6 +348,7 @@ class DatabaseModuleTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -344,9 +358,9 @@ class DatabaseModuleTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -373,8 +387,9 @@ class DatabaseModuleTest {
         // Test database module error handling
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -388,6 +403,7 @@ class DatabaseModuleTest {
                 amount = 100.0,
                 description = "Invalid transaction",
                 category = "Food",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()

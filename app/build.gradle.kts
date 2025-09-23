@@ -133,6 +133,8 @@ dependencies {
     // Android Test Core
     testImplementation("androidx.test:core:1.5.0")
     testImplementation("androidx.test:core-ktx:1.5.0")
+    testImplementation("androidx.test.ext:junit:1.1.5")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
     
     // Room testing utilities
     testImplementation("androidx.room:room-testing:2.6.1")

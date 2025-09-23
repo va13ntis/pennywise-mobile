@@ -37,7 +37,7 @@ class CurrencyUsageDaoTest {
         userDao = database.userDao()
         
         // Create a test user
-        testUser = UserEntity(username = "testuser", passwordHash = "hash")
+        testUser = UserEntity(defaultCurrency = "USD", locale = "en", deviceAuthEnabled = false)
         userDao.insertUser(testUser)
     }
 
@@ -472,7 +472,7 @@ class CurrencyUsageDaoTest {
     @Test
     fun deleteAllCurrencyUsageForUser_shouldNotAffectOtherUsers() = runTest {
         // Given - Create another user
-        val otherUser = UserEntity(username = "otheruser", passwordHash = "hash")
+        val otherUser = UserEntity(defaultCurrency = "EUR", locale = "en", deviceAuthEnabled = false)
         val otherUserId = userDao.insertUser(otherUser)
 
         val usage1 = CurrencyUsageEntity(

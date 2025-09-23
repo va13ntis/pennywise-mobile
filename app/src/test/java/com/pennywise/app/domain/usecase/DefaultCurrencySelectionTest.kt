@@ -62,10 +62,9 @@ class DefaultCurrencySelectionTest {
             
             val user = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = userDefaultCurrency,
+            defaultCurrency = userDefaultCurrency,
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -102,10 +101,9 @@ class DefaultCurrencySelectionTest {
             
             val user = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = null,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -159,10 +157,9 @@ class DefaultCurrencySelectionTest {
             
             val user = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = invalidDefaultCurrency,
+            defaultCurrency = invalidDefaultCurrency,
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -209,7 +206,7 @@ class DefaultCurrencySelectionTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(usageData)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             val sortedCurrencies = currencySortingService.getSortedCurrenciesSuspend(userId)
             
@@ -238,7 +235,7 @@ class DefaultCurrencySelectionTest {
             coEvery { mockCurrencyUsageRepository.getUserCurrenciesSortedByUsage(userId) } returns 
                 flowOf(usageData)
             coEvery { mockUserRepository.getUserById(userId) } returns 
-                User(1L, "testuser", "hash", "test@example.com", "USD", Date(), Date())
+                User(1L, "USD", "en", false, Date(), Date())
             
             val sortedCurrencies = currencySortingService.getSortedCurrenciesSuspend(userId)
             
@@ -262,10 +259,9 @@ class DefaultCurrencySelectionTest {
             
             val user = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = userDefaultCurrency,
+            defaultCurrency = userDefaultCurrency,
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -310,10 +306,9 @@ class DefaultCurrencySelectionTest {
             
             val user = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
                 defaultCurrency = userDefaultCurrency,
+                locale = "en",
+                deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -346,20 +341,18 @@ class DefaultCurrencySelectionTest {
             
             val user1 = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = "EUR",
+            defaultCurrency = "EUR",
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
             
             val user2 = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
-                defaultCurrency = "GBP",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -398,10 +391,9 @@ class DefaultCurrencySelectionTest {
             
             val user = User(
                 id = userId,
-                username = "testuser",
-                passwordHash = "hash",
-                email = "test@example.com",
                 defaultCurrency = userDefaultCurrency,
+                locale = "en",
+                deviceAuthEnabled = false,
                 createdAt = Date(),
                 updatedAt = Date()
             )

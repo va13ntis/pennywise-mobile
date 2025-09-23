@@ -3,20 +3,20 @@ package com.pennywise.app.data.local
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.pennywise.app.data.local.PennyWiseDatabase
+import org.junit.Assert.*
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.domain.model.Currency
+import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Date
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 /**
  * Integration tests for PennywiseDatabase
@@ -34,7 +34,7 @@ class PennywiseDatabaseTest {
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
-            PennywiseDatabase::class.java
+            PennyWiseDatabase::class.java
         ).allowMainThreadQueries().build()
 
         userDao = database.userDao()
@@ -60,8 +60,9 @@ class PennywiseDatabaseTest {
         // Create test user
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -72,16 +73,16 @@ class PennywiseDatabaseTest {
         // Retrieve user
         val retrievedUser = userDao.getUserById(1)
         assertNotNull(retrievedUser)
-        assertEquals(user.email, retrievedUser.email)
-        assertEquals(user.passwordHash, retrievedUser.passwordHash)
+        assertEquals(user.defaultCurrency, retrievedUser.defaultCurrency)
+        assertEquals(user.locale, retrievedUser.locale)
 
         // Update user
-        val updatedUser = user.copy(email = "updated@example.com")
+        val updatedUser = user.copy(defaultCurrency = "EUR")
         userDao.updateUser(updatedUser)
 
         val retrievedUpdatedUser = userDao.getUserById(1)
         assertNotNull(retrievedUpdatedUser)
-        assertEquals("updated@example.com", retrievedUpdatedUser.email)
+        assertEquals("EUR", retrievedUpdatedUser.defaultCurrency)
 
         // Delete user
         userDao.deleteUser(1)
@@ -94,8 +95,9 @@ class PennywiseDatabaseTest {
         // Create test user first
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -108,6 +110,7 @@ class PennywiseDatabaseTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = com.pennywise.app.domain.model.TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -141,8 +144,9 @@ class PennywiseDatabaseTest {
         // Create test user first
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -152,9 +156,9 @@ class PennywiseDatabaseTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 5,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -165,7 +169,7 @@ class PennywiseDatabaseTest {
         // Retrieve currency usage
         val retrievedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(1)
         assertNotNull(retrievedCurrencyUsage)
-        assertEquals(currencyUsage.currencyCode, retrievedCurrencyUsage.currencyCode)
+        assertEquals(currencyUsage.currency, retrievedCurrencyUsage.currency)
         assertEquals(currencyUsage.usageCount, retrievedCurrencyUsage.usageCount)
 
         // Update currency usage
@@ -187,8 +191,9 @@ class PennywiseDatabaseTest {
         // Create test user first
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -198,9 +203,9 @@ class PennywiseDatabaseTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -220,8 +225,9 @@ class PennywiseDatabaseTest {
         // Create test user first
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -232,27 +238,27 @@ class PennywiseDatabaseTest {
             CurrencyUsageEntity(
                 id = 1,
                 userId = 1,
-                currencyCode = "USD",
+                currency = "USD",
                 usageCount = 5,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             ),
             CurrencyUsageEntity(
                 id = 2,
                 userId = 1,
-                currencyCode = "EUR",
+                currency = "EUR",
                 usageCount = 3,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             ),
             CurrencyUsageEntity(
                 id = 3,
                 userId = 1,
-                currencyCode = "GBP",
+                currency = "GBP",
                 usageCount = 2,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -276,8 +282,9 @@ class PennywiseDatabaseTest {
         // Create test user first
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -288,27 +295,27 @@ class PennywiseDatabaseTest {
             CurrencyUsageEntity(
                 id = 1,
                 userId = 1,
-                currencyCode = "USD",
+                currency = "USD",
                 usageCount = 10,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             ),
             CurrencyUsageEntity(
                 id = 2,
                 userId = 1,
-                currencyCode = "EUR",
+                currency = "EUR",
                 usageCount = 5,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             ),
             CurrencyUsageEntity(
                 id = 3,
                 userId = 1,
-                currencyCode = "GBP",
+                currency = "GBP",
                 usageCount = 15,
-                lastUsedAt = Date(),
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             )
@@ -317,13 +324,13 @@ class PennywiseDatabaseTest {
         currencyUsages.forEach { currencyUsageDao.insertCurrencyUsage(it) }
 
         // Retrieve top currencies (should be ordered by usage count)
-        val topCurrencies = currencyUsageDao.getTopCurrenciesByUser(1, 2)
+        val topCurrencies = currencyUsageDao.getTopCurrenciesByUser(1, 2).first()
         assertEquals(2, topCurrencies.size)
 
         // Verify ordering (GBP should be first with 15, USD second with 10)
-        assertEquals("GBP", topCurrencies[0].currencyCode)
+        assertEquals("GBP", topCurrencies[0].currency)
         assertEquals(15, topCurrencies[0].usageCount)
-        assertEquals("USD", topCurrencies[1].currencyCode)
+        assertEquals("USD", topCurrencies[1].currency)
         assertEquals(10, topCurrencies[1].usageCount)
     }
 
@@ -332,8 +339,9 @@ class PennywiseDatabaseTest {
         // Create test user first
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -347,6 +355,7 @@ class PennywiseDatabaseTest {
                 amount = 100.0,
                 description = "Transaction 1",
                 category = "Food",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -357,6 +366,7 @@ class PennywiseDatabaseTest {
                 amount = 200.0,
                 description = "Transaction 2",
                 category = "Transport",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -367,6 +377,7 @@ class PennywiseDatabaseTest {
                 amount = 300.0,
                 description = "Transaction 3",
                 category = "Entertainment",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -376,7 +387,7 @@ class PennywiseDatabaseTest {
         transactions.forEach { transactionDao.insertTransaction(it) }
 
         // Retrieve transactions by user
-        val userTransactions = transactionDao.getTransactionsByUser(1)
+        val userTransactions = transactionDao.getTransactionsByUser(1).first()
         assertEquals(3, userTransactions.size)
 
         // Verify all transactions are present
@@ -395,6 +406,7 @@ class PennywiseDatabaseTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -414,8 +426,9 @@ class PennywiseDatabaseTest {
         // Create test user first
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -432,6 +445,7 @@ class PennywiseDatabaseTest {
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -455,8 +469,9 @@ class PennywiseDatabaseTest {
         // Create test user
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -469,6 +484,7 @@ class PennywiseDatabaseTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -479,9 +495,9 @@ class PennywiseDatabaseTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -497,7 +513,7 @@ class PennywiseDatabaseTest {
         assertNotNull(retrievedCurrencyUsage)
 
         // Verify relationships
-        assertEquals(retrievedUser.id, retrievedTransaction.userId)
-        assertEquals(retrievedUser.id, retrievedCurrencyUsage.userId)
+        assertEquals(retrievedUser?.id, retrievedTransaction?.userId)
+        assertEquals(retrievedUser?.id, retrievedCurrencyUsage?.userId)
     }
 }

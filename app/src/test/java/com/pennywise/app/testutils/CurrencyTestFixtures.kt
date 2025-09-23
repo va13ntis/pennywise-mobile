@@ -82,9 +82,12 @@ object CurrencyTestFixtures {
         rate: Double
     ): ExchangeRateResponse {
         return ExchangeRateResponse(
+            result = "success",
             baseCode = baseCode,
             targetCode = targetCode,
-            conversionRate = rate
+            conversionRate = rate,
+            lastUpdateTime = "2023-01-01 00:00:00",
+            nextUpdateTime = "2023-01-02 00:00:00"
         )
     }
 

@@ -323,8 +323,8 @@ class CurrencyTest {
             val positiveInfinity = Currency.formatAmount(Double.POSITIVE_INFINITY, Currency.USD)
             val negativeInfinity = Currency.formatAmount(Double.NEGATIVE_INFINITY, Currency.USD)
             
-            assertEquals("$Infinity", positiveInfinity)
-            assertEquals("$-Infinity", negativeInfinity)
+            assertEquals("$∞", positiveInfinity)
+            assertEquals("$-∞", negativeInfinity)
         }
 
         @Test

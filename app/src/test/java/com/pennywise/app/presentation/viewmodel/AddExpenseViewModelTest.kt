@@ -6,10 +6,12 @@ import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.BankCardRepository
+import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.domain.validation.CurrencyErrorHandler
 import com.pennywise.app.domain.validation.CurrencyValidator
 import com.pennywise.app.presentation.auth.AuthManager
+import com.pennywise.app.presentation.util.SoundManager
 import com.pennywise.app.presentation.screens.ExpenseFormData
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,19 +33,23 @@ class AddExpenseViewModelTest {
     private lateinit var viewModel: AddExpenseViewModel
     private lateinit var mockTransactionRepository: TransactionRepository
     private lateinit var mockBankCardRepository: BankCardRepository
+    private lateinit var mockSplitPaymentInstallmentRepository: SplitPaymentInstallmentRepository
     private lateinit var mockAuthManager: AuthManager
     private lateinit var mockCurrencyValidator: CurrencyValidator
     private lateinit var mockCurrencyErrorHandler: CurrencyErrorHandler
     private lateinit var mockCurrencySortingService: CurrencySortingService
+    private lateinit var mockSoundManager: SoundManager
     
     @Before
     fun setUp() {
         mockTransactionRepository = mockk()
         mockBankCardRepository = mockk()
+        mockSplitPaymentInstallmentRepository = mockk()
         mockAuthManager = mockk()
         mockCurrencyValidator = mockk()
         mockCurrencyErrorHandler = mockk()
         mockCurrencySortingService = mockk()
+        mockSoundManager = mockk()
         
         // Setup default behaviors
         every { mockAuthManager.currentUser } returns MutableStateFlow(null)
@@ -55,16 +61,21 @@ class AddExpenseViewModelTest {
         every { mockCurrencyErrorHandler.handleCurrencyValidationError(any(), any(), any()) } just Runs
         every { mockCurrencySortingService.getSortedCurrencies(any()) } returns MutableStateFlow(emptyList())
         every { mockCurrencySortingService.getTopCurrencies(any(), any()) } returns MutableStateFlow(emptyList())
-        every { mockCurrencySortingService.trackCurrencyUsage(any(), any()) } just Runs
+        coEvery { mockCurrencySortingService.trackCurrencyUsage(any(), any()) } just Runs
         every { mockBankCardRepository.getActiveBankCardsByUserId(any()) } returns MutableStateFlow(emptyList())
+        every { mockSplitPaymentInstallmentRepository.getInstallmentsByParentTransaction(any()) } returns MutableStateFlow(emptyList())
+        every { mockSoundManager.playKachingSound() } just Runs
+        coEvery { mockTransactionRepository.insertTransaction(any()) } returns 1L
         
         viewModel = AddExpenseViewModel(
             mockTransactionRepository,
             mockBankCardRepository,
+            mockSplitPaymentInstallmentRepository,
             mockAuthManager,
             mockCurrencyValidator,
             mockCurrencyErrorHandler,
-            mockCurrencySortingService
+            mockCurrencySortingService,
+            mockSoundManager
         )
     }
     
@@ -115,7 +126,7 @@ class AddExpenseViewModelTest {
         val userId = 1L
         val transactionId = 123L
         
-        every { mockTransactionRepository.insertTransaction(any()) } returns transactionId
+        coEvery { mockTransactionRepository.insertTransaction(any()) } returns transactionId
         
         // When
         viewModel.saveExpense(expenseData, userId)
@@ -123,7 +134,7 @@ class AddExpenseViewModelTest {
         // Then
         verify { mockCurrencyValidator.validateCurrencyCode(any()) }
         verify { mockCurrencyValidator.validateAmountForCurrency(expenseData.amount, any()) }
-        verify { mockTransactionRepository.insertTransaction(any()) }
+        coVerify { mockTransactionRepository.insertTransaction(any()) }
         
         // Wait for state to update
         advanceUntilIdle()
@@ -154,7 +165,7 @@ class AddExpenseViewModelTest {
         // Then
         verify { mockCurrencyValidator.validateCurrencyCode(any()) }
         verify { mockCurrencyErrorHandler.handleCurrencyValidationError(any(), any(), "AddExpenseViewModel.saveExpense") }
-        verify(exactly = 0) { mockTransactionRepository.insertTransaction(any()) }
+        coVerify(exactly = 0) { mockTransactionRepository.insertTransaction(any()) }
         
         // Wait for state to update
         advanceUntilIdle()
@@ -186,7 +197,7 @@ class AddExpenseViewModelTest {
         // Then
         verify { mockCurrencyValidator.validateAmountForCurrency(expenseData.amount, any()) }
         verify { mockCurrencyErrorHandler.handleCurrencyValidationError(any(), null, "AddExpenseViewModel.saveExpense") }
-        verify(exactly = 0) { mockTransactionRepository.insertTransaction(any()) }
+        coVerify(exactly = 0) { mockTransactionRepository.insertTransaction(any()) }
         
         // Wait for state to update
         advanceUntilIdle()
@@ -215,13 +226,13 @@ class AddExpenseViewModelTest {
         // Set selected currency
         viewModel.updateSelectedCurrency(expectedCurrency)
         
-        every { mockTransactionRepository.insertTransaction(any()) } returns transactionId
+        coEvery { mockTransactionRepository.insertTransaction(any()) } returns transactionId
         
         // When
         viewModel.saveExpense(expenseData, userId)
         
         // Then
-        verify {
+        coVerify {
             mockTransactionRepository.insertTransaction(match {
                 it.currency == expectedCurrency.code &&
                 it.amount == expenseData.amount &&
@@ -238,8 +249,8 @@ class AddExpenseViewModelTest {
         // Given
         val user = com.pennywise.app.domain.model.User(
             id = 1L,
-            username = "testuser",
-            passwordHash = "hash",
+            locale = "en",
+            deviceAuthEnabled = false,
             defaultCurrency = "INVALID"
         )
         val userFlow = MutableStateFlow(user)
@@ -251,10 +262,12 @@ class AddExpenseViewModelTest {
         viewModel = AddExpenseViewModel(
             mockTransactionRepository,
             mockBankCardRepository,
+            mockSplitPaymentInstallmentRepository,
             mockAuthManager,
             mockCurrencyValidator,
             mockCurrencyErrorHandler,
-            mockCurrencySortingService
+            mockCurrencySortingService,
+            mockSoundManager
         )
         
         // Then
@@ -283,7 +296,7 @@ class AddExpenseViewModelTest {
         val userId = 1L
         val transactionId = 123L
         
-        every { mockTransactionRepository.insertTransaction(any()) } returns transactionId
+        coEvery { mockTransactionRepository.insertTransaction(any()) } returns transactionId
         
         // Set to success state
         viewModel.saveExpense(expenseData, userId)
@@ -309,24 +322,24 @@ class AddExpenseViewModelTest {
             recurringPeriod = RecurringPeriod.MONTHLY,
             notes = "Monthly subscription",
             date = Date(),
-            paymentMethod = PaymentMethod.BANK_CARD
+            paymentMethod = PaymentMethod.CREDIT_CARD
         )
         val userId = 1L
         val transactionId = 123L
         
-        every { mockTransactionRepository.insertTransaction(any()) } returns transactionId
+        coEvery { mockTransactionRepository.insertTransaction(any()) } returns transactionId
         
         // When
         viewModel.saveExpense(expenseData, userId)
         
         // Then
-        verify {
+        coVerify {
             mockTransactionRepository.insertTransaction(match {
                 it.isRecurring == true &&
                 it.recurringPeriod == RecurringPeriod.MONTHLY &&
                 it.description == "Netflix" &&
                 it.amount == 15.99 &&
-                it.paymentMethod == PaymentMethod.BANK_CARD
+                it.paymentMethod == PaymentMethod.CREDIT_CARD
             })
         }
         
@@ -354,13 +367,13 @@ class AddExpenseViewModelTest {
         val userId = 1L
         val transactionId = 456L
         
-        every { mockTransactionRepository.insertTransaction(any()) } returns transactionId
+        coEvery { mockTransactionRepository.insertTransaction(any()) } returns transactionId
         
         // When
         viewModel.saveExpense(expenseData, userId)
         
         // Then
-        verify {
+        coVerify {
             mockTransactionRepository.insertTransaction(match {
                 it.description == "Furniture Store" &&
                 it.amount == 1200.0 &&

@@ -41,7 +41,7 @@ class TransactionCurrencyIntegrationTest {
         userDao = database.userDao()
         
         // Create a test user
-        testUser = UserEntity(username = "testuser", passwordHash = "hash")
+        testUser = UserEntity(defaultCurrency = "USD", locale = "en", deviceAuthEnabled = false)
         userDao.insertUser(testUser)
     }
 

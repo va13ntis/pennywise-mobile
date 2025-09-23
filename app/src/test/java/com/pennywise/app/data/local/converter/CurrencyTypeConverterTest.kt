@@ -1,6 +1,7 @@
 package com.pennywise.app.data.local.converter
 
 import com.pennywise.app.domain.model.Currency
+import com.pennywise.app.data.local.converter.CurrencyTypeConverter
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import io.mockk.junit5.MockKExtension
 
 /**
  * Unit tests for Currency type converters

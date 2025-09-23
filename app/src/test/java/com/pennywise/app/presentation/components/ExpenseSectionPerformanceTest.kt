@@ -3,20 +3,17 @@ package com.pennywise.app.presentation.components
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 import java.util.*
 
 /**
  * Performance tests for ExpenseSection component to verify efficient list updates
  * Tests that the component properly handles list changes without unnecessary recompositions
  */
-@RunWith(AndroidJUnit4::class)
 class ExpenseSectionPerformanceTest {
     
     @get:Rule
@@ -50,7 +47,11 @@ class ExpenseSectionPerformanceTest {
             ExpenseSection(
                 title = "Test Section",
                 transactions = emptyTransactions,
-                currency = "USD"
+                currency = "USD",
+                currencyConversionEnabled = false,
+                originalCurrency = "USD",
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {}
             )
         }
         
@@ -68,7 +69,11 @@ class ExpenseSectionPerformanceTest {
             ExpenseSection(
                 title = "Test Section",
                 transactions = transactions,
-                currency = "USD"
+                currency = "USD",
+                currencyConversionEnabled = false,
+                originalCurrency = "USD",
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {}
             )
         }
         
@@ -89,7 +94,11 @@ class ExpenseSectionPerformanceTest {
             ExpenseSection(
                 title = "Test Section",
                 transactions = transactions,
-                currency = "USD"
+                currency = "USD",
+                currencyConversionEnabled = false,
+                originalCurrency = "USD",
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {}
             )
         }
         
@@ -109,7 +118,11 @@ class ExpenseSectionPerformanceTest {
             ExpenseSection(
                 title = "Test Section",
                 transactions = transactions,
-                currency = "USD"
+                currency = "USD",
+                currencyConversionEnabled = false,
+                originalCurrency = "USD",
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {}
             )
         }
         
@@ -132,7 +145,11 @@ class ExpenseSectionPerformanceTest {
             ExpenseSection(
                 title = "Test Section",
                 transactions = transactions,
-                currency = "USD"
+                currency = "USD",
+                currencyConversionEnabled = false,
+                originalCurrency = "USD",
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {}
             )
         }
         
@@ -154,7 +171,11 @@ class ExpenseSectionPerformanceTest {
             ExpenseSection(
                 title = "Large List Test",
                 transactions = transactions,
-                currency = "USD"
+                currency = "USD",
+                currencyConversionEnabled = false,
+                originalCurrency = "USD",
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {}
             )
         }
         
@@ -181,11 +202,8 @@ class ExpenseSectionPerformanceTest {
                 currency = "EUR",
                 currencyConversionEnabled = true,
                 originalCurrency = "USD",
-                conversionState = HomeViewModel.ConversionState.Success(
-                    originalAmount = 100.0,
-                    convertedAmount = 85.0,
-                    isUsingCachedRate = false
-                )
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {}
             )
         }
         
@@ -206,6 +224,10 @@ class ExpenseSectionPerformanceTest {
                 title = "Recurring Section",
                 transactions = transactions,
                 currency = "USD",
+                currencyConversionEnabled = false,
+                originalCurrency = "USD",
+                conversionState = com.pennywise.app.presentation.viewmodel.HomeViewModel.ConversionState.Idle,
+                onConvertAmount = {},
                 isRecurring = true
             )
         }

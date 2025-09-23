@@ -40,9 +40,9 @@ class UserDaoTest {
     fun insertUser_shouldReturnUserId() = runTest {
         // Given
         val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hashedpassword",
-            email = "test@example.com"
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false
         )
 
         // When
@@ -56,9 +56,9 @@ class UserDaoTest {
     fun getUserById_shouldReturnUser() = runTest {
         // Given
         val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hashedpassword",
-            email = "test@example.com"
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false
         )
         val userId = userDao.insertUser(user)
 
@@ -67,168 +67,71 @@ class UserDaoTest {
 
         // Then
         assertNotNull(retrievedUser)
-        assertEquals(user.username, retrievedUser!!.username)
-        assertEquals(user.passwordHash, retrievedUser.passwordHash)
-        assertEquals(user.email, retrievedUser.email)
+        assertEquals(user.defaultCurrency, retrievedUser!!.defaultCurrency)
+        assertEquals(user.locale, retrievedUser.locale)
+        assertEquals(user.deviceAuthEnabled, retrievedUser.deviceAuthEnabled)
     }
 
     @Test
-    fun getUserByUsername_shouldReturnUser() = runTest {
+    fun getSingleUser_shouldReturnUser() = runTest {
         // Given
         val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hashedpassword",
-            email = "test@example.com"
+            defaultCurrency = "EUR",
+            locale = "en",
+            deviceAuthEnabled = true
         )
         userDao.insertUser(user)
 
         // When
-        val retrievedUser = userDao.getUserByUsername("testuser")
+        val retrievedUser = userDao.getSingleUser()
 
         // Then
         assertNotNull(retrievedUser)
-        assertEquals(user.username, retrievedUser!!.username)
+        assertEquals(user.defaultCurrency, retrievedUser!!.defaultCurrency)
+        assertEquals(user.locale, retrievedUser.locale)
     }
 
     @Test
-    fun getUserByEmail_shouldReturnUser() = runTest {
+    fun getSingleUserFlow_shouldReturnUser() = runTest {
         // Given
         val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hashedpassword",
-            email = "test@example.com"
+            defaultCurrency = "GBP",
+            locale = "en",
+            deviceAuthEnabled = false
         )
         userDao.insertUser(user)
 
         // When
-        val retrievedUser = userDao.getUserByEmail("test@example.com")
+        val retrievedUser = userDao.getSingleUserFlow().first()
 
         // Then
         assertNotNull(retrievedUser)
-        assertEquals(user.email, retrievedUser!!.email)
+        assertEquals(user.defaultCurrency, retrievedUser!!.defaultCurrency)
+        assertEquals(user.locale, retrievedUser.locale)
     }
 
     @Test
-    fun authenticateUser_shouldReturnUser_whenCredentialsMatch() = runTest {
+    fun getUserCount_shouldReturnCorrectCount() = runTest {
         // Given
-        val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hashedpassword",
-            email = "test@example.com"
-        )
-        userDao.insertUser(user)
-
-        // When
-        val authenticatedUser = userDao.authenticateUser("testuser", "hashedpassword")
-
-        // Then
-        assertNotNull(authenticatedUser)
-        assertEquals(user.username, authenticatedUser!!.username)
-    }
-
-    @Test
-    fun authenticateUser_shouldReturnNull_whenCredentialsDontMatch() = runTest {
-        // Given
-        val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hashedpassword",
-            email = "test@example.com"
-        )
-        userDao.insertUser(user)
-
-        // When
-        val authenticatedUser = userDao.authenticateUser("testuser", "wrongpassword")
-
-        // Then
-        assertNull(authenticatedUser)
-    }
-
-    @Test
-    fun getAllUsers_shouldReturnAllUsers() = runTest {
-        // Given
-        val user1 = UserEntity(username = "user1", passwordHash = "hash1")
-        val user2 = UserEntity(username = "user2", passwordHash = "hash2")
+        val user1 = UserEntity(defaultCurrency = "USD", locale = "en")
+        val user2 = UserEntity(defaultCurrency = "EUR", locale = "fr")
         userDao.insertUser(user1)
         userDao.insertUser(user2)
 
         // When
-        val users = userDao.getAllUsers().first()
+        val count = userDao.getUserCount()
 
         // Then
-        assertEquals(2, users.size)
-        assertTrue(users.any { it.username == "user1" })
-        assertTrue(users.any { it.username == "user2" })
-    }
-
-    @Test
-    fun getUsersByStatus_shouldReturnFilteredUsers() = runTest {
-        // Given
-        val activeUser = UserEntity(
-            username = "activeuser",
-            passwordHash = "hash1",
-            status = UserStatus.ACTIVE
-        )
-        val inactiveUser = UserEntity(
-            username = "inactiveuser",
-            passwordHash = "hash2",
-            status = UserStatus.INACTIVE
-        )
-        userDao.insertUser(activeUser)
-        userDao.insertUser(inactiveUser)
-
-        // When
-        val activeUsers = userDao.getUsersByStatus(UserStatus.ACTIVE).first()
-
-        // Then
-        assertEquals(1, activeUsers.size)
-        assertEquals("activeuser", activeUsers[0].username)
-    }
-
-    @Test
-    fun isUsernameTaken_shouldReturnOne_whenUsernameExists() = runTest {
-        // Given
-        val user = UserEntity(username = "testuser", passwordHash = "hash")
-        userDao.insertUser(user)
-
-        // When
-        val count = userDao.isUsernameTaken("testuser")
-
-        // Then
-        assertEquals(1, count)
-    }
-
-    @Test
-    fun isUsernameTaken_shouldReturnZero_whenUsernameDoesNotExist() = runTest {
-        // When
-        val count = userDao.isUsernameTaken("nonexistent")
-
-        // Then
-        assertEquals(0, count)
-    }
-
-    @Test
-    fun isEmailTaken_shouldReturnOne_whenEmailExists() = runTest {
-        // Given
-        val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hash",
-            email = "test@example.com"
-        )
-        userDao.insertUser(user)
-
-        // When
-        val count = userDao.isEmailTaken("test@example.com")
-
-        // Then
-        assertEquals(1, count)
+        assertEquals(2, count)
     }
 
     @Test
     fun updateUserStatus_shouldUpdateStatus() = runTest {
         // Given
         val user = UserEntity(
-            username = "testuser",
-            passwordHash = "hash",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             status = UserStatus.ACTIVE
         )
         val userId = userDao.insertUser(user)
@@ -244,7 +147,7 @@ class UserDaoTest {
     @Test
     fun updateLastActivity_shouldUpdateTimestamp() = runTest {
         // Given
-        val user = UserEntity(username = "testuser", passwordHash = "hash")
+        val user = UserEntity(defaultCurrency = "USD", locale = "en")
         val userId = userDao.insertUser(user)
         val originalUser = userDao.getUserById(userId)!!
 
@@ -258,9 +161,41 @@ class UserDaoTest {
     }
 
     @Test
+    fun updateDefaultCurrency_shouldUpdateCurrency() = runTest {
+        // Given
+        val user = UserEntity(defaultCurrency = "USD", locale = "en")
+        val userId = userDao.insertUser(user)
+
+        // When
+        val newTimestamp = System.currentTimeMillis()
+        userDao.updateDefaultCurrency(userId, "EUR", newTimestamp)
+
+        // Then
+        val updatedUser = userDao.getUserById(userId)!!
+        assertEquals("EUR", updatedUser.defaultCurrency)
+        assertTrue(updatedUser.updatedAt.time >= newTimestamp)
+    }
+
+    @Test
+    fun updateDeviceAuthEnabled_shouldUpdateAuthSetting() = runTest {
+        // Given
+        val user = UserEntity(defaultCurrency = "USD", locale = "en", deviceAuthEnabled = false)
+        val userId = userDao.insertUser(user)
+
+        // When
+        val newTimestamp = System.currentTimeMillis()
+        userDao.updateDeviceAuthEnabled(userId, true, newTimestamp)
+
+        // Then
+        val updatedUser = userDao.getUserById(userId)!!
+        assertTrue(updatedUser.deviceAuthEnabled)
+        assertTrue(updatedUser.updatedAt.time >= newTimestamp)
+    }
+
+    @Test
     fun deleteUser_shouldRemoveUser() = runTest {
         // Given
-        val user = UserEntity(username = "testuser", passwordHash = "hash")
+        val user = UserEntity(defaultCurrency = "USD", locale = "en")
         val userId = userDao.insertUser(user)
         assertNotNull(userDao.getUserById(userId))
 
@@ -270,5 +205,21 @@ class UserDaoTest {
 
         // Then
         assertNull(userDao.getUserById(userId))
+    }
+
+    @Test
+    fun deleteAllUsers_shouldRemoveAllUsers() = runTest {
+        // Given
+        val user1 = UserEntity(defaultCurrency = "USD", locale = "en")
+        val user2 = UserEntity(defaultCurrency = "EUR", locale = "fr")
+        userDao.insertUser(user1)
+        userDao.insertUser(user2)
+        assertEquals(2, userDao.getUserCount())
+
+        // When
+        userDao.deleteAllUsers()
+
+        // Then
+        assertEquals(0, userDao.getUserCount())
     }
 }

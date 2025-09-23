@@ -21,11 +21,9 @@ class EntityMappingTest {
         val date = Date()
         val userEntity = UserEntity(
             id = 1L,
-            username = "testuser",
-            passwordHash = "hashedpassword",
-            email = "test@example.com",
-            role = UserRole.USER,
-            status = UserStatus.ACTIVE,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = date,
             updatedAt = date
         )
@@ -35,9 +33,9 @@ class EntityMappingTest {
         
         // Then
         assertEquals("Should map ID correctly", 1L, user.id)
-        assertEquals("Should map username correctly", "testuser", user.username)
-        assertEquals("Should map password hash correctly", "hashedpassword", user.passwordHash)
-        assertEquals("Should map email correctly", "test@example.com", user.email)
+        assertEquals("Should map default currency correctly", "USD", user.defaultCurrency)
+        assertEquals("Should map locale correctly", "en", user.locale)
+        assertEquals("Should map device auth enabled correctly", false, user.deviceAuthEnabled)
         assertEquals("Should map created at correctly", date, user.createdAt)
         assertEquals("Should map updated at correctly", date, user.updatedAt)
     }
@@ -48,9 +46,9 @@ class EntityMappingTest {
         val date = Date()
         val user = User(
             id = 2L,
-            username = "domainuser",
-            passwordHash = "domainhash",
-            email = "domain@example.com",
+            defaultCurrency = "EUR",
+            locale = "en",
+            deviceAuthEnabled = true,
             createdAt = date,
             updatedAt = date
         )
@@ -60,9 +58,9 @@ class EntityMappingTest {
         
         // Then
         assertEquals("Should map ID correctly", 2L, userEntity.id)
-        assertEquals("Should map username correctly", "domainuser", userEntity.username)
-        assertEquals("Should map password hash correctly", "domainhash", userEntity.passwordHash)
-        assertEquals("Should map email correctly", "domain@example.com", userEntity.email)
+        assertEquals("Should map default currency correctly", "EUR", userEntity.defaultCurrency)
+        assertEquals("Should map locale correctly", "en", userEntity.locale)
+        assertEquals("Should map device auth enabled correctly", true, userEntity.deviceAuthEnabled)
         assertEquals("Should map created at correctly", date, userEntity.createdAt)
         assertEquals("Should map updated at correctly", date, userEntity.updatedAt)
         assertEquals("Should have default role", UserRole.USER, userEntity.role)
@@ -144,16 +142,16 @@ class EntityMappingTest {
         // Given
         val userEntity = UserEntity(
             id = 1L,
-            username = "testuser",
-            passwordHash = "hash",
-            email = null
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false
         )
         
         // When
         val user = userEntity.toDomainModel()
         
         // Then
-        assertNull("Should handle null email", user.email)
+        assertFalse("Should have device auth disabled", user.deviceAuthEnabled)
     }
     
     @Test
@@ -183,8 +181,9 @@ class EntityMappingTest {
         // Given
         val user = User(
             id = 0L,
-            username = "testuser",
-            passwordHash = "hash"
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false
         )
         
         // When

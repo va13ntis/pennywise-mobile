@@ -3,19 +3,21 @@ package com.pennywise.app.data.local.config
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.pennywise.app.data.local.PennywiseDatabase
+import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
+import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Date
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 
 /**
  * Integration tests for database configuration
@@ -24,13 +26,13 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class DatabaseConfigTest {
 
-    private lateinit var database: PennywiseDatabase
+    private lateinit var database: PennyWiseDatabase
 
     @Before
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
-            PennywiseDatabase::class.java
+            PennyWiseDatabase::class.java
         ).allowMainThreadQueries().build()
     }
 
@@ -55,16 +57,16 @@ class DatabaseConfigTest {
         val currencyUsageDao = database.currencyUsageDao()
 
         // Test user table
-        val users = userDao.getAllUsers()
-        assertNotNull(users)
+        val userCount = userDao.getUserCount()
+        assertNotNull(userCount)
 
         // Test transaction table
-        val transactions = transactionDao.getAllTransactions()
-        assertNotNull(transactions)
+        val transactionCount = transactionDao.getTransactionCount(1L)
+        assertNotNull(transactionCount)
 
         // Test currency_usage table
-        val currencyUsages = currencyUsageDao.getAllCurrencyUsages()
-        assertNotNull(currencyUsages)
+        val currencyUsageCount = currencyUsageDao.getCurrencyUsageCountForUser(1L)
+        assertNotNull(currencyUsageCount)
     }
 
     @Test
@@ -72,8 +74,9 @@ class DatabaseConfigTest {
         // Test that all expected columns exist by inserting and retrieving data
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -85,6 +88,7 @@ class DatabaseConfigTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -94,9 +98,9 @@ class DatabaseConfigTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -117,8 +121,9 @@ class DatabaseConfigTest {
         // Test foreign key constraints
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -131,6 +136,7 @@ class DatabaseConfigTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -145,6 +151,7 @@ class DatabaseConfigTest {
                 amount = 100.0,
                 description = "Invalid transaction",
                 category = "Food",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -162,8 +169,9 @@ class DatabaseConfigTest {
         // Test that indexes are working by querying with indexed columns
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -175,6 +183,7 @@ class DatabaseConfigTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -184,9 +193,9 @@ class DatabaseConfigTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -207,8 +216,9 @@ class DatabaseConfigTest {
         // Test database performance with bulk operations
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -225,6 +235,7 @@ class DatabaseConfigTest {
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -239,7 +250,7 @@ class DatabaseConfigTest {
         assert(duration < 10000) { "Bulk insertion took too long: ${duration}ms" }
 
         // Verify all transactions were inserted
-        val transactionCount = database.transactionDao().getTransactionsByUser(1).size
+        val transactionCount = database.transactionDao().getTransactionsByUser(1).first().size
         assertEquals(1000, transactionCount)
     }
 
@@ -248,8 +259,9 @@ class DatabaseConfigTest {
         // Test database concurrency with multiple operations
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -266,6 +278,7 @@ class DatabaseConfigTest {
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
+                type = TransactionType.EXPENSE,
                 date = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -283,7 +296,7 @@ class DatabaseConfigTest {
         assert(duration < 5000) { "Concurrent operations took too long: ${duration}ms" }
 
         // Verify all transactions were inserted
-        val transactionCount = database.transactionDao().getTransactionsByUser(1).size
+        val transactionCount = database.transactionDao().getTransactionsByUser(1).first().size
         assertEquals(100, transactionCount)
     }
 
@@ -292,8 +305,9 @@ class DatabaseConfigTest {
         // Test data integrity with complex relationships
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -306,6 +320,7 @@ class DatabaseConfigTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -315,9 +330,9 @@ class DatabaseConfigTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -342,8 +357,9 @@ class DatabaseConfigTest {
         // Test database cleanup operations
         val user = UserEntity(
             id = 1,
-            email = "test@example.com",
-            passwordHash = "hashed_password",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
@@ -355,6 +371,7 @@ class DatabaseConfigTest {
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
+            type = TransactionType.EXPENSE,
             date = Date(),
             createdAt = Date(),
             updatedAt = Date()
@@ -364,9 +381,9 @@ class DatabaseConfigTest {
         val currencyUsage = CurrencyUsageEntity(
             id = 1,
             userId = 1,
-            currencyCode = "USD",
+            currency = "USD",
             usageCount = 1,
-            lastUsedAt = Date(),
+            lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )

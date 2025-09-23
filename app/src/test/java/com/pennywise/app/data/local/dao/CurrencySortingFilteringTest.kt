@@ -37,7 +37,7 @@ class CurrencySortingFilteringTest {
         userDao = database.userDao()
         
         // Create a test user
-        testUser = UserEntity(username = "testuser", passwordHash = "hash")
+        testUser = UserEntity(defaultCurrency = "USD", locale = "en", deviceAuthEnabled = false)
         userDao.insertUser(testUser)
     }
 
@@ -205,7 +205,7 @@ class CurrencySortingFilteringTest {
     @Test
     fun currencyUsageFiltering_shouldWorkWithMultipleUsers() = runTest {
         // Given - Create another user
-        val otherUser = UserEntity(username = "otheruser", passwordHash = "hash")
+        val otherUser = UserEntity(defaultCurrency = "EUR", locale = "en", deviceAuthEnabled = false)
         val otherUserId = userDao.insertUser(otherUser)
 
         val testUserCurrencies = listOf(
@@ -263,7 +263,7 @@ class CurrencySortingFilteringTest {
     @Test
     fun getTopCurrenciesByUser_shouldFilterByUser() = runTest {
         // Given - Create another user
-        val otherUser = UserEntity(username = "otheruser", passwordHash = "hash")
+        val otherUser = UserEntity(defaultCurrency = "EUR", locale = "en", deviceAuthEnabled = false)
         val otherUserId = userDao.insertUser(otherUser)
 
         // Test user has currencies with usage counts 10, 5, 3

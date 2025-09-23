@@ -10,6 +10,7 @@ import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -36,8 +37,10 @@ class TransactionDaoTest {
         userDao = database.userDao()
         
         // Create a test user
-        testUser = UserEntity(username = "testuser", passwordHash = "hash")
-        userDao.insertUser(testUser)
+        testUser = UserEntity(defaultCurrency = "USD", locale = "en", deviceAuthEnabled = false)
+        runBlocking {
+            userDao.insertUser(testUser)
+        }
     }
 
     @After

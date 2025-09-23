@@ -2,9 +2,9 @@ package com.pennywise.app.data.repository
 
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.entity.UserEntity
-import com.pennywise.app.data.util.PasswordHasher
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.domain.model.UserStatus
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -19,191 +19,178 @@ class UserRepositoryImplTest {
     
     private lateinit var userRepository: UserRepositoryImpl
     private lateinit var mockUserDao: MockUserDao
-    private lateinit var passwordHasher: PasswordHasher
     
     @Before
     fun setUp() {
         mockUserDao = MockUserDao()
-        passwordHasher = PasswordHasher()
-        userRepository = UserRepositoryImpl(mockUserDao, passwordHasher)
+        userRepository = UserRepositoryImpl(mockUserDao)
     }
     
     @Test
-    fun `registerUser should return success when username is available`() = runTest {
+    fun `getSingleUser should return user when exists`() = runTest {
         // Given
-        val username = "testuser"
-        val password = "testpassword"
-        mockUserDao.shouldReturnUser = null // No existing user
-        
-        // When
-        val result = userRepository.registerUser(username, password)
-        
-        // Then
-        assertTrue("Registration should succeed", result.isSuccess)
-        assertTrue("Should return a valid user ID", result.getOrNull()!! > 0)
-        assertEquals("Should insert user with correct username", username, mockUserDao.lastInsertedUser?.username)
-        assertTrue("Should hash the password", mockUserDao.lastInsertedUser?.passwordHash?.contains(":") == true)
-    }
-    
-    @Test
-    fun `registerUser should return failure when username already exists`() = runTest {
-        // Given
-        val username = "existinguser"
-        val password = "testpassword"
-        val existingUser = UserEntity(id = 1, username = username, passwordHash = "hash")
-        mockUserDao.shouldReturnUser = existingUser
-        
-        // When
-        val result = userRepository.registerUser(username, password)
-        
-        // Then
-        assertTrue("Registration should fail", result.isFailure)
-        assertEquals("Should return username exists error", "Username already exists", result.exceptionOrNull()?.message)
-    }
-    
-    @Test
-    fun `authenticateUser should return success for valid credentials`() = runTest {
-        // Given
-        val username = "testuser"
-        val password = "testpassword"
-        val hashedPassword = passwordHasher.hashPassword(password)
-        val userEntity = UserEntity(id = 1, username = username, passwordHash = hashedPassword)
+        val userEntity = UserEntity(
+            id = 1,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false
+        )
         mockUserDao.shouldReturnUser = userEntity
         
         // When
-        val result = userRepository.authenticateUser(username, password)
+        val result = userRepository.getSingleUser()
         
         // Then
-        assertTrue("Authentication should succeed", result.isSuccess)
-        val user = result.getOrNull()
-        assertNotNull("Should return user", user)
-        assertEquals("Should return correct username", username, user?.username)
-        assertEquals("Should return correct ID", 1L, user?.id)
+        assertNotNull("Should return user when exists", result)
+        assertEquals("Should return correct user ID", 1L, result!!.id)
+        assertEquals("Should return correct currency", "USD", result.defaultCurrency)
+        assertEquals("Should return correct locale", "en", result.locale)
+        assertFalse("Should return correct device auth setting", result.deviceAuthEnabled)
     }
     
     @Test
-    fun `authenticateUser should return failure when user not found`() = runTest {
+    fun `getSingleUser should return null when no user exists`() = runTest {
         // Given
-        val username = "nonexistentuser"
-        val password = "testpassword"
         mockUserDao.shouldReturnUser = null
         
         // When
-        val result = userRepository.authenticateUser(username, password)
+        val result = userRepository.getSingleUser()
         
         // Then
-        assertTrue("Authentication should fail", result.isFailure)
-        assertEquals("Should return user not found error", "User not found", result.exceptionOrNull()?.message)
+        assertNull("Should return null when no user exists", result)
     }
     
     @Test
-    fun `authenticateUser should return failure for invalid password`() = runTest {
+    fun `getSingleUserFlow should return flow with user when exists`() = runTest {
         // Given
-        val username = "testuser"
-        val correctPassword = "correctpassword"
-        val wrongPassword = "wrongpassword"
-        val hashedPassword = passwordHasher.hashPassword(correctPassword)
-        val userEntity = UserEntity(id = 1, username = username, passwordHash = hashedPassword)
-        mockUserDao.shouldReturnUser = userEntity
+        val userEntity = UserEntity(
+            id = 1,
+            defaultCurrency = "EUR",
+            locale = "fr",
+            deviceAuthEnabled = true
+        )
+        mockUserDao.shouldReturnUserFlow = flowOf(userEntity)
         
         // When
-        val result = userRepository.authenticateUser(username, wrongPassword)
+        val result = userRepository.getSingleUserFlow()
+        val user = result.first()
         
         // Then
-        assertTrue("Authentication should fail", result.isFailure)
-        assertEquals("Should return invalid password error", "Invalid password", result.exceptionOrNull()?.message)
+        assertNotNull("Should return user when exists", user)
+        assertEquals("Should return correct user ID", 1L, user!!.id)
+        assertEquals("Should return correct currency", "EUR", user.defaultCurrency)
+        assertEquals("Should return correct locale", "fr", user.locale)
+        assertTrue("Should return correct device auth setting", user.deviceAuthEnabled)
     }
     
     @Test
-    fun `getUserById should return user when found`() = runTest {
+    fun `getSingleUserFlow should return flow with null when no user exists`() = runTest {
+        // Given
+        mockUserDao.shouldReturnUserFlow = flowOf(null)
+        
+        // When
+        val result = userRepository.getSingleUserFlow()
+        val user = result.first()
+        
+        // Then
+        assertNull("Should return null when no user exists", user)
+    }
+    
+    @Test
+    fun `saveUser should insert new user`() = runTest {
+        // Given
+        val user = User(
+            id = 0, // New user
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        mockUserDao.shouldReturnUserId = 1L
+        
+        // When
+        val result = userRepository.createUser(user.defaultCurrency, user.locale)
+        
+        // Then
+        assertTrue("Save should succeed", result.isSuccess)
+        assertEquals("Should return correct user ID", 1L, result.getOrNull()!!)
+        assertNotNull("Should insert user entity", mockUserDao.lastInsertedUser)
+        assertEquals("Should insert with correct currency", "USD", mockUserDao.lastInsertedUser?.defaultCurrency)
+    }
+    
+    @Test
+    fun `saveUser should update existing user`() = runTest {
+        // Given
+        val user = User(
+            id = 1, // Existing user
+            defaultCurrency = "EUR",
+            locale = "fr",
+            deviceAuthEnabled = true,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        
+        // When
+        val result = userRepository.createUser(user.defaultCurrency, user.locale)
+        
+        // Then
+        assertTrue("Save should succeed", result.isSuccess)
+        assertEquals("Should return correct user ID", 1L, result.getOrNull()!!)
+        assertNotNull("Should update user entity", mockUserDao.lastUpdatedUser)
+        assertEquals("Should update with correct currency", "EUR", mockUserDao.lastUpdatedUser?.defaultCurrency)
+    }
+    
+    @Test
+    fun `getUserCount should return correct count`() = runTest {
+        // Given
+        mockUserDao.shouldReturnUserCount = 2
+        
+        // When
+        val result = userRepository.getUserCount()
+        
+        // Then
+        assertEquals("Should return correct count", 2, result)
+    }
+    
+    @Test
+    fun `updateUserStatus should update status`() = runTest {
         // Given
         val userId = 1L
-        val userEntity = UserEntity(id = userId, username = "testuser", passwordHash = "hash")
-        mockUserDao.shouldReturnUser = userEntity
+        val newStatus = UserStatus.SUSPENDED
         
         // When
-        val result = userRepository.getUserById(userId)
+        userRepository.updateUserStatus(userId, newStatus)
         
         // Then
-        assertNotNull("Should return user", result)
-        assertEquals("Should return correct user ID", userId, result?.id)
-        assertEquals("Should return correct username", "testuser", result?.username)
+        assertEquals("Should call updateUserStatus with correct parameters", userId, mockUserDao.lastUpdatedUserId)
+        assertEquals("Should call updateUserStatus with correct status", newStatus, mockUserDao.lastUpdatedStatus)
     }
     
-    @Test
-    fun `getUserById should return null when user not found`() = runTest {
-        // Given
-        val userId = 999L
-        mockUserDao.shouldReturnUser = null
-        
-        // When
-        val result = userRepository.getUserById(userId)
-        
-        // Then
-        assertNull("Should return null", result)
-    }
+    // deleteAllUsers method doesn't exist in UserRepository interface
     
-    @Test
-    fun `isUsernameTaken should return true when username exists`() = runTest {
-        // Given
-        val username = "existinguser"
-        mockUserDao.shouldReturnUsernameCount = 1
-        
-        // When
-        val result = userRepository.isUsernameTaken(username)
-        
-        // Then
-        assertTrue("Should return true for existing username", result)
-    }
-    
-    @Test
-    fun `isUsernameTaken should return false when username is available`() = runTest {
-        // Given
-        val username = "newuser"
-        mockUserDao.shouldReturnUsernameCount = 0
-        
-        // When
-        val result = userRepository.isUsernameTaken(username)
-        
-        // Then
-        assertFalse("Should return false for available username", result)
-    }
-    
-    @Test
-    fun `getUsersByStatus should return users with correct status`() = runTest {
-        // Given
-        val status = UserStatus.ACTIVE
-        val users = listOf(
-            UserEntity(id = 1, username = "user1", passwordHash = "hash1", status = status),
-            UserEntity(id = 2, username = "user2", passwordHash = "hash2", status = status)
-        )
-        mockUserDao.shouldReturnUsers = users
-        
-        // When
-        val result = userRepository.getUsersByStatus(status)
-        
-        // Then
-        val resultList = mutableListOf<User>()
-        result.collect { resultList.addAll(it) }
-        assertEquals("Should return correct number of users", 2, resultList.size)
-        assertEquals("Should return correct first user", "user1", resultList[0].username)
-        assertEquals("Should return correct second user", "user2", resultList[1].username)
-    }
-    
-    // Mock implementation of UserDao for testing
+    /**
+     * Mock implementation of UserDao for testing
+     */
     private class MockUserDao : UserDao {
         var shouldReturnUser: UserEntity? = null
-        var shouldReturnUsers: List<UserEntity> = emptyList()
-        var shouldReturnUsernameCount: Int = 0
+        var shouldReturnUserFlow: kotlinx.coroutines.flow.Flow<UserEntity?> = flowOf(null)
+        var shouldReturnUserId: Long = 1L
+        var shouldReturnUserCount: Int = 0
+        
         var lastInsertedUser: UserEntity? = null
+        var lastUpdatedUser: UserEntity? = null
+        var lastUpdatedUserId: Long = 0L
+        var lastUpdatedStatus: UserStatus? = null
+        var deleteAllUsersCalled = false
         
         override suspend fun insertUser(user: UserEntity): Long {
             lastInsertedUser = user
-            return 1L
+            return shouldReturnUserId
         }
         
         override suspend fun updateUser(user: UserEntity) {
-            // Mock implementation
+            lastUpdatedUser = user
         }
         
         override suspend fun deleteUser(user: UserEntity) {
@@ -214,36 +201,37 @@ class UserRepositoryImplTest {
             return shouldReturnUser
         }
         
-        override suspend fun getUserByUsername(username: String): UserEntity? {
+        override suspend fun getSingleUser(): UserEntity? {
             return shouldReturnUser
         }
         
-        override suspend fun getUserByEmail(email: String): UserEntity? {
-            return shouldReturnUser
+        override fun getSingleUserFlow(): kotlinx.coroutines.flow.Flow<UserEntity?> {
+            return shouldReturnUserFlow
         }
         
-        override suspend fun authenticateUser(username: String, passwordHash: String): UserEntity? {
-            return shouldReturnUser
-        }
-        
-        override fun getUsersByStatus(status: UserStatus) = flowOf(shouldReturnUsers)
-        
-        override fun getAllUsers() = flowOf(shouldReturnUsers)
-        
-        override suspend fun isUsernameTaken(username: String): Int {
-            return shouldReturnUsernameCount
-        }
-        
-        override suspend fun isEmailTaken(email: String): Int {
-            return shouldReturnUsernameCount
+        override suspend fun getUserCount(): Int {
+            return shouldReturnUserCount
         }
         
         override suspend fun updateUserStatus(userId: Long, status: UserStatus) {
-            // Mock implementation
+            lastUpdatedUserId = userId
+            lastUpdatedStatus = status
         }
         
         override suspend fun updateLastActivity(userId: Long, updatedAt: Long) {
             // Mock implementation
+        }
+        
+        override suspend fun updateDefaultCurrency(userId: Long, currency: String, updatedAt: Long) {
+            // Mock implementation
+        }
+        
+        override suspend fun updateDeviceAuthEnabled(userId: Long, enabled: Boolean, updatedAt: Long) {
+            // Mock implementation
+        }
+        
+        override suspend fun deleteAllUsers() {
+            deleteAllUsersCalled = true
         }
     }
 }

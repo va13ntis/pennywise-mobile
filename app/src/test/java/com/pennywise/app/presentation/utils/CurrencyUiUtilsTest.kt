@@ -7,6 +7,7 @@ import androidx.lifecycle.lifecycleScope
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import io.mockk.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*

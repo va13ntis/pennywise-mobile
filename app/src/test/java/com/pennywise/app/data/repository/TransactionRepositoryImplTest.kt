@@ -49,7 +49,7 @@ class TransactionRepositoryImplTest {
         assertEquals("Should return correct transaction ID", 1L, result)
         assertNotNull("Should call DAO with entity", mockTransactionDao.lastInsertedTransaction)
         assertEquals("Should have correct user ID", 1L, mockTransactionDao.lastInsertedTransaction?.userId)
-        assertEquals("Should have correct amount", 100.0, mockTransactionDao.lastInsertedTransaction?.amount, 0.01)
+        assertEquals("Should have correct amount", 100.0, mockTransactionDao.lastInsertedTransaction?.amount ?: 0.0, 0.01)
     }
     
     @Test
@@ -74,7 +74,7 @@ class TransactionRepositoryImplTest {
         // Then
         assertNotNull("Should return transaction", result)
         assertEquals("Should return correct ID", transactionId, result?.id)
-        assertEquals("Should return correct amount", 100.0, result?.amount, 0.01)
+        assertEquals("Should return correct amount", 100.0, result?.amount ?: 0.0, 0.01)
         assertEquals("Should return correct description", "Test transaction", result?.description)
     }
     
@@ -231,6 +231,18 @@ class TransactionRepositoryImplTest {
         }
         
         override suspend fun deleteTransaction(transaction: TransactionEntity) {
+            // Mock implementation
+        }
+        
+        override suspend fun deleteAllTransactions() {
+            // Mock implementation
+        }
+        
+        override suspend fun getRecentTransactionsByUser(userId: Long): List<TransactionEntity> {
+            return shouldReturnTransactions
+        }
+        
+        override suspend fun insertTransactions(transactions: List<TransactionEntity>) {
             // Mock implementation
         }
         

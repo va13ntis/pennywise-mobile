@@ -123,9 +123,12 @@ class CurrencyConversionServiceTest {
             
             // Setup API response
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns apiResponse
             
@@ -172,10 +175,13 @@ class CurrencyConversionServiceTest {
         fun `should handle API response correctly`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse = ExchangeRateResponse(
+            val apiResponse =             ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns apiResponse
             
@@ -205,14 +211,17 @@ class CurrencyConversionServiceTest {
             every { mockSharedPreferences.getString(any(), null) } returns null
             
             val apiResponse = ExchangeRateResponse(
+                result = "success",
                 baseCode = fromCurrency,
                 targetCode = toCurrency,
-                conversionRate = rate
+                conversionRate = rate,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate(fromCurrency, toCurrency) } returns apiResponse
             
             val result = service.convertCurrency(amount, fromCurrency, toCurrency)
-            assertEquals(expected, result, 0.01)
+            assertEquals(expected, result ?: 0.0, 0.01)
         }
     }
 
@@ -310,10 +319,13 @@ class CurrencyConversionServiceTest {
         fun `should return true when API succeeds`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse = ExchangeRateResponse(
+            val apiResponse =             ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns apiResponse
             
@@ -387,15 +399,18 @@ class CurrencyConversionServiceTest {
         fun `should handle very large amounts`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse = ExchangeRateResponse(
+            val apiResponse =             ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns apiResponse
             
             val result = service.convertCurrency(999999999.99, "USD", "EUR")
-            assertEquals(849999999.99, result, 0.01)
+            assertEquals(849999999.99, result ?: 0.0, 0.01)
         }
 
         @Test
@@ -403,15 +418,18 @@ class CurrencyConversionServiceTest {
         fun `should handle very small amounts`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse = ExchangeRateResponse(
+            val apiResponse =             ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns apiResponse
             
             val result = service.convertCurrency(0.01, "USD", "EUR")
-            assertEquals(0.0085, result, 0.0001)
+            assertEquals(0.0085, result ?: 0.0, 0.0001)
         }
 
         @Test
@@ -419,10 +437,13 @@ class CurrencyConversionServiceTest {
         fun `should handle negative amounts`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse = ExchangeRateResponse(
+            val apiResponse =             ExchangeRateResponse(
+                result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
-                conversionRate = 0.85
+                conversionRate = 0.85,
+                lastUpdateTime = "2023-01-01T00:00:00Z",
+                nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns apiResponse
             
