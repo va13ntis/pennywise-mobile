@@ -389,15 +389,14 @@ object DatabaseMigrations {
      * - Simplify users table for single-user per app with device authentication
      * - Remove username, passwordHash, email fields
      * - Add deviceAuthEnabled field
+     * - Preserve existing user data (defaultCurrency, locale, etc.)
      */
     val MIGRATION_9_10 = object : Migration(9, 10) {
         override fun migrate(database: SupportSQLiteDatabase) {
-            // Create new users table with simplified schema
-            database.execSQL("DROP TABLE IF EXISTS users")
-            
+            // Create temporary table with new schema
             database.execSQL(
                 """
-                CREATE TABLE users (
+                CREATE TABLE users_new (
                     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                     defaultCurrency TEXT NOT NULL,
                     locale TEXT NOT NULL,
@@ -409,6 +408,30 @@ object DatabaseMigrations {
                 )
                 """
             )
+            
+            // Migrate existing user data, preserving preferences
+            database.execSQL(
+                """
+                INSERT INTO users_new (
+                    id, defaultCurrency, locale, deviceAuthEnabled, 
+                    role, status, createdAt, updatedAt
+                )
+                SELECT 
+                    id,
+                    COALESCE(defaultCurrency, 'USD') as defaultCurrency,
+                    COALESCE(locale, 'en') as locale,
+                    0 as deviceAuthEnabled,
+                    COALESCE(role, 'USER') as role,
+                    COALESCE(status, 'ACTIVE') as status,
+                    COALESCE(createdAt, strftime('%s', 'now') * 1000) as createdAt,
+                    strftime('%s', 'now') * 1000 as updatedAt
+                FROM users
+                """
+            )
+            
+            // Drop old table and rename new table
+            database.execSQL("DROP TABLE users")
+            database.execSQL("ALTER TABLE users_new RENAME TO users")
         }
     }
 }
