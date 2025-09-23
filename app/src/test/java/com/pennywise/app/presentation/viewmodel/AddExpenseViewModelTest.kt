@@ -12,21 +12,21 @@ import com.pennywise.app.domain.validation.CurrencyValidator
 import com.pennywise.app.presentation.auth.AuthManager
 import com.pennywise.app.presentation.screens.ExpenseFormData
 import io.mockk.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.*
-import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import com.pennywise.app.testutils.TestDispatcherRule
 import java.util.Date
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddExpenseViewModelTest {
     
-    @get:org.junit.Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    @get:Rule
+    val testDispatcherRule = TestDispatcherRule()
     
     private lateinit var viewModel: AddExpenseViewModel
     private lateinit var mockTransactionRepository: TransactionRepository
@@ -376,18 +376,3 @@ class AddExpenseViewModelTest {
     }
 }
 
-// Test rule for main dispatcher
-@OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule : kotlinx.coroutines.test.TestWatcher() {
-    private val testDispatcher = StandardTestDispatcher()
-    
-    override fun starting(description: org.junit.runner.Description) {
-        super.starting(description)
-        Dispatchers.setMain(testDispatcher)
-    }
-    
-    override fun finished(description: org.junit.runner.Description) {
-        super.finished(description)
-        Dispatchers.resetMain()
-    }
-}

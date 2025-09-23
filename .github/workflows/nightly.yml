@@ -36,23 +36,77 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
+    - name: Check Gradle configuration
+      run: |
+        echo "Gradle version:"
+        ./gradlew --version
+        echo "Available tasks:"
+        ./gradlew tasks --all | grep -E "(test|jacoco)" || echo "No test/jacoco tasks found"
+      
+    - name: Run test configuration verification
+      run: ./gradlew testDebugUnitTest --tests "*TestConfigurationTest*" --stacktrace --info
+      continue-on-error: false
+      
+    - name: Check for common test issues
+      run: |
+        echo "Checking for common test issues..."
+        # Check if test classes exist
+        if [ -d "app/src/test" ]; then
+          echo "✅ Test source directory exists"
+          test_count=$(find app/src/test -name "*Test*.kt" | wc -l)
+          echo "Found $test_count test files"
+        else
+          echo "❌ Test source directory not found"
+          exit 1
+        fi
+        
+        # Check if test dependencies are available
+        if [ -f "app/build.gradle.kts" ]; then
+          echo "✅ Build file exists"
+        else
+          echo "❌ Build file not found"
+          exit 1
+        fi
+      
     - name: Run all unit tests
-      run: ./gradlew testDebugUnitTest --continue
+      run: ./gradlew testDebugUnitTest --continue --stacktrace --info
+      continue-on-error: false
       
     - name: Run all integration tests
-      run: ./gradlew testDebugUnitTest --tests "*IntegrationTest*" --continue
+      run: ./gradlew testDebugUnitTest --tests "*IntegrationTest*" --continue --stacktrace --info
+      continue-on-error: false
       
     - name: Run all performance tests
-      run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue
+      run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue --stacktrace --info
+      continue-on-error: false
       
     - name: Run all load tests
-      run: ./gradlew testDebugUnitTest --tests "*LoadTest*" --continue
+      run: ./gradlew testDebugUnitTest --tests "*LoadTest*" --continue --stacktrace --info
+      continue-on-error: false
       
+    - name: Check test results
+      run: |
+        if [ -f "app/build/reports/tests/testDebugUnitTest/index.html" ]; then
+          echo "✅ Test reports generated successfully"
+          # Check for test failures in the report
+          if grep -q "FAILED" app/build/reports/tests/testDebugUnitTest/index.html; then
+            echo "❌ Some tests failed - check the test report"
+            exit 1
+          else
+            echo "✅ All tests passed"
+          fi
+        else
+          echo "❌ Test reports not found - tests may have failed"
+          exit 1
+        fi
+        
     - name: Generate comprehensive test coverage
-      run: ./gradlew jacocoTestReport
+      run: ./gradlew jacocoTestReport --stacktrace
+      continue-on-error: false
       
     - name: Generate currency-specific coverage
-      run: ./gradlew jacocoCurrencyCoverageReport
+      run: ./gradlew jacocoCurrencyCoverageReport --stacktrace
+      continue-on-error: false
       
     - name: Upload comprehensive test results
       uses: actions/upload-artifact@v4
@@ -71,6 +125,15 @@ jobs:
         file: app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
         flags: nightly
         name: nightly-coverage
+        
+    - name: Check coverage report generation
+      run: |
+        if [ -f "app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml" ]; then
+          echo "✅ Coverage report generated successfully"
+        else
+          echo "❌ Coverage report not found - coverage generation may have failed"
+          exit 1
+        fi
 
   # Security and dependency checks
   security-checks:
@@ -105,7 +168,7 @@ jobs:
       run: ./gradlew dependencyCheckAnalyze || echo "Dependency check plugin not configured"
       
     - name: Run security tests
-      run: ./gradlew testDebugUnitTest --tests "*SecurityTest*" || echo "No security tests found"
+      run: ./gradlew testDebugUnitTest --tests "*SecurityTest*" --continue --stacktrace --info || echo "No security tests found"
 
   # Performance benchmarking
   performance-benchmark:
@@ -137,8 +200,18 @@ jobs:
       run: chmod +x ./gradlew
       
     - name: Run performance benchmarks
-      run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue
+      run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue --stacktrace --info
+      continue-on-error: false
       
+    - name: Check benchmark results
+      run: |
+        if [ -d "app/build/reports/tests/testDebugUnitTest" ]; then
+          echo "✅ Benchmark test reports generated successfully"
+        else
+          echo "❌ Benchmark test reports not found - tests may have failed"
+          exit 1
+        fi
+        
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4
       if: always()
@@ -169,6 +242,12 @@ jobs:
           echo "✅ All nightly checks passed successfully!" >> nightly-report.md
         else
           echo "❌ Some nightly checks failed. Please review the results." >> nightly-report.md
+          echo "" >> nightly-report.md
+          echo "## Troubleshooting" >> nightly-report.md
+          echo "1. Check the test reports in the artifacts" >> nightly-report.md
+          echo "2. Review the build logs for specific error messages" >> nightly-report.md
+          echo "3. Verify that all test dependencies are properly configured" >> nightly-report.md
+          echo "4. Check for coroutine dispatcher issues in test files" >> nightly-report.md
         fi
         
     - name: Upload nightly report

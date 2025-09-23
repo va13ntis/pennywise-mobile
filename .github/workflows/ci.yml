@@ -36,11 +36,54 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
+    - name: Run test configuration verification
+      run: ./gradlew testDebugUnitTest --tests "*TestConfigurationTest*" --stacktrace --info
+      continue-on-error: false
+      
+    - name: Check for common test issues
+      run: |
+        echo "Checking for common test issues..."
+        # Check if test classes exist
+        if [ -d "app/src/test" ]; then
+          echo "✅ Test source directory exists"
+          test_count=$(find app/src/test -name "*Test*.kt" | wc -l)
+          echo "Found $test_count test files"
+        else
+          echo "❌ Test source directory not found"
+          exit 1
+        fi
+        
+        # Check if test dependencies are available
+        if [ -f "app/build.gradle.kts" ]; then
+          echo "✅ Build file exists"
+        else
+          echo "❌ Build file not found"
+          exit 1
+        fi
+      
     - name: Run unit tests
-      run: ./gradlew testDebugUnitTest --continue
+      run: ./gradlew testDebugUnitTest --continue --stacktrace --info
+      continue-on-error: false
+      
+    - name: Check test results
+      run: |
+        if [ -f "app/build/reports/tests/testDebugUnitTest/index.html" ]; then
+          echo "✅ Unit test reports generated successfully"
+          # Check for test failures in the report
+          if grep -q "FAILED" app/build/reports/tests/testDebugUnitTest/index.html; then
+            echo "❌ Some unit tests failed - check the test report"
+            exit 1
+          else
+            echo "✅ All unit tests passed"
+          fi
+        else
+          echo "❌ Unit test reports not found - tests may have failed"
+          exit 1
+        fi
       
     - name: Generate test coverage report
-      run: ./gradlew jacocoTestReport
+      run: ./gradlew jacocoTestReport --stacktrace
+      continue-on-error: false
       
     - name: Upload unit test results
       uses: actions/upload-artifact@v4
@@ -91,7 +134,8 @@ jobs:
       run: chmod +x ./gradlew
       
     - name: Run integration tests
-      run: ./gradlew testDebugUnitTest --tests "*IntegrationTest*" --continue
+      run: ./gradlew testDebugUnitTest --tests "*IntegrationTest*" --continue --stacktrace --info
+      continue-on-error: false
       
     - name: Upload integration test results
       uses: actions/upload-artifact@v4
@@ -132,7 +176,8 @@ jobs:
       run: chmod +x ./gradlew
       
     - name: Run performance tests
-      run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue
+      run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue --stacktrace --info
+      continue-on-error: false
       
     - name: Upload performance test results
       uses: actions/upload-artifact@v4
@@ -185,7 +230,7 @@ jobs:
         target: google_apis
         arch: x86_64
         profile: Nexus 6
-        script: ./gradlew connectedDebugAndroidTest --continue
+        script: ./gradlew connectedDebugAndroidTest --continue --stacktrace
         
     - name: Upload UI test results
       uses: actions/upload-artifact@v4
@@ -238,7 +283,7 @@ jobs:
         target: google_apis
         arch: x86_64
         profile: Nexus 6
-        script: ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" --continue
+        script: ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" --continue --stacktrace
         
     - name: Upload accessibility test results
       uses: actions/upload-artifact@v4
