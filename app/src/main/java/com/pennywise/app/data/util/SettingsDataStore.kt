@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.pennywise.app.presentation.viewmodel.SettingsViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +19,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class SettingsDataStore @Inject constructor(
+    private val dataStore: DataStore<Preferences>,
     @ApplicationContext private val context: Context
 ) {
     
@@ -32,7 +32,7 @@ class SettingsDataStore @Inject constructor(
     /**
      * Flow of the current theme mode from DataStore
      */
-    val themeMode: Flow<SettingsViewModel.ThemeMode> = context.settingsDataStore.data
+    val themeMode: Flow<SettingsViewModel.ThemeMode> = dataStore.data
         .map { preferences ->
             val themeModeString = preferences[themeKey] ?: SettingsViewModel.ThemeMode.SYSTEM.name
             try {
@@ -46,14 +46,14 @@ class SettingsDataStore @Inject constructor(
      * Get the current theme mode as a string
      */
     suspend fun getThemeMode(): String {
-        val preferences = context.settingsDataStore.data.first()
+        val preferences = dataStore.data.first()
         return preferences[themeKey] ?: "system"
     }
     
     /**
      * Flow of the current language from DataStore
      */
-    val language: Flow<String> = context.settingsDataStore.data
+    val language: Flow<String> = dataStore.data
         .map { preferences ->
             preferences[languageKey] ?: ""
         }
@@ -62,14 +62,14 @@ class SettingsDataStore @Inject constructor(
      * Get the current language
      */
     suspend fun getLanguage(): String {
-        val preferences = context.settingsDataStore.data.first()
+        val preferences = dataStore.data.first()
         return preferences[languageKey] ?: ""
     }
     
     /**
      * Flow of the current currency from DataStore
      */
-    val currency: Flow<String> = context.settingsDataStore.data
+    val currency: Flow<String> = dataStore.data
         .map { preferences ->
             preferences[currencyKey] ?: ""
         }
@@ -78,7 +78,7 @@ class SettingsDataStore @Inject constructor(
      * Get the current currency
      */
     suspend fun getCurrency(): String {
-        val preferences = context.settingsDataStore.data.first()
+        val preferences = dataStore.data.first()
         return preferences[currencyKey] ?: ""
     }
     
@@ -86,7 +86,7 @@ class SettingsDataStore @Inject constructor(
      * Set the theme mode and save it to DataStore
      */
     suspend fun setThemeMode(themeMode: SettingsViewModel.ThemeMode) {
-        context.settingsDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[themeKey] = themeMode.name
         }
     }
@@ -95,7 +95,7 @@ class SettingsDataStore @Inject constructor(
      * Set the theme mode as a string and save it to DataStore
      */
     suspend fun setThemeMode(themeMode: String) {
-        context.settingsDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[themeKey] = themeMode
         }
     }
@@ -104,7 +104,7 @@ class SettingsDataStore @Inject constructor(
      * Set the language and save it to DataStore
      */
     suspend fun setLanguage(languageCode: String) {
-        context.settingsDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[languageKey] = languageCode
         }
     }
@@ -113,7 +113,7 @@ class SettingsDataStore @Inject constructor(
      * Set the currency and save it to DataStore
      */
     suspend fun setCurrency(currencyCode: String) {
-        context.settingsDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[currencyKey] = currencyCode
         }
     }
@@ -121,7 +121,7 @@ class SettingsDataStore @Inject constructor(
     /**
      * Flow of the current currency conversion enabled state from DataStore
      */
-    val currencyConversionEnabled: Flow<Boolean> = context.settingsDataStore.data
+    val currencyConversionEnabled: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[currencyConversionEnabledKey] ?: false
         }
@@ -130,7 +130,7 @@ class SettingsDataStore @Inject constructor(
      * Get the current currency conversion enabled state
      */
     suspend fun getCurrencyConversionEnabled(): Boolean {
-        val preferences = context.settingsDataStore.data.first()
+        val preferences = dataStore.data.first()
         return preferences[currencyConversionEnabledKey] ?: false
     }
     
@@ -138,7 +138,7 @@ class SettingsDataStore @Inject constructor(
      * Set the currency conversion enabled state and save it to DataStore
      */
     suspend fun setCurrencyConversionEnabled(enabled: Boolean) {
-        context.settingsDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[currencyConversionEnabledKey] = enabled
         }
     }
@@ -146,7 +146,7 @@ class SettingsDataStore @Inject constructor(
     /**
      * Flow of the original currency from DataStore
      */
-    val originalCurrency: Flow<String> = context.settingsDataStore.data
+    val originalCurrency: Flow<String> = dataStore.data
         .map { preferences ->
             preferences[originalCurrencyKey] ?: ""
         }
@@ -155,7 +155,7 @@ class SettingsDataStore @Inject constructor(
      * Get the current original currency
      */
     suspend fun getOriginalCurrency(): String {
-        val preferences = context.settingsDataStore.data.first()
+        val preferences = dataStore.data.first()
         return preferences[originalCurrencyKey] ?: ""
     }
     
@@ -163,12 +163,8 @@ class SettingsDataStore @Inject constructor(
      * Set the original currency and save it to DataStore
      */
     suspend fun setOriginalCurrency(currencyCode: String) {
-        context.settingsDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[originalCurrencyKey] = currencyCode
         }
-    }
-    
-    companion object {
-        private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings_preferences")
     }
 }

@@ -1,0 +1,15 @@
+PLACEHOLDER FOR KACHING SOUND FILE
+
+This is a placeholder file. To enable the kaching sound feature:
+
+1. Replace this file with an actual audio file named "kaching.mp3" (or .ogg, .wav)
+2. The file should be a pleasant "kaching" or cash register sound
+3. Duration: 1-2 seconds recommended
+4. File size: Under 100KB recommended
+
+You can find free kaching sounds at:
+- Freesound.org
+- Zapsplat.com
+- Or create your own using text-to-speech
+
+Once you add the actual sound file, delete this placeholder file.

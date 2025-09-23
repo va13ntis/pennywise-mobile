@@ -25,11 +25,10 @@ class DataMigrationService @Inject constructor(
      */
     suspend fun migrateCurrencyData() {
         try {
-            // Get all users
-            val users = userRepository.getAllUsers().first()
+            // Get the single user (since we now have single-user model)
+            val user = userRepository.getSingleUser()
             
-            // For each user, ensure they have a default currency and initialize currency usage
-            users.forEach { user ->
+            if (user != null) {
                 // Update user's default currency if not already set
                 if (user.defaultCurrency.isEmpty()) {
                     userRepository.updateDefaultCurrency(user.id, "USD")
@@ -76,12 +75,12 @@ class DataMigrationService @Inject constructor(
     
     /**
      * Check if currency migration is needed
-     * Returns true if any user doesn't have a default currency set
+     * Returns true if the user doesn't have a default currency set
      */
     suspend fun isCurrencyMigrationNeeded(): Boolean {
         return try {
-            val users = userRepository.getAllUsers().first()
-            users.any { it.defaultCurrency.isEmpty() }
+            val user = userRepository.getSingleUser()
+            user?.defaultCurrency?.isEmpty() ?: false
         } catch (e: Exception) {
             false
         }

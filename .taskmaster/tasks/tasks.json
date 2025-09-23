@@ -685,892 +685,120 @@
   "currency-feature": {
     "tasks": [
       {
-        "id": 1,
-        "title": "Update User Data Model with Default Currency",
-        "description": "Enhance the User entity to include the defaultCurrency field with USD as the default value.",
-        "details": "Modify the User data class to include the defaultCurrency field as specified in the PRD. Ensure backward compatibility by setting 'USD' as the default value. Use Kotlin data class with proper nullability handling. Implementation should follow the Repository pattern to maintain separation of concerns.\n\nCode example:\n```kotlin\ndata class User(\n    val id: Long = 0,\n    val username: String,\n    val passwordHash: String,\n    val email: String? = null,\n    val defaultCurrency: String = \"USD\", // New field\n    val createdAt: Date = Date(),\n    val updatedAt: Date = Date()\n)\n```\n\nConsider using Room database with TypeConverters for Date fields. For Room version, use the latest stable version (currently 2.6.0).",
-        "testStrategy": "Write unit tests to verify that:\n1. New User objects have 'USD' as the default currency when not specified\n2. User objects can be created with a specific currency\n3. User objects can be serialized and deserialized correctly with the new field\n4. Repository methods correctly handle the new field in CRUD operations",
+        "id": 18,
+        "title": "Modify User Entity and Database Schema",
+        "description": "Update the User entity to remove username/password fields and add device authentication flag to support single-user model.",
+        "details": "1. Remove username, password, and any related authentication fields from User entity\n2. Add boolean field 'deviceAuthEnabled' to track if device authentication is set up\n3. Update Room database schema with migration path:\n```kotlin\n@Entity(tableName = \"users\")\ndata class User(\n    @PrimaryKey(autoGenerate = true) val id: Long = 0,\n    val currency: String,\n    val language: String,\n    val defaultPaymentMethod: String,\n    val deviceAuthEnabled: Boolean = false,\n    val createdAt: Long = System.currentTimeMillis()\n)\n```\n4. Create database migration using Room's Migration class:\n```kotlin\nval MIGRATION_1_2 = object : Migration(1, 2) {\n    override fun migrate(database: SupportSQLiteDatabase) {\n        // Create new table with updated schema\n        database.execSQL(\"CREATE TABLE IF NOT EXISTS users_new (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, currency TEXT NOT NULL, language TEXT NOT NULL, defaultPaymentMethod TEXT NOT NULL, deviceAuthEnabled INTEGER NOT NULL DEFAULT 0, createdAt INTEGER NOT NULL DEFAULT 0)\")\n        // Copy data from old table\n        database.execSQL(\"INSERT INTO users_new (id, currency, language, defaultPaymentMethod, createdAt) SELECT id, currency, language, defaultPaymentMethod, createdAt FROM users\")\n        // Remove old table\n        database.execSQL(\"DROP TABLE users\")\n        // Rename new table to match old table name\n        database.execSQL(\"ALTER TABLE users_new RENAME TO users\")\n    }\n}\n```\n5. Update DAO to support single user operations with methods like `getUser()`, `hasUser()`, and `updateUser()`\n6. Use Room version 2.5.0 or newer for best migration support",
+        "testStrategy": "1. Write unit tests for User entity with new schema\n2. Test database migration using Room's MigrationTestHelper\n3. Verify data integrity after migration\n4. Test DAO methods for single user operations\n5. Create integration tests to ensure database operations work with updated schema",
         "priority": "high",
         "dependencies": [],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 2,
-        "title": "Update Transaction Data Model with Currency Field",
-        "description": "Enhance the Transaction entity to include the currency field to store the currency for each transaction.",
-        "details": "Modify the Transaction data class to include the currency field as specified in the PRD. This will allow transactions to be recorded in different currencies. Ensure backward compatibility by setting 'USD' as the default value.\n\nCode example:\n```kotlin\ndata class Transaction(\n    val id: Long = 0,\n    val userId: Long,\n    val amount: Double,\n    val currency: String = \"USD\", // New field\n    val description: String,\n    val category: String,\n    val type: TransactionType,\n    val date: Date,\n    val isRecurring: Boolean = false,\n    val recurringPeriod: RecurringPeriod? = null,\n    val createdAt: Date = Date(),\n    val updatedAt: Date = Date()\n)\n```\n\nImplement proper validation to ensure currency codes are valid according to the Currency enum. Use Room annotations for database integration with proper foreign key relationships.",
-        "testStrategy": "Write unit tests to verify that:\n1. Transaction objects can be created with a specific currency\n2. Default currency is applied when not specified\n3. Transaction objects can be serialized and deserialized correctly with the new field\n4. Repository methods correctly handle the new field in CRUD operations\n5. Invalid currency codes are properly validated",
+        "id": 19,
+        "title": "Implement Device Authentication Service",
+        "description": "Create a service to handle device authentication using Android's BiometricPrompt and DeviceCredentialManager APIs.",
+        "details": "1. Create DeviceAuthService class to abstract authentication mechanisms:\n```kotlin\nclass DeviceAuthService @Inject constructor(\n    private val context: Context,\n    private val userRepository: UserRepository\n) {\n    suspend fun isDeviceAuthEnabled(): Boolean {\n        return userRepository.getUser()?.deviceAuthEnabled ?: false\n    }\n    \n    fun launchDeviceAuth(\n        activity: FragmentActivity,\n        onSuccess: () -> Unit,\n        onFailure: () -> Unit\n    ) {\n        val executor = ContextCompat.getMainExecutor(context)\n        val biometricPrompt = BiometricPrompt(activity, executor,\n            object : BiometricPrompt.AuthenticationCallback() {\n                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {\n                    onSuccess()\n                }\n                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {\n                    onFailure()\n                }\n                override fun onAuthenticationFailed() {\n                    onFailure()\n                }\n            })\n            \n        val promptInfo = BiometricPrompt.PromptInfo.Builder()\n            .setTitle(\"Authenticate to access PennyWise\")\n            .setSubtitle(\"Confirm your identity to continue\")\n            .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)\n            .build()\n            \n        biometricPrompt.authenticate(promptInfo)\n    }\n    \n    fun isDeviceSecure(): Boolean {\n        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager\n        return keyguardManager.isDeviceSecure\n    }\n}\n```\n2. Use androidx.biometric:biometric:1.2.0-alpha05 or newer for BiometricPrompt\n3. Implement proper error handling for cases where device doesn't support biometrics\n4. Add necessary permissions in AndroidManifest.xml:\n```xml\n<uses-permission android:name=\"android.permission.USE_BIOMETRIC\" />\n```",
+        "testStrategy": "1. Create unit tests with mocked BiometricPrompt\n2. Test authentication success and failure scenarios\n3. Test device security status detection\n4. Create UI tests to verify authentication flow\n5. Test on devices with and without biometric capabilities",
         "priority": "high",
         "dependencies": [
-          1
+          18
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 3,
-        "title": "Implement Currency Usage Tracking Model",
-        "description": "Create a new CurrencyUsage entity to track user currency preferences and usage patterns.",
-        "details": "Implement the CurrencyUsage data class as specified in the PRD. This will be used to track which currencies each user uses most frequently, enabling the app to sort currencies by popularity.\n\nCode example:\n```kotlin\ndata class CurrencyUsage(\n    val id: Long = 0,\n    val userId: Long,\n    val currency: String,\n    val usageCount: Int = 0,\n    val lastUsed: Date = Date(),\n    val createdAt: Date = Date(),\n    val updatedAt: Date = Date()\n)\n```\n\nImplement a Room DAO (Data Access Object) for CurrencyUsage with methods to:\n1. Insert new usage records\n2. Update existing usage records (increment count, update lastUsed)\n3. Query usage records sorted by count or lastUsed\n4. Get most used currencies for a user\n\nEnsure proper indexing on the userId and currency fields for performance optimization.",
-        "testStrategy": "Write unit tests to verify that:\n1. CurrencyUsage objects can be created correctly\n2. DAO methods correctly insert, update, and query usage records\n3. Sorting by usage count works correctly\n4. Unique constraint on userId and currency works as expected\n5. Integration tests to verify the tracking system updates correctly when transactions are created",
-        "priority": "medium",
-        "dependencies": [
-          1,
-          2
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 4,
-        "title": "Implement Currency Enum and Utilities",
-        "description": "Create a Currency enum class with all supported currencies and utility functions for currency operations.",
-        "details": "Implement the Currency enum as specified in the PRD with code, symbol, name, and popularity fields. Add utility functions for currency validation, formatting, and sorting.\n\nCode example:\n```kotlin\nenum class Currency(val code: String, val symbol: String, val name: String, val popularity: Int) {\n    USD(\"USD\", \"$\", \"US Dollar\", 1),\n    EUR(\"EUR\", \"€\", \"Euro\", 2),\n    // ... other currencies as specified in the PRD\n    ;\n    \n    companion object {\n        fun fromCode(code: String): Currency? = values().find { it.code == code }\n        fun getDefault(): Currency = USD\n        fun getAllSorted(): List<Currency> = values().sortedBy { it.popularity }\n        fun isValid(code: String): Boolean = values().any { it.code == code }\n    }\n}\n```\n\nImplement utility functions for:\n1. Currency formatting based on locale (using java.text.NumberFormat)\n2. Handling different decimal places for different currencies\n3. Sorting currencies by popularity or alphabetically\n4. Getting currency symbol from code\n\nConsider using the latest androidx.core:core-ktx library (currently 1.12.0) for Kotlin extensions.",
-        "testStrategy": "Write unit tests to verify that:\n1. All specified currencies are included in the enum\n2. Currency lookup by code works correctly\n3. Currency validation works for valid and invalid codes\n4. Formatting functions correctly handle different currencies\n5. Sorting functions work as expected\n6. Symbol and name retrieval works correctly",
-        "priority": "high",
-        "dependencies": [],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 5,
-        "title": "Database Schema Migration",
-        "description": "Create database migration scripts to add currency fields to existing tables and create the new currency_usage table.",
-        "details": "Implement Room database migrations to update the schema as specified in the PRD. This includes adding the defaultCurrency column to the users table, adding the currency column to the transactions table, and creating the new currency_usage table.\n\nCode example:\n```kotlin\n@Database(\n    entities = [User::class, Transaction::class, CurrencyUsage::class],\n    version = 2, // Increment from previous version\n    exportSchema = true\n)\nabstract class AppDatabase : RoomDatabase() {\n    // DAOs...\n    \n    companion object {\n        private val MIGRATION_1_2 = object : Migration(1, 2) {\n            override fun migrate(database: SupportSQLiteDatabase) {\n                // Add defaultCurrency to users table\n                database.execSQL(\"ALTER TABLE users ADD COLUMN defaultCurrency TEXT NOT NULL DEFAULT 'USD'\")\n                \n                // Add currency to transactions table\n                database.execSQL(\"ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD'\")\n                \n                // Create currency_usage table\n                database.execSQL(\"\"\"\n                    CREATE TABLE currency_usage (\n                        id INTEGER PRIMARY KEY AUTOINCREMENT,\n                        userId INTEGER NOT NULL,\n                        currency TEXT NOT NULL,\n                        usageCount INTEGER NOT NULL DEFAULT 0,\n                        lastUsed INTEGER NOT NULL,\n                        createdAt INTEGER NOT NULL,\n                        updatedAt INTEGER NOT NULL,\n                        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,\n                        UNIQUE(userId, currency)\n                    )\n                \"\"\")\n            }\n        }\n    }\n}\n```\n\nEnsure proper error handling during migration and implement a fallback strategy if migration fails. Use Room's migration testing utilities to verify migrations work correctly.",
-        "testStrategy": "Write migration tests to verify that:\n1. Migration from version 1 to 2 works correctly\n2. Default values are set correctly for existing records\n3. Foreign key constraints are properly enforced\n4. Unique constraints work as expected\n5. Data integrity is maintained during migration\n6. Test with a sample database containing real data",
+        "id": 20,
+        "title": "Create First Run Setup Screen",
+        "description": "Develop a screen for first-time app launch that automatically configures user settings based on device locale and presents device authentication setup.",
+        "details": "1. Create FirstRunSetupScreen using Jetpack Compose:\n```kotlin\n@Composable\nfun FirstRunSetupScreen(\n    viewModel: FirstRunSetupViewModel,\n    onSetupComplete: () -> Unit\n) {\n    val uiState by viewModel.uiState.collectAsState()\n    \n    LaunchedEffect(Unit) {\n        viewModel.detectDeviceSettings()\n    }\n    \n    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {\n        Text(\n            text = \"Welcome to PennyWise\",\n            style = MaterialTheme.typography.h4\n        )\n        \n        Spacer(modifier = Modifier.height(24.dp))\n        \n        // Display detected settings\n        SettingItem(\"Language\", uiState.language)\n        SettingItem(\"Currency\", uiState.currency)\n        SettingItem(\"Default Payment Method\", uiState.defaultPaymentMethod)\n        \n        Spacer(modifier = Modifier.height(32.dp))\n        \n        // Device auth setup\n        Text(\n            text = \"Secure Your App\",\n            style = MaterialTheme.typography.h5\n        )\n        \n        Spacer(modifier = Modifier.height(8.dp))\n        \n        Text(\"We recommend securing your financial data with device authentication\")\n        \n        Spacer(modifier = Modifier.height(16.dp))\n        \n        Row {\n            Button(\n                onClick = { viewModel.setupDeviceAuth(true) },\n                modifier = Modifier.weight(1f).padding(end = 8.dp)\n            ) {\n                Text(\"Enable Security\")\n            }\n            \n            OutlinedButton(\n                onClick = { viewModel.setupDeviceAuth(false) },\n                modifier = Modifier.weight(1f).padding(start = 8.dp)\n            ) {\n                Text(\"Skip\")\n            }\n        }\n    }\n    \n    // Observe completion\n    LaunchedEffect(uiState.isSetupComplete) {\n        if (uiState.isSetupComplete) {\n            onSetupComplete()\n        }\n    }\n}\n```\n2. Create FirstRunSetupViewModel to handle locale detection and user creation:\n```kotlin\nclass FirstRunSetupViewModel @Inject constructor(\n    private val userRepository: UserRepository,\n    private val localeManager: LocaleManager,\n    private val settingsDataStore: SettingsDataStore\n) : ViewModel() {\n    private val _uiState = MutableStateFlow(FirstRunSetupUiState())\n    val uiState: StateFlow<FirstRunSetupUiState> = _uiState.asStateFlow()\n    \n    fun detectDeviceSettings() {\n        viewModelScope.launch {\n            val locale = localeManager.getDeviceLocale()\n            val currency = localeManager.getCurrencyFromLocale(locale) ?: \"USD\"\n            val language = locale.language ?: \"en\"\n            val defaultPaymentMethod = \"Cash\" // Default payment method\n            \n            _uiState.update { it.copy(\n                language = language,\n                currency = currency,\n                defaultPaymentMethod = defaultPaymentMethod\n            )}\n        }\n    }\n    \n    fun setupDeviceAuth(enabled: Boolean) {\n        viewModelScope.launch {\n            // Create user with detected settings\n            val user = User(\n                language = uiState.value.language,\n                currency = uiState.value.currency,\n                defaultPaymentMethod = uiState.value.defaultPaymentMethod,\n                deviceAuthEnabled = enabled\n            )\n            \n            userRepository.createUser(user)\n            settingsDataStore.setFirstRunCompleted(true)\n            \n            _uiState.update { it.copy(isSetupComplete = true) }\n        }\n    }\n}\n\ndata class FirstRunSetupUiState(\n    val language: String = \"\",\n    val currency: String = \"\",\n    val defaultPaymentMethod: String = \"\",\n    val isSetupComplete: Boolean = false\n)\n```\n3. Use Dagger Hilt for dependency injection\n4. Implement LocaleManager to detect device settings\n5. Use Material3 components for modern UI",
+        "testStrategy": "1. Write unit tests for FirstRunSetupViewModel\n2. Test locale detection with various device settings\n3. Verify user creation with correct settings\n4. Create UI tests to validate screen rendering and interactions\n5. Test navigation flow after setup completion",
         "priority": "high",
         "dependencies": [
-          1,
-          2,
-          3
+          18,
+          19
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 6,
-        "title": "Data Migration for Existing Records",
-        "description": "Implement a data migration strategy to set default values for existing users and transactions.",
-        "details": "Create a migration service to handle data migration for existing records. This includes setting the default currency to USD for existing users, setting the currency to USD for existing transactions, and initializing currency usage data.\n\nCode example:\n```kotlin\nclass DataMigrationService @Inject constructor(\n    private val userRepository: UserRepository,\n    private val transactionRepository: TransactionRepository,\n    private val currencyUsageRepository: CurrencyUsageRepository\n) {\n    suspend fun migrateExistingData() {\n        // Set default currency for existing users\n        userRepository.getAllUsers().forEach { user ->\n            userRepository.updateUserDefaultCurrency(user.id, \"USD\")\n        }\n        \n        // Set currency for existing transactions\n        transactionRepository.getAllTransactions().forEach { transaction ->\n            transactionRepository.updateTransactionCurrency(transaction.id, \"USD\")\n        }\n        \n        // Initialize currency usage data\n        userRepository.getAllUsers().forEach { user ->\n            val transactions = transactionRepository.getTransactionsByUserId(user.id)\n            val currencyCounts = transactions.groupBy { it.currency }\n                .mapValues { it.value.size }\n            \n            currencyCounts.forEach { (currency, count) ->\n                currencyUsageRepository.insertOrUpdateUsage(\n                    CurrencyUsage(\n                        userId = user.id,\n                        currency = currency,\n                        usageCount = count,\n                        lastUsed = Date()\n                    )\n                )\n            }\n        }\n    }\n}\n```\n\nImplement this as a one-time migration that runs after the database schema migration. Use Kotlin Coroutines (version 1.7.3) for asynchronous processing and WorkManager (version 2.8.1) to ensure the migration completes even if the app is closed.",
-        "testStrategy": "Write integration tests to verify that:\n1. Default currency is correctly set for existing users\n2. Currency is correctly set for existing transactions\n3. Currency usage data is correctly initialized\n4. Migration is idempotent (can be run multiple times without issues)\n5. Migration handles edge cases (empty database, large datasets)\n6. Performance testing with large datasets",
+        "id": 21,
+        "title": "Implement Device Authentication Prompt Screen",
+        "description": "Create a screen to prompt for device authentication when the app is launched and device auth is enabled.",
+        "details": "1. Create DeviceAuthPromptScreen using Jetpack Compose:\n```kotlin\n@Composable\nfun DeviceAuthPromptScreen(\n    viewModel: DeviceAuthViewModel,\n    onAuthSuccess: () -> Unit\n) {\n    val uiState by viewModel.uiState.collectAsState()\n    \n    // Trigger authentication on screen launch\n    LaunchedEffect(Unit) {\n        viewModel.initiateAuthentication()\n    }\n    \n    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {\n        Column(horizontalAlignment = Alignment.CenterHorizontally) {\n            Image(\n                painter = painterResource(id = R.drawable.app_logo),\n                contentDescription = \"PennyWise Logo\",\n                modifier = Modifier.size(120.dp)\n            )\n            \n            Spacer(modifier = Modifier.height(32.dp))\n            \n            Text(\n                text = \"Welcome Back\",\n                style = MaterialTheme.typography.h5\n            )\n            \n            Spacer(modifier = Modifier.height(16.dp))\n            \n            if (uiState.isAuthenticating) {\n                CircularProgressIndicator()\n            } else {\n                Button(onClick = { viewModel.initiateAuthentication() }) {\n                    Text(\"Authenticate to Continue\")\n                }\n            }\n            \n            if (uiState.errorMessage != null) {\n                Spacer(modifier = Modifier.height(8.dp))\n                Text(\n                    text = uiState.errorMessage,\n                    color = MaterialTheme.colorScheme.error,\n                    style = MaterialTheme.typography.bodyMedium\n                )\n            }\n        }\n    }\n    \n    // Navigate on successful authentication\n    LaunchedEffect(uiState.isAuthenticated) {\n        if (uiState.isAuthenticated) {\n            onAuthSuccess()\n        }\n    }\n}\n```\n2. Create DeviceAuthViewModel to handle authentication:\n```kotlin\nclass DeviceAuthViewModel @Inject constructor(\n    private val deviceAuthService: DeviceAuthService,\n    private val userRepository: UserRepository,\n    private val savedStateHandle: SavedStateHandle\n) : ViewModel() {\n    private val _uiState = MutableStateFlow(DeviceAuthUiState())\n    val uiState: StateFlow<DeviceAuthUiState> = _uiState.asStateFlow()\n    \n    private val currentActivity: FragmentActivity?\n        get() = savedStateHandle.get<FragmentActivity>(\"activity\")\n    \n    fun setActivity(activity: FragmentActivity) {\n        savedStateHandle[\"activity\"] = activity\n    }\n    \n    fun initiateAuthentication() {\n        viewModelScope.launch {\n            _uiState.update { it.copy(isAuthenticating = true, errorMessage = null) }\n            \n            currentActivity?.let { activity ->\n                deviceAuthService.launchDeviceAuth(\n                    activity = activity,\n                    onSuccess = {\n                        _uiState.update { it.copy(\n                            isAuthenticated = true,\n                            isAuthenticating = false\n                        )}\n                    },\n                    onFailure = {\n                        _uiState.update { it.copy(\n                            errorMessage = \"Authentication failed. Please try again.\",\n                            isAuthenticating = false\n                        )}\n                    }\n                )\n            } ?: run {\n                _uiState.update { it.copy(\n                    errorMessage = \"Cannot authenticate at this time.\",\n                    isAuthenticating = false\n                )}\n            }\n        }\n    }\n}\n\ndata class DeviceAuthUiState(\n    val isAuthenticating: Boolean = false,\n    val isAuthenticated: Boolean = false,\n    val errorMessage: String? = null\n)\n```\n3. Use Jetpack Compose Navigation to handle navigation flow\n4. Implement proper error handling for authentication failures\n5. Add animation for smooth transitions",
+        "testStrategy": "1. Write unit tests for DeviceAuthViewModel\n2. Test authentication success and failure scenarios\n3. Create UI tests to verify screen rendering and interactions\n4. Test navigation flow after authentication\n5. Verify error message display on authentication failure",
         "priority": "high",
         "dependencies": [
-          5
+          19
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 7,
-        "title": "Update Registration UI with Currency Selection",
-        "description": "Enhance the registration screen to include a currency selection dropdown after username/password fields.",
-        "details": "Modify the registration UI to include a currency selection dropdown as specified in the PRD. The dropdown should show currency code, symbol, and name, be sorted by popularity, and have USD pre-selected as default.\n\nImplementation details:\n1. Use MaterialComponents Exposed Dropdown Menu (com.google.android.material:material:1.10.0)\n2. Create a custom adapter for the dropdown to display currency code, symbol, and name\n3. Sort currencies by popularity using the Currency enum\n4. Pre-select USD as default\n5. Make currency selection required\n6. Add proper validation\n\nCode example for the adapter:\n```kotlin\nclass CurrencyAdapter(context: Context) : ArrayAdapter<Currency>(\n    context, R.layout.item_currency, Currency.values().sortedBy { it.popularity }\n) {\n    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {\n        val view = convertView ?: LayoutInflater.from(context)\n            .inflate(R.layout.item_currency, parent, false)\n        \n        val currency = getItem(position)!!\n        view.findViewById<TextView>(R.id.currencyCode).text = currency.code\n        view.findViewById<TextView>(R.id.currencySymbol).text = currency.symbol\n        view.findViewById<TextView>(R.id.currencyName).text = currency.name\n        \n        return view\n    }\n}\n```\n\nEnsure the UI is accessible and works well with different screen sizes and orientations. Use ViewModel (androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2) to preserve selection during configuration changes.",
-        "testStrategy": "Write UI tests using Espresso to verify that:\n1. Currency dropdown is displayed correctly\n2. Currencies are sorted by popularity\n3. USD is pre-selected by default\n4. Selection can be changed\n5. Validation works for required field\n6. Selected currency is saved correctly\n7. Accessibility testing with TalkBack\n8. Test on different screen sizes and orientations",
+        "id": 22,
+        "title": "Update App Navigation Flow",
+        "description": "Modify the app's navigation to remove login/register screens and implement the new authentication flow with first run setup and device authentication.",
+        "details": "1. Update Navigation Graph using Jetpack Compose Navigation:\n```kotlin\n@Composable\nfun AppNavigation(\n    navController: NavHostController = rememberNavController(),\n    startDestination: String = NavDestinations.SPLASH\n) {\n    val viewModel: AppNavigationViewModel = hiltViewModel()\n    val navState by viewModel.navigationState.collectAsState()\n    \n    LaunchedEffect(Unit) {\n        viewModel.determineStartDestination()\n    }\n    \n    NavHost(\n        navController = navController,\n        startDestination = startDestination\n    ) {\n        // Splash screen\n        composable(NavDestinations.SPLASH) {\n            SplashScreen(onNavigate = { destination ->\n                navController.navigate(destination) {\n                    popUpTo(NavDestinations.SPLASH) { inclusive = true }\n                }\n            })\n        }\n        \n        // First run setup\n        composable(NavDestinations.FIRST_RUN_SETUP) {\n            FirstRunSetupScreen(\n                viewModel = hiltViewModel(),\n                onSetupComplete = {\n                    navController.navigate(NavDestinations.MAIN) {\n                        popUpTo(NavDestinations.FIRST_RUN_SETUP) { inclusive = true }\n                    }\n                }\n            )\n        }\n        \n        // Device auth prompt\n        composable(NavDestinations.DEVICE_AUTH) {\n            val authViewModel: DeviceAuthViewModel = hiltViewModel()\n            // Pass activity reference for BiometricPrompt\n            LaunchedEffect(Unit) {\n                (LocalContext.current as? FragmentActivity)?.let { activity ->\n                    authViewModel.setActivity(activity)\n                }\n            }\n            \n            DeviceAuthPromptScreen(\n                viewModel = authViewModel,\n                onAuthSuccess = {\n                    navController.navigate(NavDestinations.MAIN) {\n                        popUpTo(NavDestinations.DEVICE_AUTH) { inclusive = true }\n                    }\n                }\n            )\n        }\n        \n        // Main app screens\n        composable(NavDestinations.MAIN) {\n            MainScreen(navController)\n        }\n        \n        // Other app screens...\n    }\n    \n    // Handle navigation state changes\n    LaunchedEffect(navState) {\n        when (navState) {\n            is NavigationState.NavigateTo -> {\n                navController.navigate(navState.destination) {\n                    popUpTo(navState.popUpTo ?: NavDestinations.SPLASH) { \n                        inclusive = navState.inclusive \n                    }\n                }\n            }\n            else -> { /* No action needed */ }\n        }\n    }\n}\n\nobject NavDestinations {\n    const val SPLASH = \"splash\"\n    const val FIRST_RUN_SETUP = \"first_run_setup\"\n    const val DEVICE_AUTH = \"device_auth\"\n    const val MAIN = \"main\"\n    // Other destinations...\n}\n```\n2. Create AppNavigationViewModel to determine start destination:\n```kotlin\nclass AppNavigationViewModel @Inject constructor(\n    private val userRepository: UserRepository,\n    private val settingsDataStore: SettingsDataStore\n) : ViewModel() {\n    private val _navigationState = MutableStateFlow<NavigationState>(NavigationState.Idle)\n    val navigationState: StateFlow<NavigationState> = _navigationState.asStateFlow()\n    \n    fun determineStartDestination() {\n        viewModelScope.launch {\n            val isFirstRun = !settingsDataStore.isFirstRunCompleted()\n            val user = userRepository.getUser()\n            \n            val destination = when {\n                isFirstRun -> NavDestinations.FIRST_RUN_SETUP\n                user?.deviceAuthEnabled == true -> NavDestinations.DEVICE_AUTH\n                else -> NavDestinations.MAIN\n            }\n            \n            _navigationState.value = NavigationState.NavigateTo(\n                destination = destination,\n                popUpTo = NavDestinations.SPLASH,\n                inclusive = true\n            )\n        }\n    }\n}\n\nsealed class NavigationState {\n    object Idle : NavigationState()\n    data class NavigateTo(\n        val destination: String,\n        val popUpTo: String? = null,\n        val inclusive: Boolean = false\n    ) : NavigationState()\n}\n```\n3. Remove LoginScreen and RegisterScreen from the codebase\n4. Use Jetpack Compose Navigation 2.5.3 or newer\n5. Implement proper back stack handling to prevent returning to auth screens",
+        "testStrategy": "1. Write unit tests for AppNavigationViewModel\n2. Test navigation flow for first-time users\n3. Test navigation flow for returning users with device auth enabled\n4. Test navigation flow for returning users without device auth\n5. Create UI tests to verify complete navigation flow from app launch to main screen",
         "priority": "medium",
         "dependencies": [
-          4
+          20,
+          21
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": []
       },
       {
-        "id": 8,
-        "title": "Update Expense Form with Currency Selection",
-        "description": "Enhance the expense form to pre-select the user's default currency and allow currency changes via dropdown.",
-        "status": "done",
-        "dependencies": [
-          1,
-          2,
-          4
-        ],
-        "priority": "high",
-        "details": "Modify the expense form to include a currency selection dropdown that pre-selects the user's default currency. The dropdown should allow changing the currency for individual expenses and show the currency symbol next to the amount field.\n\nImplementation details:\n1. Use MaterialComponents Exposed Dropdown Menu for currency selection\n2. Pre-select the user's default currency\n3. Show currency symbol next to amount field\n4. Update amount formatting based on selected currency\n5. Maintain currency selection for the session\n6. Use the same CurrencyAdapter as in the registration screen\n\nCode example for updating the amount field based on currency:\n```kotlin\nprivate fun updateAmountFieldForCurrency(currency: Currency) {\n    // Update hint with currency symbol\n    binding.amountInputLayout.prefixText = currency.symbol\n    \n    // Update formatting based on currency\n    val decimalDigits = when(currency.code) {\n        \"JPY\" -> 0\n        else -> 2\n    }\n    \n    // Set up input filter for decimal places\n    binding.amountEditText.filters = arrayOf(DecimalDigitsInputFilter(decimalDigits))\n}\n```\n\nUse ViewBinding for cleaner view access and ViewModel to maintain state during configuration changes. Implement proper validation for amount based on currency (e.g., JPY doesn't use decimal places).",
-        "testStrategy": "Write UI tests using Espresso to verify that:\n1. User's default currency is pre-selected\n2. Currency can be changed via dropdown\n3. Currency symbol is displayed correctly next to amount\n4. Amount formatting updates based on selected currency\n5. Selected currency is saved with the transaction\n6. Currency selection is maintained during the session\n7. Accessibility testing with TalkBack\n8. Test with different currencies and amount formats",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Update AddExpenseViewModel",
-            "description": "Add AuthManager dependency to get current user's default currency, implement selectedCurrency StateFlow, and update saveExpense function to include currency.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 2,
-            "title": "Update AddExpenseScreen",
-            "description": "Add Currency import, implement CurrencySelectionDropdown component, add selectedCurrency state collection, and modify save button to pass selected currency to ViewModel.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 3,
-            "title": "Implement amount field currency formatting",
-            "description": "Implement the updateAmountFieldForCurrency function to show currency symbol next to amount field and update formatting based on selected currency.",
-            "status": "done",
-            "dependencies": [],
-            "details": "<info added on 2025-08-30T17:02:29.627Z>\nSuccessfully implemented amount field currency formatting:\n\n1. **Enhanced Amount Field**:\n   - Added currency symbol as prefix to the amount field\n   - Implemented currency-specific formatting based on decimal places\n   - Added supporting text showing currency name and decimal places\n   - Applied real-time formatting as user types\n\n2. **Currency-Specific Formatting Logic**:\n   - For currencies with 0 decimal places (JPY, KRW): Only allows digits, no decimal point\n   - For other currencies: Limits decimal places based on currency.decimalPlaces\n   - Real-time validation and formatting as user types\n\n3. **Visual Enhancements**:\n   - Currency symbol displayed as prefix in the amount field\n   - Supporting text shows currency name and decimal places for guidance\n   - Maintains proper Material Design 3 styling\n\nThe amount field now properly displays the currency symbol and enforces currency-specific formatting rules in real-time.\n</info added on 2025-08-30T17:02:29.627Z>",
-            "testStrategy": ""
-          },
-          {
-            "id": 4,
-            "title": "Add validation for currency-specific amount formats",
-            "description": "Implement proper validation for amount based on currency (e.g., JPY doesn't use decimal places).",
-            "status": "done",
-            "dependencies": [],
-            "details": "<info added on 2025-08-30T17:04:21.580Z>\nSuccessfully implemented comprehensive currency-specific validation:\n\n1. **Enhanced Validation Logic**:\n   - Added currency-specific validation messages for JPY and KRW\n   - Implemented validation that checks for decimal places based on currency\n   - Added real-time validation that triggers when currency changes\n\n2. **Currency-Specific Error Messages**:\n   - JPY: \"Japanese Yen uses whole numbers only (no decimal places)\"\n   - KRW: \"Korean Won uses whole numbers only (no decimal places)\"\n   - Generic message for other currencies that don't use decimal places\n\n3. **Real-Time Validation**:\n   - Validation now includes selectedCurrency in LaunchedEffect dependencies\n   - Amount field formatting enforces currency-specific rules in real-time\n   - Error messages appear immediately when invalid input is detected\n\n4. **Comprehensive Validation Coverage**:\n   - Validates amount format based on currency decimal places\n   - Provides clear, user-friendly error messages\n   - Maintains existing validation for required fields and numeric values\n\nThe expense form now provides comprehensive validation that adapts to the selected currency's specific formatting requirements.\n</info added on 2025-08-30T17:04:21.580Z>",
-            "testStrategy": ""
-          },
-          {
-            "id": 5,
-            "title": "Write UI tests for currency selection",
-            "description": "Create Espresso tests to verify currency selection functionality, including pre-selection, changing currency, and proper formatting.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 6,
-            "title": "Add Currency Dropdown to Expense Form Layout",
-            "description": "Modify the expense form layout to include a currency selection dropdown using MaterialComponents Exposed Dropdown Menu.",
-            "dependencies": [],
-            "details": "1. Add an ExposedDropdownMenu component to the expense form layout XML file\n2. Position it appropriately in the form layout, preferably near the amount field\n3. Set up proper styling to match the app's design\n4. Add appropriate content description for accessibility\n5. Include a label for the dropdown (e.g., 'Currency')\n6. Ensure proper layout constraints for different screen sizes\n<info added on 2025-09-07T16:15:43.912Z>\n1. Replaced the custom CurrencySelectionDropdown with a Material3 ExposedDropdownMenu that integrates better with the form design\n2. Added a proper label for the dropdown with \"Currency\" text\n3. Included a supportingText with a hint about the currency selection functionality\n4. Added appropriate contentDescription for accessibility\n5. Included visual indicators (checkmark icon) for the currently selected currency\n6. Added proper styling with Material Design 3 consistent with the rest of the form\n7. Used proper layout constraints with fillMaxWidth() to ensure the dropdown resizes appropriately for different screen sizes\n8. Positioned the dropdown after the amount field to maintain logical form flow\n9. Added dividers between dropdown items for better visual separation\n10. Implemented a height limit (350.dp) to ensure the dropdown doesn't take up the entire screen\n</info added on 2025-09-07T16:15:43.912Z>",
-            "status": "done",
-            "testStrategy": "Verify the dropdown is properly displayed in the UI using Espresso tests. Check layout appearance on different screen sizes and orientations."
-          },
-          {
-            "id": 7,
-            "title": "Create Currency Adapter for Dropdown",
-            "description": "Implement a CurrencyAdapter for the dropdown that displays currency code, symbol, and name, reusing the same adapter from the registration screen.",
-            "dependencies": [
-              "8.1"
-            ],
-            "details": "1. Reuse the existing CurrencyAdapter from the registration screen\n2. Ensure the adapter displays currency code, symbol, and name in each dropdown item\n3. Sort currencies by popularity\n4. Implement item selection callback\n5. Handle view recycling properly\n6. Ensure proper text styling and layout for dropdown items",
-            "status": "done",
-            "testStrategy": "Write unit tests to verify the adapter correctly displays currency information and handles selection events. Test with various currencies to ensure proper formatting."
-          },
-          {
-            "id": 8,
-            "title": "Implement Currency Pre-selection Logic",
-            "description": "Add logic to pre-select the user's default currency in the dropdown when the expense form is opened.",
-            "dependencies": [
-              "8.1",
-              "8.2"
-            ],
-            "details": "1. Retrieve the user's default currency from UserRepository or UserPreferences\n2. Set the pre-selected value in the dropdown when initializing the form\n3. Handle the case when user's default currency is not available\n4. Ensure the pre-selection works correctly when editing existing expenses\n5. Add proper error handling if user data cannot be retrieved",
-            "status": "done",
-            "testStrategy": "Test that the correct default currency is pre-selected for different user profiles. Verify behavior when editing existing expenses with different currencies."
-          },
-          {
-            "id": 9,
-            "title": "Update Amount Field Based on Selected Currency",
-            "description": "Implement logic to update the amount field formatting and display based on the selected currency.",
-            "dependencies": [
-              "8.1",
-              "8.2",
-              "8.3"
-            ],
-            "details": "1. Implement the updateAmountFieldForCurrency function as provided in the example\n2. Add currency symbol as prefix to the amount input field\n3. Configure decimal place restrictions based on currency (e.g., JPY has 0 decimal places)\n4. Implement DecimalDigitsInputFilter to restrict input based on currency\n5. Update the amount field whenever currency selection changes\n6. Handle edge cases like currency changes after amount is already entered",
-            "status": "done",
-            "testStrategy": "Test amount field formatting with different currencies. Verify decimal place restrictions work correctly (e.g., JPY doesn't allow decimals). Test currency symbol display and positioning."
-          },
-          {
-            "id": 10,
-            "title": "Save and Maintain Currency Selection",
-            "description": "Implement logic to save the selected currency with the expense and maintain the selection during the form session.",
-            "dependencies": [
-              "8.1",
-              "8.2",
-              "8.3",
-              "8.4"
-            ],
-            "details": "1. Update the ViewModel to store the selected currency\n2. Modify the save/update expense logic to include the selected currency\n3. Ensure currency selection persists during configuration changes\n4. Update the database operation to save the currency with the expense\n5. Handle validation to ensure currency is always selected before saving\n6. Add proper error handling for currency-related operations\n<info added on 2025-09-07T17:04:24.015Z>\n## Implementation Summary:\n\n### 1. Currency Selection Persistence During Configuration Changes ✅\n- Currency selection is managed by StateFlow in AddExpenseViewModel, ensuring persistence across configuration changes\n- The selectedCurrency StateFlow is properly initialized with the user's default currency from AuthManager\n- Currency selection survives screen rotations and other configuration changes\n\n### 2. Enhanced Currency Validation Before Saving ✅\n- Updated save button logic to ensure currency is selected before allowing save operation\n- Modified form validation to include currency selection as a required field\n- Save button is now disabled when no currency is selected (enabled = isFormValid && selectedCurrency != null)\n- Removed fallback to \"USD\" in favor of explicit currency validation\n\n### 3. Comprehensive Error Handling ✅\n- Currency validation and error handling are already implemented in the ViewModel using CurrencyValidator and CurrencyErrorHandler\n- Proper error messages are displayed for currency-related validation failures\n- Currency usage tracking is implemented for analytics and sorting\n\n### 4. Currency Selection Maintenance During Form Session ✅\n- Currency selection is maintained throughout the form session via StateFlow\n- Currency changes are properly tracked and validated\n- Amount field formatting updates automatically when currency changes\n- Currency selection persists until explicitly changed by the user\n\n## Key Improvements Made:\n1. **Enhanced Save Button Logic**: Now requires explicit currency selection before allowing save\n2. **Improved Form Validation**: Currency selection is now part of form validation criteria\n3. **Better User Experience**: Save button is disabled when currency is not selected, providing clear feedback\n</info added on 2025-09-07T17:04:24.015Z>",
-            "status": "done",
-            "testStrategy": "Verify that selected currency is correctly saved with the expense. Test that currency selection persists during configuration changes. Test validation logic for currency selection."
-          }
-        ]
-      },
-      {
-        "id": 9,
-        "title": "Implement Currency Usage Tracking Logic",
-        "description": "Develop the business logic to track currency usage when transactions are created and update usage statistics.",
-        "details": "Implement a service to track currency usage when transactions are created or updated. This service should update the usage count and last used timestamp in the CurrencyUsage table.\n\nCode example:\n```kotlin\nclass CurrencyUsageTracker @Inject constructor(\n    private val currencyUsageRepository: CurrencyUsageRepository\n) {\n    suspend fun trackCurrencyUsage(userId: Long, currencyCode: String) {\n        val existingUsage = currencyUsageRepository.getUserCurrencyUsage(userId, currencyCode)\n        \n        if (existingUsage != null) {\n            // Update existing record\n            currencyUsageRepository.updateUsage(\n                existingUsage.copy(\n                    usageCount = existingUsage.usageCount + 1,\n                    lastUsed = Date(),\n                    updatedAt = Date()\n                )\n            )\n        } else {\n            // Create new record\n            currencyUsageRepository.insertUsage(\n                CurrencyUsage(\n                    userId = userId,\n                    currency = currencyCode,\n                    usageCount = 1,\n                    lastUsed = Date()\n                )\n            )\n        }\n    }\n    \n    suspend fun getUserCurrenciesByPopularity(userId: Long): List<String> {\n        return currencyUsageRepository.getUserCurrenciesSortedByUsage(userId)\n            .map { it.currency }\n    }\n}\n```\n\nIntegrate this service with the transaction creation and update flows. Use Kotlin Coroutines for asynchronous processing and Dagger Hilt (version 2.48) for dependency injection.",
-        "testStrategy": "Write unit tests to verify that:\n1. New currency usage records are created correctly\n2. Existing records are updated correctly (count incremented, timestamps updated)\n3. Sorting by usage count works correctly\n4. Integration tests to verify tracking is triggered when transactions are created\n5. Edge cases are handled (invalid currencies, null values)\n6. Concurrency handling for simultaneous updates",
+        "id": 23,
+        "title": "Create Splash Screen with Navigation Logic",
+        "description": "Implement a splash screen that determines the appropriate navigation path based on user existence and authentication settings.",
+        "details": "1. Create SplashScreen using Jetpack Compose:\n```kotlin\n@Composable\nfun SplashScreen(\n    viewModel: SplashViewModel = hiltViewModel(),\n    onNavigate: (String) -> Unit\n) {\n    val uiState by viewModel.uiState.collectAsState()\n    \n    // Trigger navigation determination on launch\n    LaunchedEffect(Unit) {\n        viewModel.determineNavigation()\n    }\n    \n    // Observe navigation destination\n    LaunchedEffect(uiState.navigationDestination) {\n        uiState.navigationDestination?.let { destination ->\n            onNavigate(destination)\n        }\n    }\n    \n    // Splash screen UI\n    Box(\n        modifier = Modifier\n            .fillMaxSize()\n            .background(MaterialTheme.colorScheme.primary),\n        contentAlignment = Alignment.Center\n    ) {\n        Column(horizontalAlignment = Alignment.CenterHorizontally) {\n            Image(\n                painter = painterResource(id = R.drawable.app_logo),\n                contentDescription = \"PennyWise Logo\",\n                modifier = Modifier.size(150.dp)\n            )\n            \n            Spacer(modifier = Modifier.height(24.dp))\n            \n            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)\n        }\n    }\n}\n```\n2. Create SplashViewModel to handle navigation logic:\n```kotlin\nclass SplashViewModel @Inject constructor(\n    private val userRepository: UserRepository,\n    private val settingsDataStore: SettingsDataStore\n) : ViewModel() {\n    private val _uiState = MutableStateFlow(SplashUiState())\n    val uiState: StateFlow<SplashUiState> = _uiState.asStateFlow()\n    \n    fun determineNavigation() {\n        viewModelScope.launch {\n            // Add a small delay for splash screen visibility\n            delay(1000)\n            \n            val isFirstRun = !settingsDataStore.isFirstRunCompleted()\n            val user = userRepository.getUser()\n            \n            val destination = when {\n                isFirstRun -> NavDestinations.FIRST_RUN_SETUP\n                user?.deviceAuthEnabled == true -> NavDestinations.DEVICE_AUTH\n                else -> NavDestinations.MAIN\n            }\n            \n            _uiState.update { it.copy(navigationDestination = destination) }\n        }\n    }\n}\n\ndata class SplashUiState(\n    val navigationDestination: String? = null\n)\n```\n3. Configure splash screen theme using Android 12's SplashScreen API for devices that support it:\n```xml\n<!-- themes.xml -->\n<style name=\"Theme.PennyWise.Splash\" parent=\"Theme.SplashScreen\">\n    <item name=\"windowSplashScreenBackground\">@color/primary</item>\n    <item name=\"windowSplashScreenAnimatedIcon\">@drawable/ic_splash</item>\n    <item name=\"windowSplashScreenAnimationDuration\">300</item>\n    <item name=\"postSplashScreenTheme\">@style/Theme.PennyWise</item>\n</style>\n```\n4. Install splash screen in MainActivity:\n```kotlin\nclass MainActivity : ComponentActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        // Apply splash screen for Android 12+\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {\n            installSplashScreen()\n        }\n        super.onCreate(savedInstanceState)\n        \n        setContent {\n            PennyWiseTheme {\n                AppNavigation()\n            }\n        }\n    }\n}\n```\n5. Use androidx.core:core-splashscreen:1.0.1 for splash screen compatibility",
+        "testStrategy": "1. Write unit tests for SplashViewModel\n2. Test navigation determination for different user states\n3. Verify correct destination selection based on app state\n4. Create UI tests to verify splash screen rendering\n5. Test splash screen on different Android versions to ensure compatibility",
         "priority": "medium",
         "dependencies": [
-          3,
-          6
+          18,
+          22
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Create CurrencyUsageRepository Interface and Implementation",
-            "description": "Define and implement the repository interface for accessing and manipulating currency usage data in the database.",
-            "dependencies": [],
-            "details": "Create a CurrencyUsageRepository interface with methods for retrieving, inserting, and updating currency usage records. Implement the repository using Room Database. Include methods for getUserCurrencyUsage, updateUsage, insertUsage, and getUserCurrenciesSortedByUsage. Ensure proper error handling and transaction management.",
-            "status": "done",
-            "testStrategy": "Write unit tests using MockK to verify repository methods correctly interact with the database. Test edge cases like non-existent records and database errors."
-          },
-          {
-            "id": 2,
-            "title": "Implement CurrencyUsageTracker Service",
-            "description": "Develop the core service that tracks currency usage and provides methods to retrieve usage statistics.",
-            "dependencies": [
-              "9.1"
-            ],
-            "details": "Implement the CurrencyUsageTracker class as shown in the example, with methods for trackCurrencyUsage and getUserCurrenciesByPopularity. Use Dagger Hilt for dependency injection. Ensure proper null handling and implement logging for debugging purposes. Add thread safety considerations for concurrent usage.",
-            "status": "done",
-            "testStrategy": "Write unit tests to verify new currency records are created correctly and existing records are updated with incremented counts and updated timestamps. Test the sorting functionality to ensure currencies are returned in the correct order."
-          },
-          {
-            "id": 3,
-            "title": "Integrate Currency Tracking with Transaction Creation Flow",
-            "description": "Modify the transaction creation process to track currency usage when a new transaction is created.",
-            "dependencies": [
-              "9.2"
-            ],
-            "details": "Identify all entry points where transactions are created in the application. Inject the CurrencyUsageTracker into these components and call trackCurrencyUsage whenever a transaction is created with a specific currency. Use Kotlin Coroutines with the appropriate dispatcher (IO) for asynchronous processing. Ensure the tracking doesn't block the main transaction creation flow.",
-            "status": "done",
-            "testStrategy": "Write integration tests to verify that creating a transaction triggers currency usage tracking. Use test doubles to verify the correct methods are called with expected parameters."
-          },
-          {
-            "id": 4,
-            "title": "Integrate Currency Tracking with Transaction Update Flow",
-            "description": "Modify the transaction update process to track currency usage when a transaction's currency is changed.",
-            "dependencies": [
-              "9.2"
-            ],
-            "details": "Identify all entry points where transactions are updated in the application. Inject the CurrencyUsageTracker and call trackCurrencyUsage only when the currency of a transaction is changed during an update. Compare the old and new currency values to determine if tracking is needed. Use Kotlin Coroutines with the appropriate dispatcher for asynchronous processing.",
-            "status": "done",
-            "testStrategy": "Write integration tests to verify that updating a transaction's currency triggers usage tracking. Test scenarios where currency changes and where it remains the same to ensure tracking only occurs when needed."
-          },
-          {
-            "id": 5,
-            "title": "Implement Currency Usage Analytics and Metrics",
-            "description": "Create methods to retrieve and display currency usage statistics for analytics purposes.",
-            "dependencies": [
-              "9.1",
-              "9.2"
-            ],
-            "details": "Extend the CurrencyUsageTracker with additional methods to provide usage analytics such as getMostUsedCurrencies, getLeastUsedCurrencies, and getCurrencyUsageStats. Implement data transformation logic to convert raw usage data into meaningful metrics. Create utility methods to format the data for display in the UI. Consider caching frequently accessed statistics for performance.",
-            "status": "done",
-            "testStrategy": "Write unit tests to verify analytics methods return correct results based on mock usage data. Test edge cases like empty usage history and tied usage counts. Benchmark performance for large datasets."
-          }
-        ]
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": 10,
-        "title": "Implement Settings Screen for Default Currency",
-        "description": "Add a Default Currency section to the settings screen to allow users to change their default currency.",
-        "details": "Enhance the settings screen to include a Default Currency section that shows the current default currency and allows changing it. Show a confirmation dialog when changing the default currency.\n\nImplementation details:\n1. Add a new section to the settings screen\n2. Display current default currency\n3. Use the same currency dropdown as in other screens\n4. Show confirmation dialog when changing currency\n5. Update user preferences when confirmed\n\nCode example for the confirmation dialog:\n```kotlin\nprivate fun showCurrencyChangeConfirmation(newCurrency: Currency) {\n    MaterialAlertDialogBuilder(requireContext())\n        .setTitle(R.string.change_default_currency)\n        .setMessage(getString(R.string.change_default_currency_confirmation, newCurrency.code))\n        .setPositiveButton(R.string.confirm) { _, _ ->\n            viewModel.updateDefaultCurrency(newCurrency.code)\n        }\n        .setNegativeButton(R.string.cancel, null)\n        .show()\n}\n```\n\nUse PreferenceFragmentCompat from androidx.preference:preference:1.2.1 for consistent settings UI. Implement proper error handling and loading states during currency update.",
-        "testStrategy": "Write UI tests using Espresso to verify that:\n1. Current default currency is displayed correctly\n2. Currency dropdown works correctly\n3. Confirmation dialog is shown when changing currency\n4. User preferences are updated correctly when confirmed\n5. Changes persist after app restart\n6. Accessibility testing with TalkBack\n7. Test with different currencies",
+        "id": 24,
+        "title": "Clean Up Legacy Authentication Code",
+        "description": "Remove legacy authentication code, screens, and related components that are no longer needed with the simplified authentication flow.",
+        "details": "1. Identify and remove the following components:\n   - LoginScreen and RegisterScreen\n   - LoginViewModel and RegisterViewModel\n   - Username/password validation logic\n   - Authentication repositories and services related to username/password\n   - Multi-user database queries and operations\n   - Navigation routes to login/register screens\n\n2. Update UserRepository to support single-user operations:\n```kotlin\nclass UserRepository @Inject constructor(\n    private val userDao: UserDao\n) {\n    suspend fun getUser(): User? {\n        return userDao.getUser()\n    }\n    \n    suspend fun hasUser(): Boolean {\n        return userDao.getUserCount() > 0\n    }\n    \n    suspend fun createUser(user: User): Long {\n        return userDao.insertUser(user)\n    }\n    \n    suspend fun updateUser(user: User) {\n        userDao.updateUser(user)\n    }\n    \n    suspend fun updateDeviceAuthSetting(enabled: Boolean) {\n        val user = getUser() ?: return\n        updateUser(user.copy(deviceAuthEnabled = enabled))\n    }\n}\n```\n\n3. Update UserDao interface:\n```kotlin\n@Dao\ninterface UserDao {\n    @Query(\"SELECT * FROM users LIMIT 1\")\n    suspend fun getUser(): User?\n    \n    @Query(\"SELECT COUNT(*) FROM users\")\n    suspend fun getUserCount(): Int\n    \n    @Insert\n    suspend fun insertUser(user: User): Long\n    \n    @Update\n    suspend fun updateUser(user: User)\n}\n```\n\n4. Remove authentication-related dependencies from build.gradle:\n```kotlin\n// Remove any unused authentication libraries\n// For example, if you were using a password hashing library\n```\n\n5. Update settings screen to only show device authentication toggle:\n```kotlin\n@Composable\nfun SecuritySettingsSection(\n    viewModel: SettingsViewModel\n) {\n    val uiState by viewModel.uiState.collectAsState()\n    \n    Card(\n        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)\n    ) {\n        Column(modifier = Modifier.padding(16.dp)) {\n            Text(\n                text = \"Security\",\n                style = MaterialTheme.typography.h6\n            )\n            \n            Spacer(modifier = Modifier.height(16.dp))\n            \n            Row(\n                modifier = Modifier.fillMaxWidth(),\n                verticalAlignment = Alignment.CenterVertically,\n                horizontalArrangement = Arrangement.SpaceBetween\n            ) {\n                Column {\n                    Text(\"Device Authentication\")\n                    Text(\n                        \"Use your device's security to protect the app\",\n                        style = MaterialTheme.typography.caption\n                    )\n                }\n                \n                Switch(\n                    checked = uiState.isDeviceAuthEnabled,\n                    onCheckedChange = { viewModel.toggleDeviceAuth(it) }\n                )\n            }\n        }\n    }\n}\n```\n\n6. Remove any authentication-related strings from strings.xml\n7. Clean up any authentication-related tests that are no longer relevant",
+        "testStrategy": "1. Verify application builds successfully after removing legacy code\n2. Run existing tests to ensure no regressions\n3. Update and fix any broken tests related to authentication\n4. Test settings screen to ensure device authentication toggle works correctly\n5. Perform manual testing to verify no legacy authentication UI appears in the app",
+        "priority": "low",
+        "dependencies": [
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Implement Settings Screen for Device Authentication Toggle",
+        "description": "Create a settings screen that allows users to enable or disable device authentication after initial setup.",
+        "details": "1. Create SettingsScreen using Jetpack Compose:\n```kotlin\n@Composable\nfun SettingsScreen(\n    viewModel: SettingsViewModel = hiltViewModel(),\n    onNavigateBack: () -> Unit\n) {\n    val uiState by viewModel.uiState.collectAsState()\n    \n    Scaffold(\n        topBar = {\n            TopAppBar(\n                title = { Text(\"Settings\") },\n                navigationIcon = {\n                    IconButton(onClick = onNavigateBack) {\n                        Icon(Icons.Default.ArrowBack, contentDescription = \"Back\")\n                    }\n                }\n            )\n        }\n    ) { padding ->\n        Column(\n            modifier = Modifier\n                .fillMaxSize()\n                .padding(padding)\n                .padding(horizontal = 16.dp)\n        ) {\n            // Device Authentication Section\n            SecuritySettingsSection(viewModel)\n            \n            // Other settings sections...\n            \n            // Show message when settings are updated\n            AnimatedVisibility(visible = uiState.showSuccessMessage) {\n                Card(\n                    modifier = Modifier\n                        .fillMaxWidth()\n                        .padding(vertical = 8.dp),\n                    colors = CardDefaults.cardColors(\n                        containerColor = MaterialTheme.colorScheme.primaryContainer\n                    )\n                ) {\n                    Row(\n                        modifier = Modifier.padding(16.dp),\n                        verticalAlignment = Alignment.CenterVertically\n                    ) {\n                        Icon(\n                            imageVector = Icons.Default.Check,\n                            contentDescription = null,\n                            tint = MaterialTheme.colorScheme.primary\n                        )\n                        Spacer(modifier = Modifier.width(16.dp))\n                        Text(\"Settings updated successfully\")\n                    }\n                }\n            }\n        }\n    }\n}\n\n@Composable\nfun SecuritySettingsSection(\n    viewModel: SettingsViewModel\n) {\n    val uiState by viewModel.uiState.collectAsState()\n    val context = LocalContext.current\n    \n    Card(\n        modifier = Modifier\n            .fillMaxWidth()\n            .padding(vertical = 8.dp)\n    ) {\n        Column(modifier = Modifier.padding(16.dp)) {\n            Text(\n                text = \"Security\",\n                style = MaterialTheme.typography.titleMedium\n            )\n            \n            Spacer(modifier = Modifier.height(16.dp))\n            \n            Row(\n                modifier = Modifier.fillMaxWidth(),\n                verticalAlignment = Alignment.CenterVertically,\n                horizontalArrangement = Arrangement.SpaceBetween\n            ) {\n                Column {\n                    Text(\"Device Authentication\")\n                    Text(\n                        \"Use your device's security to protect the app\",\n                        style = MaterialTheme.typography.bodySmall,\n                        color = MaterialTheme.colorScheme.onSurfaceVariant\n                    )\n                }\n                \n                Switch(\n                    checked = uiState.isDeviceAuthEnabled,\n                    onCheckedChange = { enabled ->\n                        if (enabled) {\n                            // Check if device has security set up\n                            val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager\n                            if (!keyguardManager.isDeviceSecure) {\n                                // Show dialog to set up device security\n                                viewModel.showDeviceSecurityPrompt()\n                            } else {\n                                viewModel.toggleDeviceAuth(true)\n                            }\n                        } else {\n                            viewModel.toggleDeviceAuth(false)\n                        }\n                    }\n                )\n            }\n        }\n    }\n    \n    // Show dialog if device security needs to be set up\n    if (uiState.showDeviceSecurityPrompt) {\n        AlertDialog(\n            onDismissRequest = { viewModel.dismissDeviceSecurityPrompt() },\n            title = { Text(\"Device Security Required\") },\n            text = { Text(\"To use device authentication, you need to set up a PIN, pattern, or biometric security on your device first.\") },\n            confirmButton = {\n                TextButton(\n                    onClick = {\n                        viewModel.dismissDeviceSecurityPrompt()\n                        // Open device security settings\n                        val intent = Intent(Settings.ACTION_SECURITY_SETTINGS)\n                        context.startActivity(intent)\n                    }\n                ) {\n                    Text(\"Set Up Now\")\n                }\n            },\n            dismissButton = {\n                TextButton(onClick = { viewModel.dismissDeviceSecurityPrompt() }) {\n                    Text(\"Cancel\")\n                }\n            }\n        )\n    }\n}\n```\n2. Create SettingsViewModel to handle settings changes:\n```kotlin\nclass SettingsViewModel @Inject constructor(\n    private val userRepository: UserRepository,\n    private val deviceAuthService: DeviceAuthService\n) : ViewModel() {\n    private val _uiState = MutableStateFlow(SettingsUiState())\n    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()\n    \n    init {\n        loadSettings()\n    }\n    \n    private fun loadSettings() {\n        viewModelScope.launch {\n            val user = userRepository.getUser()\n            user?.let {\n                _uiState.update { state ->\n                    state.copy(isDeviceAuthEnabled = user.deviceAuthEnabled)\n                }\n            }\n        }\n    }\n    \n    fun toggleDeviceAuth(enabled: Boolean) {\n        viewModelScope.launch {\n            userRepository.updateDeviceAuthSetting(enabled)\n            _uiState.update { it.copy(\n                isDeviceAuthEnabled = enabled,\n                showSuccessMessage = true\n            )}\n            \n            // Hide success message after delay\n            delay(3000)\n            _uiState.update { it.copy(showSuccessMessage = false) }\n        }\n    }\n    \n    fun showDeviceSecurityPrompt() {\n        _uiState.update { it.copy(showDeviceSecurityPrompt = true) }\n    }\n    \n    fun dismissDeviceSecurityPrompt() {\n        _uiState.update { it.copy(showDeviceSecurityPrompt = false) }\n    }\n}\n\ndata class SettingsUiState(\n    val isDeviceAuthEnabled: Boolean = false,\n    val showSuccessMessage: Boolean = false,\n    val showDeviceSecurityPrompt: Boolean = false\n)\n```\n3. Add settings navigation to the app's navigation graph\n4. Use Material3 components for modern UI\n5. Implement proper error handling for cases where device security settings change",
+        "testStrategy": "1. Write unit tests for SettingsViewModel\n2. Test toggling device authentication on and off\n3. Test device security prompt logic\n4. Create UI tests to verify settings screen rendering and interactions\n5. Test navigation to and from settings screen",
         "priority": "medium",
         "dependencies": [
-          1,
-          4,
-          7
+          19,
+          22
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Add Default Currency Section to Settings Screen",
-            "description": "Extend the existing settings screen by adding a new section for Default Currency that displays the current default currency.",
-            "dependencies": [],
-            "details": "Create a new PreferenceCategory titled 'Currency Settings' in the settings_preferences.xml file. Add a Preference item for default currency that shows the current default currency code as the summary. Implement a SettingsViewModel that retrieves the current default currency from UserPreferences. Update the SettingsFragment to observe this data and display it correctly. Ensure proper loading states are shown while fetching the current default currency.\n<info added on 2025-08-31T17:15:07.774Z>\nSuccessfully implemented the Default Currency section in the Settings Screen with the following key components:\n\n1. Added string resources to strings.xml for currency settings UI elements and user feedback messages.\n\n2. Enhanced SettingsViewModel with comprehensive default currency functionality including state management, update methods, error handling, and integration with AuthManager and UserRepository.\n\n3. Extended AuthManager with a new updateCurrentUser() method to maintain consistency between database and local state when user data changes.\n\n4. Improved SettingsDataStore with individual getter methods for theme, language, currency, and currency conversion settings.\n\n5. Completely rewrote the SettingsScreen with a new Default Currency section featuring current currency display, loading states, error handling, currency selection dropdown, and user feedback for updates.\n\nThe implementation provides a complete default currency management system with proper error handling and user feedback, fulfilling all task requirements.\n</info added on 2025-08-31T17:15:07.774Z>",
-            "status": "done",
-            "testStrategy": "Write UI tests using Espresso to verify that the Default Currency section appears correctly in the settings screen and displays the current default currency. Test different states including loading and error states."
-          },
-          {
-            "id": 2,
-            "title": "Implement Currency Selection Dropdown in Settings",
-            "description": "Add a dropdown menu to the Default Currency section that allows users to select from available currencies.",
-            "dependencies": [
-              "10.1"
-            ],
-            "details": "Replace the simple Preference with a ListPreference or custom preference that shows a dropdown of available currencies. Reuse the existing currency dropdown component if available (from Task 12) or implement a simpler version. Populate the dropdown with currency data from the CurrencyRepository. Format each item to show currency code, symbol, and name. Ensure the current default currency is pre-selected in the dropdown.\n<info added on 2025-08-31T17:15:48.226Z>\nSuccessfully implemented the Currency Selection Dropdown component with improved UI/UX by replacing the LazyColumn inside DropdownMenu with an AlertDialog for better user experience. Added RadioButton selection indicators and proper visual feedback for the selected currency. Enhanced the layout using Column with verticalScroll for better handling of the currency list. Implemented proper state management for dialog expansion/collapse and added accessibility features including content descriptions and dialog properties. Fixed potential issues with the previous implementation, added dividers between currency options for visual separation, and applied Material3 styling. The component now shows the current selected currency in the trigger button, displays available currencies sorted by popularity, provides clear visual feedback, handles dialog state management properly, and integrates seamlessly with the SettingsScreen.\n</info added on 2025-08-31T17:15:48.226Z>",
-            "status": "done",
-            "testStrategy": "Test that the dropdown displays all available currencies correctly formatted. Verify that the current default currency is pre-selected. Test navigation through the currency list and search functionality if implemented."
-          },
-          {
-            "id": 3,
-            "title": "Create Confirmation Dialog for Currency Change",
-            "description": "Implement a confirmation dialog that appears when a user selects a new default currency, warning about the implications of changing the default currency.",
-            "dependencies": [
-              "10.2"
-            ],
-            "details": "Implement the showCurrencyChangeConfirmation method as provided in the example code. Hook this dialog to trigger when a new currency is selected from the dropdown. Ensure the dialog clearly shows which currency the user is changing to. Add appropriate string resources for the dialog title and message. Handle dialog dismissal appropriately, reverting the selection in the dropdown if the user cancels.\n<info added on 2025-08-31T17:18:16.352Z>\nSuccessfully implemented the Currency Change Confirmation Dialog with the following features:\n\nCreated CurrencyChangeConfirmationDialog Component that shows a confirmation message when users try to change their default currency. Added the 'change' string resource to strings.xml for the confirmation button. Integrated proper state management with showConfirmationDialog and pendingCurrencyChange variables to handle dialog visibility and state.\n\nThe dialog displays both current and new currency information with proper formatting using Material3 styling. Implemented handleCurrencySelection function that triggers the confirmation dialog when currency changes, along with handleConfirmation and handleDismiss functions for proper dialog interaction.\n\nThe user flow now works as follows:\n1. User selects a new currency from the dropdown\n2. Confirmation dialog appears showing current and new currency information\n3. User can confirm or cancel the change\n4. On confirmation, the currency is updated via ViewModel\n5. On cancellation, the dialog closes without making changes\n\nThe confirmation dialog provides a clear warning about the impact of changing the default currency, ensuring users don't accidentally change their currency preference.\n</info added on 2025-08-31T17:18:16.352Z>",
-            "status": "done",
-            "testStrategy": "Test that the confirmation dialog appears when a new currency is selected. Verify that the dialog shows the correct new currency code. Test both confirmation and cancellation flows to ensure they behave as expected."
-          },
-          {
-            "id": 4,
-            "title": "Implement Default Currency Update Logic",
-            "description": "Develop the business logic to update the user's default currency preference when confirmed and handle any related data updates.",
-            "dependencies": [
-              "10.3"
-            ],
-            "details": "In the SettingsViewModel, implement updateDefaultCurrency(currencyCode) method that updates the default currency in UserPreferences. Add proper error handling for cases where the currency update fails. Implement loading state management during the update process. Consider any other parts of the app that might need to be notified of this change (e.g., via LiveData or Flow). Ensure the update is performed on the appropriate coroutine dispatcher.\n<info added on 2025-08-31T17:18:51.557Z>\nBased on the comprehensive error handling and user feedback already implemented in the Settings Screen, this subtask should focus on integrating with the existing implementation rather than duplicating efforts. The updateDefaultCurrency method should leverage the established state management system and ensure proper coordination with other app components.\n\nThe method should utilize the existing DefaultCurrencyState and CurrencyUpdateState classes, properly transition between states, and ensure notifications to other parts of the app when currency changes occur. Implementation should respect the established patterns for authentication validation, exception handling, and state transitions while focusing on the core business logic of updating the currency preference.\n</info added on 2025-08-31T17:18:51.557Z>",
-            "status": "done",
-            "testStrategy": "Write unit tests for the ViewModel to verify that the currency update logic works correctly. Test error cases and loading state management. Write integration tests to verify that the preference is actually updated in storage."
-          },
-          {
-            "id": 5,
-            "title": "Add UI Feedback and Error Handling",
-            "description": "Implement UI feedback for successful currency changes and proper error handling for failed updates.",
-            "dependencies": [
-              "10.4"
-            ],
-            "details": "Add a success message (Snackbar or Toast) that appears when the default currency is successfully updated. Implement error handling to show appropriate error messages when currency update fails. Add loading indicators during the update process. Ensure the UI is updated to reflect the new default currency immediately after a successful update. Handle edge cases such as network errors or invalid currency selections. Update the settings screen summary to show the new default currency after change.\n<info added on 2025-08-31T17:19:50.479Z>\nThe UI feedback implementation for currency changes is complete in SettingsScreen.kt with the following components:\n\n1. Visual feedback through:\n   - CircularProgressIndicator with \"Loading...\" text during updates\n   - Green checkmark icon with \"Default currency updated successfully\" message for success\n   - Red error icon with specific error messages for failures\n\n2. Implementation uses:\n   - currencyUpdateState from SettingsViewModel to track status\n   - Inline feedback within the currency settings card\n   - Automatic state reset via LaunchedEffect\n   - Material3 design components with appropriate color coding\n   - Properly defined string resources in strings.xml\n\n3. State management through:\n   - CurrencyUpdateState sealed class (Idle, Loading, Success, Error)\n   - Automatic state reset after feedback display\n   - Error message propagation from ViewModel to UI\n\nThe implementation follows Material Design guidelines and includes proper accessibility support.\n</info added on 2025-08-31T17:19:50.479Z>",
-            "status": "done",
-            "testStrategy": "Test that appropriate success messages appear after currency updates. Test error scenarios by forcing failures and verifying error messages appear. Test that the UI correctly updates to show the new default currency. Test accessibility features to ensure all feedback is accessible."
-          }
-        ]
-      },
-      {
-        "id": 11,
-        "title": "Update Transaction List to Display Currency",
-        "description": "Enhance the transaction list to display currency symbols with amounts and format according to currency conventions.",
-        "details": "Modify the transaction list UI to display currency symbols with amounts and format the amounts according to currency conventions. This includes handling different decimal places for different currencies.\n\nImplementation details:\n1. Update the transaction list item layout to include currency symbol\n2. Create a utility function to format amounts based on currency\n3. Use the correct number of decimal places for each currency\n4. Handle RTL languages for currency display\n\nCode example for amount formatting:\n```kotlin\nfun formatAmountWithCurrency(amount: Double, currencyCode: String): String {\n    val currency = Currency.fromCode(currencyCode) ?: Currency.USD\n    val locale = when(currency) {\n        Currency.EUR -> Locale.GERMANY\n        Currency.GBP -> Locale.UK\n        Currency.JPY -> Locale.JAPAN\n        else -> Locale.US\n    }\n    \n    val format = NumberFormat.getCurrencyInstance(locale)\n    format.currency = java.util.Currency.getInstance(currency.code)\n    \n    return format.format(amount)\n}\n```\n\nUse RecyclerView with ListAdapter and DiffUtil for efficient list updates. Implement proper content descriptions for accessibility.",
-        "testStrategy": "Write UI tests using Espresso to verify that:\n1. Currency symbols are displayed correctly with amounts\n2. Amounts are formatted according to currency conventions\n3. Different decimal places are handled correctly (e.g., JPY with 0 decimals)\n4. RTL languages are handled correctly\n5. Accessibility testing with TalkBack\n6. Test with different currencies and amount formats",
-        "priority": "medium",
-        "dependencies": [
-          2,
-          4
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Create CurrencyFormatter utility class",
-            "description": "Implement a utility class that handles currency formatting according to different currency conventions, including proper symbol placement, decimal places, and locale-specific formatting.",
-            "dependencies": [],
-            "details": "Create a CurrencyFormatter class with methods to format amounts based on currency codes. Implement the formatAmountWithCurrency function from the example, but enhance it to handle all supported currencies. Include support for different decimal places (e.g., JPY with 0, most others with 2) and proper locale selection. Add unit tests to verify formatting for various currencies and amounts.\n<info added on 2025-09-05T16:25:41.935Z>\nBased on research findings, the CurrencyFormatter class should use Android's built-in NumberFormat.getCurrencyInstance() instead of manual string formatting. This approach provides proper locale-aware formatting with automatic handling of currency symbol placement, thousand separators, decimal precision, and negative amount formatting according to locale conventions.\n\nImplementation should:\n1. Replace current manual string formatting in LocaleFormatter.kt with NumberFormat-based approach\n2. Use Currency.getInstance() for automatic decimal precision handling\n3. Add bidirectional text markers for proper RTL support in mixed-direction contexts\n4. Implement locale-specific negative amount formatting\n5. Include comprehensive unit tests covering various currencies, locales, and edge cases\n\nThe class should integrate with the existing Currency enum and provide methods for both standard currency formatting and currency conversion display.\n</info added on 2025-09-05T16:25:41.935Z>",
-            "status": "done",
-            "testStrategy": "Write unit tests to verify: 1) Correct symbol placement for different currencies, 2) Proper decimal places (0 for JPY, 2 for USD/EUR, etc.), 3) Correct handling of negative amounts, 4) Proper thousands separators based on locale, 5) Fallback behavior for unsupported currencies."
-          },
-          {
-            "id": 2,
-            "title": "Update transaction list item layout",
-            "description": "Modify the transaction list item XML layout to include and properly position the currency symbol alongside the amount.",
-            "dependencies": [],
-            "details": "Update the transaction_item.xml layout to include a TextView for displaying the formatted amount with currency. Ensure the layout handles both LTR and RTL text directions properly. Add appropriate content descriptions for accessibility. Use ConstraintLayout for flexible positioning of the currency amount relative to other elements in the list item.",
-            "status": "done",
-            "testStrategy": "Create layout preview tests to verify the layout appears correctly with different currencies and amount values. Test with both LTR and RTL configurations to ensure proper text alignment."
-          },
-          {
-            "id": 3,
-            "title": "Update TransactionListAdapter to use CurrencyFormatter",
-            "description": "Modify the TransactionListAdapter to use the new CurrencyFormatter utility to display properly formatted amounts with currency symbols.",
-            "dependencies": [
-              "11.1",
-              "11.2"
-            ],
-            "details": "Update the onBindViewHolder method in TransactionListAdapter to use the CurrencyFormatter to format transaction amounts. Extract the currency code from each transaction and pass it along with the amount to the formatter. Update the ViewHolder to bind the formatted amount to the appropriate TextView. Ensure proper content descriptions are set for accessibility.\n<info added on 2025-09-05T16:29:18.390Z>\nSuccessfully updated transaction list components to use CurrencyFormatter in this Jetpack Compose app. Instead of modifying a RecyclerView adapter as initially planned, I updated all currency formatting in composables including ExpenseSection.kt (TransactionItem), RecurringExpensesSection.kt (RecurringTransactionItem), and MonthlySummaryCard.kt. All LocaleFormatter.formatCurrency() calls were replaced with CurrencyFormatter.formatAmount() while preserving date formatting functionality. The transaction list now correctly displays currency symbols with amounts formatted according to currency conventions using the enhanced CurrencyFormatter utility class.\n</info added on 2025-09-05T16:29:18.390Z>",
-            "status": "done",
-            "testStrategy": "Write unit tests for the adapter to verify it correctly formats and displays transactions with different currencies. Use Espresso tests to verify the list displays correctly formatted amounts with proper currency symbols."
-          },
-          {
-            "id": 4,
-            "title": "Implement RTL support for currency display",
-            "description": "Ensure proper display of currency symbols and amounts in right-to-left (RTL) languages and layouts.",
-            "dependencies": [
-              "11.3"
-            ],
-            "details": "Modify the CurrencyFormatter to handle RTL languages by detecting the text direction and adjusting the symbol placement accordingly. Update the transaction list item layout with appropriate start/end constraints instead of left/right to support RTL layouts. Test with Arabic and Hebrew locales to ensure correct display. Add support for currencies that have the symbol on the right vs. left side of the amount.\n<info added on 2025-09-05T16:31:04.958Z>\nSuccessfully implemented comprehensive RTL support for currency display with the following key enhancements:\n\n**Enhanced CurrencyFormatter with RTL Support:**\n1. Added forceRTL parameter to formatAmount() method for explicit RTL control\n2. Created formatAmountForRTL() method specifically for RTL formatting with bidirectional markers\n3. Added RTL utility methods:\n   - isRTLLocale() - detects if a locale is RTL\n   - getTextDirection() - returns \"rtl\" or \"ltr\" for a locale\n\n**RTL Implementation Details:**\n- Uses Unicode bidirectional markers (U+200F Right-to-Left Mark) for proper mixed-direction text display\n- Automatically detects RTL locales (Hebrew, Arabic) and applies appropriate formatting\n- Supports forced RTL formatting for mixed LTR/RTL contexts\n- Handles RTL formatting for all supported currencies (USD, EUR, GBP, ILS, SAR, JPY, etc.)\n\n**Comprehensive Testing:**\n- Created CurrencyFormatterRTLTest.kt with extensive RTL test coverage\n- Tests Hebrew and Arabic locale support\n- Tests bidirectional marker application\n- Tests RTL formatting with different currencies, negative amounts, zero amounts, and large amounts\n- Tests RTL currency conversion formatting\n- Tests RTL-specific symbol retrieval and decimal precision\n\n**UI Integration:**\n- The existing Jetpack Compose UI components automatically handle RTL layout direction\n- CurrencyFormatter now provides proper RTL-aware currency formatting\n- All transaction list components will display currencies correctly in RTL languages\n</info added on 2025-09-05T16:31:04.958Z>",
-            "status": "done",
-            "testStrategy": "Test with Arabic and Hebrew locales to verify correct symbol placement. Create screenshots in both LTR and RTL configurations to verify layout correctness. Test with currencies that have different symbol placements (before/after amount)."
-          },
-          {
-            "id": 5,
-            "title": "Add DiffUtil implementation for efficient list updates",
-            "description": "Implement DiffUtil with ListAdapter for the transaction list to ensure efficient updates when transaction data changes.",
-            "dependencies": [
-              "11.3"
-            ],
-            "details": "Create a TransactionDiffCallback class that extends DiffUtil.ItemCallback<Transaction> to compare transactions based on their IDs and content. Update TransactionListAdapter to extend ListAdapter instead of RecyclerView.Adapter, using the new DiffCallback. Implement proper equals() and hashCode() methods in the Transaction class if not already present. Update the fragment or activity code to use submitList() instead of notifyDataSetChanged() when updating the transaction list.",
-            "status": "done",
-            "testStrategy": "Write unit tests to verify the DiffCallback correctly identifies changes between transactions. Create instrumentation tests that simulate list updates and verify only changed items are redrawn. Measure and compare performance with the previous implementation."
-          }
-        ]
-      },
-      {
-        "id": 12,
-        "title": "Implement Reusable Currency Selection Component",
-        "description": "Create a reusable dropdown component for currency selection with search functionality and grouping by popularity.",
-        "details": "Develop a reusable currency selection component that can be used across the app. The component should include search functionality, grouping by popularity, and display currency code, symbol, and name.\n\nImplementation details:\n1. Create a custom view component that extends MaterialAutoCompleteTextView\n2. Implement search functionality\n3. Group currencies by popularity (Most Popular, All Currencies)\n4. Show currency code, symbol, and name\n5. Support programmatic selection and change listeners\n\nCode example:\n```kotlin\nclass CurrencySelectionView @JvmOverloads constructor(\n    context: Context,\n    attrs: AttributeSet? = null,\n    defStyleAttr: Int = R.attr.autoCompleteTextViewStyle\n) : MaterialAutoCompleteTextView(context, attrs, defStyleAttr) {\n    \n    private var currencies: List<Currency> = Currency.values().toList()\n    private var onCurrencySelectedListener: ((Currency) -> Unit)? = null\n    \n    init {\n        setAdapter(createAdapter())\n        setOnItemClickListener { _, _, position, _ ->\n            val currency = adapter.getItem(position) as Currency\n            onCurrencySelectedListener?.invoke(currency)\n        }\n    }\n    \n    fun setOnCurrencySelectedListener(listener: (Currency) -> Unit) {\n        onCurrencySelectedListener = listener\n    }\n    \n    fun setCurrencies(currencies: List<Currency>) {\n        this.currencies = currencies\n        setAdapter(createAdapter())\n    }\n    \n    fun setSelectedCurrency(currencyCode: String) {\n        val currency = Currency.fromCode(currencyCode) ?: Currency.USD\n        setText(\"${currency.code} - ${currency.symbol} - ${currency.name}\", false)\n    }\n    \n    private fun createAdapter(): ArrayAdapter<Currency> {\n        // Create adapter with filtering and grouping\n        // Implementation details...\n    }\n}\n```\n\nUse Material Components library for consistent styling. Implement proper keyboard navigation and accessibility support.",
-        "testStrategy": "Write unit tests to verify that:\n1. Component correctly displays currencies\n2. Search functionality works correctly\n3. Grouping by popularity works correctly\n4. Selection events are triggered correctly\n5. Programmatic selection works\n6. UI tests to verify component works in different screens\n7. Accessibility testing with TalkBack\n8. Keyboard navigation testing",
-        "priority": "medium",
-        "dependencies": [
-          4,
-          9
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Create base CurrencySelectionView class structure",
-            "description": "Implement the basic structure of the CurrencySelectionView class that extends MaterialAutoCompleteTextView with initial properties and constructor",
-            "dependencies": [],
-            "details": "Create the CurrencySelectionView class with proper constructor parameters. Define necessary properties including currencies list, selected currency, and listener callback. Implement the basic initialization logic in the init block. Set up the view attributes and styling using Material Components. Ensure the class has proper visibility modifiers and documentation.\n<info added on 2025-09-05T16:55:18.323Z>\nSuccessfully implemented the base CurrencySelectionView class structure:\n\n**Completed Implementation:**\n1. Created CurrencySelectionView class extending MaterialAutoCompleteTextView\n2. Implemented proper constructor with context, attrs, and defStyleAttr parameters\n3. Added essential properties: currencies list, onCurrencySelectedListener callback\n4. Set up basic initialization in init block with:\n   - Hint text setup\n   - Threshold configuration for dropdown\n   - Adapter creation and assignment\n   - Item click listener setup\n5. Implemented key methods:\n   - setOnCurrencySelectedListener() for callback registration\n   - setCurrencies() for updating currency list\n   - setSelectedCurrency() for programmatic selection\n   - getSelectedCurrency() for retrieving current selection\n6. Created custom CurrencyAdapter inner class with:\n   - Basic ArrayAdapter structure\n   - Custom getView() implementation\n   - Filter implementation for search functionality\n7. Created layout file item_currency_selection.xml with proper Material Design styling\n\n**Technical Details:**\n- Uses MaterialAutoCompleteTextView as base class for consistent Material Design appearance\n- Implements proper filtering with case-insensitive search across code, symbol, and name\n- Follows Android view lifecycle patterns with proper initialization\n- Uses existing Currency enum and its utility methods\n- Layout uses Material Design color attributes for theming support\n\nThe base structure is now ready for the next subtask (currency adapter with grouping functionality).\n</info added on 2025-09-05T16:55:18.323Z>",
-            "status": "done",
-            "testStrategy": "Write unit tests to verify the class initializes correctly with default properties. Test that the view renders properly with default styling."
-          },
-          {
-            "id": 2,
-            "title": "Implement currency adapter with grouping functionality",
-            "description": "Create a custom adapter for the currency dropdown that supports grouping currencies by popularity",
-            "dependencies": [
-              "12.1"
-            ],
-            "details": "Implement a custom ArrayAdapter subclass that groups currencies into 'Most Popular' and 'All Currencies' sections. Create a data structure to represent grouped currencies. Override getView() method to display currency code, symbol, and name in each item. Add section headers in the dropdown list. Implement logic to determine popular currencies based on usage data from CurrencyUsageTracker. Ensure proper item layout with appropriate styling for both regular items and section headers.\n<info added on 2025-09-05T16:56:43.212Z>\nSuccessfully implemented currency adapter with grouping functionality:\n\n**Completed Implementation:**\n1. Created CurrencyDropdownItem sealed class to represent different item types:\n   - CurrencyItem: Represents a selectable currency\n   - SectionHeader: Represents a section header for grouping\n\n2. Enhanced CurrencyAdapter with grouping capabilities:\n   - Modified constructor to accept both currencies and popularCurrencies lists\n   - Implemented createGroupedItems() method that creates sections:\n     * \"Most Popular\" section with popular currencies\n     * \"All Currencies\" section with remaining currencies\n   - Added support for different view types (section headers vs currency items)\n   - Implemented getItemViewType() and getViewTypeCount() for proper view recycling\n\n3. Created section header layout (item_currency_section_header.xml):\n   - Uses Material Design styling with primary color\n   - Proper padding and typography for section headers\n   - Background color for visual separation\n\n4. Enhanced filtering functionality:\n   - When searching, shows \"Search Results\" section instead of grouped sections\n   - Maintains proper filtering across currency code, symbol, and name\n   - Preserves grouping structure when no search is active\n\n5. Updated CurrencySelectionView class:\n   - Added popularCurrencies property to track popular currencies\n   - Added setPopularCurrencies() method for dynamic popular currency updates\n   - Updated all adapter creation calls to include popular currencies\n   - Modified item click handling to work with new CurrencyDropdownItem structure\n\n**Technical Details:**\n- Uses ArrayAdapter<CurrencyDropdownItem> for type safety\n- Implements proper view recycling with getItemViewType() and getViewTypeCount()\n- Maintains separation between popular and all currencies\n- Search functionality creates a single \"Search Results\" section for better UX\n- All layouts use Material Design color attributes for consistent theming\n</info added on 2025-09-05T16:56:43.212Z>",
-            "status": "done",
-            "testStrategy": "Test that currencies are correctly grouped into sections. Verify that section headers display properly. Test with various combinations of popular and non-popular currencies."
-          },
-          {
-            "id": 3,
-            "title": "Add search functionality to currency selection",
-            "description": "Implement filtering logic to allow users to search for currencies by code, symbol, or name",
-            "dependencies": [
-              "12.2"
-            ],
-            "details": "Override the getFilter() method in the custom adapter to implement search functionality. Create a filtering algorithm that matches user input against currency code, symbol, and name. Ensure case-insensitive matching. Maintain grouping structure during filtering. Optimize the search performance for large currency lists. Update the adapter to refresh the view when filter results change. Handle edge cases like no matching results.\n<info added on 2025-09-05T16:57:07.225Z>\nThis subtask has been completed as part of subtask 12.2. The search functionality was fully implemented with the following features:\n\n1. A custom CurrencyFilter class that implements Android's Filter interface for AutoCompleteTextView integration\n2. Case-insensitive search across currency code, symbol, and display name\n3. Smart search behavior that shows grouped sections when no search is active and a single \"Search Results\" section when searching\n4. Performance optimizations including lowercase comparison, whitespace trimming, and efficient data structure handling\n5. Proper integration with MaterialAutoCompleteTextView with a threshold of 1 character for immediate search activation\n6. Complete implementation of performFiltering() and publishResults() methods\n7. Handling of null/empty search constraints and proper maintenance of type safety\n\nNo further implementation is needed for this subtask as all requirements have been satisfied in the previous work.\n</info added on 2025-09-05T16:57:07.225Z>",
-            "status": "done",
-            "testStrategy": "Test search functionality with various input patterns. Verify filtering works correctly for currency code, symbol, and name. Test edge cases like empty search string and no matching results."
-          },
-          {
-            "id": 4,
-            "title": "Implement currency selection and change listeners",
-            "description": "Add functionality to handle currency selection events and notify listeners when selection changes",
-            "dependencies": [
-              "12.3"
-            ],
-            "details": "Implement setOnCurrencySelectedListener method to register callbacks for selection events. Set up item click listener in the dropdown to capture selection events. Create logic to format the selected currency text in the input field. Implement setSelectedCurrency method for programmatic selection. Add validation to ensure only valid currencies can be selected. Ensure proper event propagation when selection changes programmatically or through user interaction.\n<info added on 2025-09-05T16:57:29.303Z>\nThis subtask was completed as part of the base structure in subtask 12.1. The currency selection and change listener functionality has been fully implemented with the following features:\n\n1. The setOnCurrencySelectedListener() method has been implemented using Kotlin function type (Currency) -> Unit for type-safe callbacks.\n\n2. Item click listeners have been properly configured in the setupView() method to handle currency selection events.\n\n3. Programmatic selection methods have been implemented:\n   - setSelectedCurrency(currencyCode: String) for setting currency by code\n   - getSelectedCurrency() for retrieving the currently selected currency\n\n4. Event propagation has been implemented to trigger selection events for both user interaction and programmatic selection.\n\n5. The implementation integrates with existing Currency utilities for consistent text formatting, validation, and conversion.\n\nAll methods include proper null safety, validation, and error handling with fallback to USD for invalid codes. The functionality is working as expected, allowing registration of listeners, programmatic selection, and retrieval of current selections.\n</info added on 2025-09-05T16:57:29.303Z>",
-            "status": "done",
-            "testStrategy": "Test that selection events trigger appropriate callbacks. Verify programmatic selection works correctly. Test that the view displays the selected currency properly. Test edge cases like selecting invalid currencies."
-          },
-          {
-            "id": 5,
-            "title": "Add accessibility support and keyboard navigation",
-            "description": "Enhance the component with proper accessibility features and keyboard navigation support",
-            "dependencies": [
-              "12.4"
-            ],
-            "details": "Add content descriptions for screen readers. Implement proper keyboard navigation for the dropdown. Ensure focus states are visible and work correctly. Add appropriate hint text for the input field. Implement state restoration for configuration changes. Test with TalkBack and other accessibility services. Add support for RTL layouts. Ensure the component meets accessibility contrast requirements. Implement proper error states and announcements.\n<info added on 2025-09-05T16:58:28.999Z>\nSuccessfully implemented comprehensive accessibility support and keyboard navigation for the currency selection component. Added content descriptions with the \"select_currency\" string resource and detailed accessibility hints. Configured view accessibility properties including focus support and proper event handling. Enhanced dropdown items with descriptive content for screen readers (formatted as \"Currency Name, Code, Symbol\"). Implemented keyboard navigation with support for DPAD_CENTER/ENTER and DPAD_DOWN keys to open the dropdown. Created dedicated methods for accessibility announcements when currencies are selected. Added appropriate string resources with detailed usage instructions. The implementation follows Android accessibility best practices with proper separation of concerns, focus management, and comprehensive support for both touch and keyboard interaction patterns.\n</info added on 2025-09-05T16:58:28.999Z>",
-            "status": "done",
-            "testStrategy": "Test with accessibility testing tools like TalkBack. Verify keyboard navigation works properly. Test focus handling and state restoration. Perform manual testing with screen readers to ensure proper announcements."
-          }
-        ]
-      },
-      {
-        "id": 13,
-        "title": "Implement Currency Sorting by Popularity",
-        "description": "Develop the logic to sort currencies by popularity based on user usage patterns.",
-        "details": "Implement a service to sort currencies by popularity based on the user's usage patterns. This service should use the CurrencyUsage data to determine which currencies are most used by the user.\n\nCode example:\n```kotlin\nclass CurrencySortingService @Inject constructor(\n    private val currencyUsageRepository: CurrencyUsageRepository,\n    private val userRepository: UserRepository\n) {\n    suspend fun getSortedCurrencies(userId: Long): List<Currency> {\n        // Get user's currency usage\n        val userCurrencyUsage = currencyUsageRepository.getUserCurrenciesSortedByUsage(userId)\n        \n        // Get user's default currency\n        val user = userRepository.getUserById(userId)\n        val defaultCurrency = user?.defaultCurrency ?: \"USD\"\n        \n        // Create a set of used currencies\n        val usedCurrencyCodes = userCurrencyUsage.map { it.currency }.toSet()\n        \n        // Ensure default currency is included\n        val allUsedCodes = usedCurrencyCodes + defaultCurrency\n        \n        // Get all currencies\n        val allCurrencies = Currency.values().toList()\n        \n        // Sort currencies: first by usage (if used), then by default enum popularity\n        return allCurrencies.sortedWith(compareBy(\n            // First sort by whether it's in the used set (used currencies first)\n            { !(it.code in allUsedCodes) },\n            // Then sort used currencies by their usage order\n            { code -> userCurrencyUsage.indexOfFirst { it.currency == code } },\n            // Finally sort by the default popularity for currencies not in the used set\n            { it.popularity }\n        ))\n    }\n}\n```\n\nImplement caching to avoid repeated database queries. Use Kotlin Flow (from kotlinx.coroutines-flow) to observe changes in currency usage and update the sorted list automatically.",
-        "testStrategy": "Write unit tests to verify that:\n1. Currencies are correctly sorted by usage\n2. Default currency is included even if not used\n3. Unused currencies are sorted by default popularity\n4. Changes in usage patterns update the sorting\n5. Edge cases are handled (no usage data, all currencies used equally)\n6. Performance testing with large datasets",
-        "priority": "medium",
-        "dependencies": [
-          3,
-          9
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Create CurrencyUsageRepository Interface and Implementation",
-            "description": "Define and implement the repository interface for accessing currency usage data from the database. This repository will provide methods to retrieve user currency usage patterns sorted by frequency.",
-            "dependencies": [],
-            "details": "Create a CurrencyUsageRepository interface with methods like getUserCurrenciesSortedByUsage(userId: Long) and getUserCurrencyUsage(userId: Long, currencyCode: String). Implement this interface with a class that uses Room or your database access layer to retrieve and sort currency usage data. Include methods to observe changes in currency usage patterns using Kotlin Flow.\n<info added on 2025-09-05T17:20:07.019Z>\nUpdate the CurrencyUsageRepository interface and its implementation to add the missing method `getUserCurrenciesSortedByUsage(userId: Long)`. This method should return a Flow<List<CurrencyUsage>> containing the user's currencies sorted by usage count in descending order. The implementation should leverage the existing database structure and query capabilities.\n\nIn the interface:\n```kotlin\nfun getUserCurrenciesSortedByUsage(userId: Long): Flow<List<CurrencyUsage>>\n```\n\nIn the implementation class:\n```kotlin\noverride fun getUserCurrenciesSortedByUsage(userId: Long): Flow<List<CurrencyUsage>> {\n    return currencyUsageDao.getCurrencyUsageByUserSortedByCount(userId)\n}\n```\n\nEnsure the DAO also has the corresponding method:\n```kotlin\n@Query(\"SELECT * FROM currency_usage WHERE user_id = :userId ORDER BY usage_count DESC\")\nfun getCurrencyUsageByUserSortedByCount(userId: Long): Flow<List<CurrencyUsage>>\n```\n\nThis implementation will build on the existing repository structure while adding the specific sorting functionality required by the task.\n</info added on 2025-09-05T17:20:07.019Z>",
-            "status": "done",
-            "testStrategy": "Write unit tests using MockK to verify repository methods return expected data. Test sorting logic with sample data sets. Use in-memory database for integration tests to verify SQL queries work correctly."
-          },
-          {
-            "id": 2,
-            "title": "Implement Core Currency Sorting Logic",
-            "description": "Develop the core sorting algorithm that orders currencies based on user usage patterns, ensuring the default currency is always included and unused currencies are sorted by default popularity.",
-            "dependencies": [
-              "13.1"
-            ],
-            "details": "Implement the getSortedCurrencies method in CurrencySortingService as shown in the example. Ensure the sorting logic correctly prioritizes: 1) User's frequently used currencies, 2) User's default currency, and 3) Remaining currencies by their default popularity. Handle edge cases like no usage data or when all currencies are used equally.\n<info added on 2025-09-05T17:21:34.030Z>\nSuccessfully implemented the core currency sorting logic in CurrencySortingService:\n\n1. Created CurrencySortingService in domain/usecase package\n2. Implemented getSortedCurrencies() method that returns Flow<List<Currency>>\n3. Implemented getSortedCurrenciesSuspend() method for suspend-based usage\n4. Added helper methods: getTopCurrencies() and getUsedCurrencies()\n5. Added proper dependency injection setup in RepositoryModule\n\nThe sorting logic correctly prioritizes:\n- User's frequently used currencies (by usage count)\n- User's default currency (always included)\n- Remaining currencies by their default popularity ranking\n\nThe service handles edge cases and provides both Flow-based reactive updates and suspend-based synchronous access.\n</info added on 2025-09-05T17:21:34.030Z>",
-            "status": "done",
-            "testStrategy": "Write unit tests with different usage patterns to verify sorting logic. Test edge cases including empty usage data, all currencies used equally, and when default currency has no usage data."
-          },
-          {
-            "id": 3,
-            "title": "Add Caching Mechanism for Sorted Currencies",
-            "description": "Implement a caching layer to avoid repeated database queries when retrieving sorted currencies. The cache should invalidate when currency usage patterns change.",
-            "dependencies": [
-              "13.2"
-            ],
-            "details": "Add an in-memory cache to store the sorted currency list. Implement cache invalidation logic that triggers when currency usage data changes. Use a combination of time-based expiration and explicit invalidation when usage patterns are updated. Consider using a library like Caffeine for sophisticated caching capabilities.\n<info added on 2025-09-05T17:22:45.375Z>\nSuccessfully implemented caching mechanism for the CurrencySortingService:\n\n1. Added in-memory cache using ConcurrentHashMap for thread safety\n2. Implemented cache expiration (5 minutes) with timestamp tracking\n3. Added thread-safe cache operations using Mutex\n4. Enhanced getSortedCurrenciesSuspend() to use cache with fallback to repository\n5. Added cache invalidation methods:\n   - invalidateCache(userId) for specific user\n   - invalidateAllCache() for all users\n6. Added trackCurrencyUsage() method that increments usage and invalidates cache\n7. Added getCacheStats() for debugging and monitoring\n8. Cache automatically invalidates when currency usage patterns change\n\nThe caching system provides significant performance improvements by avoiding repeated database queries while ensuring data consistency through proper invalidation.\n</info added on 2025-09-05T17:22:45.375Z>",
-            "status": "done",
-            "testStrategy": "Test cache hit/miss scenarios. Verify cache invalidation works when usage patterns change. Measure performance improvements with and without caching."
-          },
-          {
-            "id": 4,
-            "title": "Implement Reactive Updates with Kotlin Flow",
-            "description": "Enhance the currency sorting service to use Kotlin Flow for observing changes in currency usage and automatically updating the sorted list when patterns change.",
-            "dependencies": [
-              "13.3"
-            ],
-            "details": "Modify the CurrencySortingService to expose a Flow<List<Currency>> that emits updated sorted currency lists whenever usage patterns change. Use the Flow APIs from the currencyUsageRepository to observe database changes. Implement proper coroutine scope management and error handling within the flows.",
-            "status": "done",
-            "testStrategy": "Test that Flow correctly emits new values when underlying data changes. Verify collectors receive updates in the correct order. Test error handling and scope cancellation behavior."
-          },
-          {
-            "id": 5,
-            "title": "Integrate Currency Sorting Service with UI Components",
-            "description": "Connect the CurrencySortingService with UI components that display currency lists, ensuring they update reactively when usage patterns change.",
-            "dependencies": [
-              "13.4"
-            ],
-            "details": "Create extension functions or utility methods to easily consume the sorted currency Flow in ViewModels. Implement proper lifecycle awareness when collecting flows in UI components. Add methods to filter or further customize the sorted list for specific UI needs (e.g., showing only top N currencies). Ensure the service is properly injected using dependency injection.",
-            "status": "done",
-            "testStrategy": "Write integration tests to verify UI components update when currency usage changes. Test proper lifecycle handling to avoid memory leaks. Perform UI tests to verify currencies appear in the correct order in dropdowns and selection components."
-          }
-        ]
-      },
-      {
-        "id": 14,
-        "title": "Implement Error Handling and Validation",
-        "description": "Develop comprehensive error handling and validation for currency-related operations.",
-        "status": "done",
-        "dependencies": [
-          4
-        ],
-        "priority": "medium",
-        "details": "Implement error handling and validation for all currency-related operations. This includes validating currency codes, handling unsupported currencies gracefully, providing fallback to USD if currency is invalid, showing appropriate error messages, and validating amounts for specific currencies.\n\nImplementation details:\n1. Create a validation service for currency codes\n2. Implement fallback mechanisms for invalid currencies\n3. Create user-friendly error messages\n4. Add logging for currency-related errors\n5. Validate currency-specific amount formats (e.g., JPY with 0 decimal places)\n6. Implement context-aware error messages using string resources\n7. Create comprehensive error reports for debugging\n\nCode example:\n```kotlin\nclass CurrencyValidator @Inject constructor() {\n    fun validateCurrencyCode(code: String): ValidationResult {\n        return when {\n            code.isBlank() -> ValidationResult.Error(\"Currency code cannot be empty\")\n            code.length != 3 -> ValidationResult.Error(\"Currency code must be 3 characters\")\n            !Currency.isValid(code) -> ValidationResult.Error(\"Unsupported currency code: $code\")\n            else -> ValidationResult.Success\n        }\n    }\n    \n    fun getValidCurrencyCodeOrFallback(code: String): String {\n        return if (Currency.isValid(code)) code else \"USD\"\n    }\n}\n\nsealed class ValidationResult {\n    object Success : ValidationResult()\n    data class Error(val message: String) : ValidationResult()\n}\n```\n\nIntegrate this validation with all UI components and data operations. Use Timber (com.jakewharton.timber:timber:5.0.1) for logging.",
-        "testStrategy": "Write unit tests to verify that:\n1. Valid currency codes are accepted\n2. Invalid currency codes are rejected with appropriate error messages\n3. Fallback to USD works correctly\n4. Integration tests to verify validation is applied in all relevant places\n5. UI tests to verify error messages are displayed correctly\n6. Test with various invalid inputs (empty, wrong length, unsupported codes)\n7. Test currency-specific amount validation (e.g., JPY with 0 decimal places)\n8. Test error message generation with different contexts\n9. Test integration with AddExpenseViewModel\n10. Verify Timber logging for validation errors and fallbacks",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Create CurrencyValidator Service",
-            "description": "Implement a comprehensive validation service that validates currency codes, provides fallback mechanisms, validates amounts for specific currencies, formats amounts with validation, and provides detailed validation results with suggestions.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 2,
-            "title": "Create CurrencyErrorHandler Service",
-            "description": "Implement an error handling service that provides user-friendly error messages, supports context-aware error messages using string resources, includes suggestions for unsupported currency codes, provides recovery suggestions, creates comprehensive error reports, and handles currency change warnings.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 3,
-            "title": "Add Error Message String Resources",
-            "description": "Add comprehensive error message strings to strings.xml including currency error messages for different validation failures, recovery suggestion messages, and currency change warning messages.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 4,
-            "title": "Integrate with AddExpenseViewModel",
-            "description": "Enhance the existing ViewModel to use currency validation during initialization, validate currencies before updating selection, validate both currency and amount before saving transactions, log validation errors, and provide user-friendly error messages in UI state.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 5,
-            "title": "Implement Comprehensive Testing",
-            "description": "Create extensive test coverage including unit tests for CurrencyValidator with all validation scenarios, unit tests for CurrencyErrorHandler with error message generation, integration tests for AddExpenseViewModel, and end-to-end integration tests demonstrating complete validation flow.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          },
-          {
-            "id": 6,
-            "title": "Integrate Timber Logging",
-            "description": "Add Timber logging throughout the validation system including adding Timber dependency to build.gradle.kts, initializing Timber in PennyWiseApplication, and implementing comprehensive logging for validation errors, fallbacks, and formatting issues.",
-            "status": "done",
-            "dependencies": [],
-            "details": "",
-            "testStrategy": ""
-          }
-        ]
-      },
-      {
-        "id": 15,
-        "title": "Implement Comprehensive Testing Suite",
-        "description": "Develop a comprehensive testing suite for all currency-related functionality.",
-        "details": "Implement a comprehensive testing suite for all currency-related functionality. This includes unit tests, integration tests, and UI tests as specified in the PRD.\n\nImplementation details:\n1. Unit tests for all currency-related models and utilities\n2. Integration tests for database operations and business logic\n3. UI tests for all currency-related screens and components\n4. Performance tests for currency operations\n5. Accessibility tests\n\nUse the following testing libraries:\n- JUnit 5 (org.junit.jupiter:junit-jupiter:5.10.0) for unit tests\n- Mockito (org.mockito:mockito-core:5.6.0) for mocking\n- Espresso (androidx.test.espresso:espresso-core:3.5.1) for UI tests\n- Room testing utilities for database tests\n- Robolectric (org.robolectric:robolectric:4.10.3) for unit tests that require Android framework\n\nCode example for a test class:\n```kotlin\n@RunWith(AndroidJUnit4::class)\nclass CurrencyFeatureTest {\n    @get:Rule\n    val activityRule = ActivityScenarioRule(MainActivity::class.java)\n    \n    @Test\n    fun testDefaultCurrencyInRegistration() {\n        // Navigate to registration\n        onView(withId(R.id.registerButton)).perform(click())\n        \n        // Verify USD is pre-selected\n        onView(withId(R.id.currencySelector))\n            .check(matches(withText(containsString(\"USD\"))))\n    }\n    \n    @Test\n    fun testChangingCurrencyInExpenseForm() {\n        // Navigate to expense form\n        // ...\n        \n        // Change currency\n        onView(withId(R.id.currencySelector)).perform(click())\n        onView(withText(containsString(\"EUR\"))).perform(click())\n        \n        // Verify currency symbol updated\n        onView(withId(R.id.amountInputLayout))\n            .check(matches(hasTextInputLayoutPrefixText(\"€\")))\n    }\n    \n    // More tests...\n}\n```\n\nImplement a CI/CD pipeline using GitHub Actions to run tests automatically on pull requests and merges.",
-        "testStrategy": "Meta-testing approach:\n1. Verify test coverage for all currency-related functionality\n2. Ensure tests run successfully in CI/CD pipeline\n3. Verify tests catch regressions when introducing changes\n4. Test performance of the test suite itself\n5. Ensure tests are maintainable and well-documented",
-        "priority": "high",
-        "dependencies": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Set up testing infrastructure and dependencies",
-            "description": "Configure the project with all required testing libraries and set up the basic testing infrastructure including test runners, test utilities, and helper classes.",
-            "dependencies": [],
-            "details": "1. Add all required testing dependencies to build.gradle files (JUnit 5, Mockito, Espresso, Robolectric, etc.)\n2. Configure test runners in build.gradle\n3. Create base test classes for different test types (unit, integration, UI)\n4. Set up test utilities for common testing operations\n5. Configure test resources directory\n6. Create mock data providers for currency-related tests\n7. Set up test coverage reporting with JaCoCo\n<info added on 2025-09-08T07:34:46.413Z>\n## Implementation Status Update\n\nThe testing infrastructure setup (Task 15.1) is now complete with all requirements satisfied:\n\n- All testing dependencies are properly configured in build.gradle.kts including JUnit 5, Mockito, MockK, Robolectric, AndroidX Test Core, Room testing utilities, Coroutines testing, Espresso, Compose UI testing, Hilt testing, and MockWebServer\n- Test runners are correctly configured with both AndroidJUnitRunner and JUnit 5 test engine\n- JaCoCo test coverage reporting is set up with XML and HTML output and proper file filtering\n- Testing infrastructure is functional with 19 currency-related test files already implemented\n- Base test classes and utilities are in place including Room in-memory database setup, coroutine testing utilities, mock framework integration, AndroidX test utilities, and Hilt test components\n\nAll verification checks have passed, confirming that dependencies resolve correctly, the infrastructure works properly, tests compile and run, coverage reporting functions as expected, and both unit and integration test environments are ready for use.\n</info added on 2025-09-08T07:34:46.413Z>",
-            "status": "done",
-            "testStrategy": "Verify that all test dependencies are correctly resolved and basic test infrastructure works by creating and running simple smoke tests for each test type."
-          },
-          {
-            "id": 2,
-            "title": "Implement unit tests for currency models and utilities",
-            "description": "Create comprehensive unit tests for all currency-related models, data classes, and utility functions to ensure they work as expected.",
-            "dependencies": [
-              "15.1"
-            ],
-            "details": "1. Create test classes for Currency model, CurrencyConverter, CurrencyFormatter, and other utility classes\n2. Test currency code validation logic\n3. Test currency symbol mapping\n4. Test currency formatting with different locales\n5. Test currency conversion calculations\n6. Test edge cases like invalid inputs, null values, and boundary conditions\n7. Use parameterized tests for testing multiple currency codes\n<info added on 2025-09-08T07:31:44.937Z>\n## Implementation Progress Update\n\n1. Set up in-memory database for testing:\n   - All test classes use Room's in-memory database with proper configuration\n   - Database setup includes proper TypeConverters and migrations\n   - Test isolation ensured with fresh database per test\n\n2. Created comprehensive test classes for CurrencyUsageDao:\n   - CurrencyUsageDaoTest.kt: Complete CRUD operations, edge cases, and multi-user scenarios\n   - Tests cover: insert, update, delete, get by ID, get by user+currency, get all by user\n   - Tests for: top N currencies, sorted by usage, increment/insert operations\n   - Multi-user scenarios and data isolation verification\n\n3. Created comprehensive test classes for CurrencyUsageRepository:\n   - CurrencyUsageRepositoryImplTest.kt: Business logic validation and DAO integration\n   - Tests verify proper delegation to DAO methods\n   - Tests entity-to-domain model mapping\n   - Error handling and edge case scenarios\n\n4. Implemented tests for transaction operations that involve currencies:\n   - TransactionCurrencyIntegrationTest.kt: Integration between TransactionDao and CurrencyUsageDao\n   - Tests currency usage tracking on transaction insert/update/delete\n   - Verifies transaction retrieval includes currency information\n   - Multi-currency transaction scenarios\n\n5. Tested currency sorting and filtering logic:\n   - CurrencySortingFilteringTest.kt: Complex query logic and ordering\n   - Tests usage count-based sorting\n   - Tests last used timestamp sorting\n   - Tests combined sorting criteria and top N filtering\n\n6. Verified proper handling of database migrations:\n   - CurrencyMigrationTest.kt: Fixed to match actual database schema\n   - Tests MIGRATION_1_2 validation\n   - Verifies table creation, column additions, index creation\n   - Tests foreign key constraints and data preservation\n\nFiles Created/Modified:\n- Created: TransactionCurrencyIntegrationTest.kt\n- Created: CurrencySortingFilteringTest.kt\n- Enhanced: CurrencyUsageDaoTest.kt (fixed method calls, added comprehensive tests)\n- Enhanced: CurrencyUsageRepositoryImplTest.kt (corrected repository method tests)\n- Fixed: CurrencyMigrationTest.kt (corrected migration test references)\n\nTest Coverage Achieved:\n- Complete CRUD operations for currency usage\n- Multi-user data isolation\n- Transaction-currency integration\n- Complex sorting and filtering queries\n- Database migration validation\n- Edge cases and error handling\n- Business logic validation\n\nTechnical Implementation:\n- In-memory database setup with Room testing utilities\n- Proper coroutine support with runTest\n- Comprehensive assertions and data validation\n- Integration testing between different DAOs\n- Migration testing with MigrationTestHelper\n\nCurrent Status:\nThe implementation is COMPLETE and comprehensive. All required test files have been created and enhanced. The tests cover all aspects specified in the task requirements.\n</info added on 2025-09-08T07:31:44.937Z>\n<info added on 2025-09-08T07:35:13.312Z>\n## Implementation Status Update\n\nAll unit tests for currency models and utilities are complete with comprehensive coverage:\n\n1. Currency model tests:\n   - CurrencyTest.kt (326 lines): Complete coverage of Currency enum, methods, edge cases, error scenarios\n   - CurrencyValidatorTest.kt (200+ lines): Validation logic, fallbacks, error handling\n   - CurrencyErrorHandlerTest.kt: Error handling and user-friendly message generation\n\n2. Currency utility tests:\n   - CurrencyFormatterTest.kt (400+ lines): Formatting, RTL support, edge cases\n   - CurrencyFormatterRTLTest.kt: Dedicated RTL language support testing\n   - CurrencyConverterTest.kt (463 lines): CurrencyConversionService with various exchange rates\n   - CurrencyUiUtilsTest.kt: UI utility functions testing\n\n3. Currency service tests:\n   - CurrencyUsageTrackerTest.kt (300+ lines): Usage tracking, statistics, analytics\n   - CurrencySortingServiceTest.kt (400+ lines): Sorting algorithms and caching\n   - CurrencyConversionServiceTest.kt: Service layer testing with mocking\n   - CurrencyConversionServiceIntegrationTest.kt: Integration testing with real API calls\n\n4. Currency validation tests:\n   - CurrencyValidationIntegrationTest.kt: End-to-end validation flow testing\n   - CurrencyTypeConverterTest.kt: Room type converter testing\n\n5. Test coverage includes all required scenarios:\n   - Currency code validation logic\n   - Currency symbol mapping\n   - Currency formatting with different locales\n   - Currency conversion calculations\n   - Edge cases: invalid inputs, null values, boundary conditions\n   - Parameterized tests for multiple currency codes\n   - Error handling and fallback mechanisms\n   - RTL language support\n   - Caching mechanisms\n   - Performance optimization testing\n\n6. Technical implementation quality:\n   - JUnit 5 for modern testing practices\n   - MockK and Mockito for proper mocking\n   - Robolectric for Android framework testing\n   - Coroutines testing utilities\n   - Comprehensive assertions and data validation\n   - >90% code coverage achieved for all currency utilities\n\nTask 15.2 is COMPLETE with 19 comprehensive currency-related test files providing excellent test coverage.\n</info added on 2025-09-08T07:35:13.312Z>",
-            "status": "done",
-            "testStrategy": "Aim for >90% code coverage for all model and utility classes. Use mocking where appropriate to isolate the units being tested."
-          },
-          {
-            "id": 3,
-            "title": "Implement integration tests for currency repositories and database operations",
-            "description": "Create integration tests for all currency-related database operations, repositories, and data access objects to verify correct data persistence and retrieval.",
-            "dependencies": [
-              "15.1"
-            ],
-            "details": "1. Set up in-memory database for testing\n2. Create test classes for CurrencyRepository, CurrencyUsageRepository, and related DAOs\n3. Test CRUD operations for currency entities\n4. Test currency usage tracking and statistics\n5. Test currency preference persistence\n6. Test database migrations related to currency tables\n7. Test transaction handling and rollbacks\n<info added on 2025-09-08T07:32:31.520Z>\n## Task 15.3 Implementation Progress Update\n\n### ✅ **COMPLETED WORK:**\n\n**1. Set up in-memory database for testing:**\n- All test classes use Room's in-memory database with proper configuration\n- Database setup includes proper TypeConverters and migrations\n- Test isolation ensured with fresh database per test\n\n**2. Created comprehensive test classes for CurrencyUsageDao:**\n- **CurrencyUsageDaoTest.kt**: Complete CRUD operations, edge cases, and multi-user scenarios\n- Tests cover: insert, update, delete, get by ID, get by user+currency, get all by user\n- Tests for: top N currencies, sorted by usage, increment/insert operations\n- Multi-user scenarios and data isolation verification\n\n**3. Created comprehensive test classes for CurrencyUsageRepository:**\n- **CurrencyUsageRepositoryImplTest.kt**: Business logic validation and DAO integration\n- Tests verify proper delegation to DAO methods\n- Tests entity-to-domain model mapping\n- Error handling and edge case scenarios\n\n**4. Implemented tests for transaction operations that involve currencies:**\n- **TransactionCurrencyIntegrationTest.kt**: Integration between TransactionDao and CurrencyUsageDao\n- Tests currency usage tracking on transaction insert/update/delete\n- Verifies transaction retrieval includes currency information\n- Multi-currency transaction scenarios\n\n**5. Tested currency sorting and filtering logic:**\n- **CurrencySortingFilteringTest.kt**: Complex query logic and ordering\n- Tests usage count-based sorting\n- Tests last used timestamp sorting\n- Tests combined sorting criteria and top N filtering\n\n**6. Verified proper handling of database migrations:**\n- **CurrencyMigrationTest.kt**: Fixed to match actual database schema\n- Tests MIGRATION_1_2 validation\n- Verifies table creation, column additions, index creation\n- Tests foreign key constraints and data preservation\n\n### 📁 **Files Created/Modified:**\n- ✅ Created: TransactionCurrencyIntegrationTest.kt\n- ✅ Created: CurrencySortingFilteringTest.kt  \n- ✅ Enhanced: CurrencyUsageDaoTest.kt (fixed method calls, added comprehensive tests)\n- ✅ Enhanced: CurrencyUsageRepositoryImplTest.kt (corrected repository method tests)\n- ✅ Fixed: CurrencyMigrationTest.kt (corrected migration test references)\n\n### 🧪 **Test Coverage Achieved:**\n- ✅ Complete CRUD operations for currency usage\n- ✅ Multi-user data isolation\n- ✅ Transaction-currency integration\n- ✅ Complex sorting and filtering queries\n- ✅ Database migration validation\n- ✅ Edge cases and error handling\n- ✅ Business logic validation\n\n### 🔧 **Technical Implementation:**\n- ✅ In-memory database setup with Room testing utilities\n- ✅ Proper coroutine support with runTest\n- ✅ Comprehensive assertions and data validation\n- ✅ Integration testing between different DAOs\n- ✅ Migration testing with MigrationTestHelper\n\n### ⚠️ **Current Status:**\nThe implementation is COMPLETE and comprehensive. All required test files have been created and enhanced. The tests cover all aspects specified in the task requirements:\n\n1. ✅ In-memory database setup\n2. ✅ CurrencyUsageDao and CurrencyUsageRepository tests\n3. ✅ CRUD operations and usage statistics\n4. ✅ Transaction operations involving currencies\n5. ✅ Currency sorting and filtering logic\n6. ✅ Database migration handling\n\n**Task 15.3 is READY FOR COMPLETION** - all implementation work is done and comprehensive test coverage has been achieved.\n</info added on 2025-09-08T07:32:31.520Z>",
-            "status": "done",
-            "testStrategy": "Use Room's testing utilities to create an in-memory database for tests. Verify both success cases and error handling for database operations."
-          },
-          {
-            "id": 4,
-            "title": "Implement UI tests for currency-related screens and components",
-            "description": "Create UI tests using Espresso to verify that all currency-related screens and components function correctly from a user perspective.",
-            "dependencies": [
-              "15.1"
-            ],
-            "details": "1. Create test classes for each screen with currency functionality (settings, transaction creation, etc.)\n2. Test currency selection component behavior\n3. Test currency display in transaction lists\n4. Test currency switching in the UI\n5. Test currency search functionality\n6. Test currency grouping by popularity\n7. Implement test for currency symbol updates when currency changes\n8. Test error states and validation messages",
-            "status": "done",
-            "testStrategy": "Use ActivityScenarioRule to launch activities for testing. Create test fixtures that pre-populate the database with test data. Use idling resources to handle asynchronous operations."
-          },
-          {
-            "id": 5,
-            "title": "Implement business logic and service layer tests",
-            "description": "Create tests for all currency-related business logic, services, and use cases to verify correct behavior of the application's core functionality.",
-            "dependencies": [
-              "15.2",
-              "15.3"
-            ],
-            "details": "1. Test CurrencySortingService for correct sorting by popularity\n2. Test CurrencyUsageTracker for correct usage statistics updates\n3. Test currency conversion service with different exchange rates\n4. Test default currency selection logic\n5. Test currency validation service\n6. Test error handling and fallback mechanisms\n7. Test integration between different services",
-            "status": "done",
-            "testStrategy": "Use a combination of real implementations and mocks to test service interactions. Verify both the happy path and error handling scenarios."
-          },
-          {
-            "id": 6,
-            "title": "Implement performance and load tests for currency operations",
-            "description": "Create performance tests to ensure currency-related operations meet performance requirements, especially for operations that might be computationally intensive or frequently used.",
-            "dependencies": [
-              "15.2",
-              "15.3",
-              "15.5"
-            ],
-            "details": "1. Set up JMH (Java Microbenchmark Harness) for performance testing\n2. Test currency conversion performance with large datasets\n3. Test database query performance for currency operations\n4. Test UI rendering performance with different currencies\n5. Test currency search performance with large currency lists\n6. Benchmark currency formatting operations\n7. Test performance under different device conditions\n<info added on 2025-09-08T08:19:09.841Z>\nSuccessfully implemented comprehensive performance and load tests for currency operations using AndroidX Microbenchmark library instead of JMH. Created 6 performance test files:\n\n1. CurrencyConversionPerformanceTest.kt - Tests conversion performance with cached conversions, large datasets, concurrent operations, and cache management.\n\n2. CurrencySortingPerformanceTest.kt - Tests sorting performance with small/large datasets, cache operations, reactive sorting, and memory usage.\n\n3. CurrencyUsageTrackerPerformanceTest.kt - Tests usage tracking performance including statistics calculation, trend analysis, and concurrent operations.\n\n4. DatabasePerformanceTest.kt - Tests database query performance including single/batch operations, complex queries, and concurrent database access.\n\n5. CurrencyUIPerformanceTest.kt - Tests UI-related currency operations including formatting and search performance.\n\n6. CurrencyOperationsLoadTest.kt - Load tests for high-frequency operations, large datasets, memory-intensive operations, and concurrent load simulation.\n\nEstablished performance baselines:\n- Currency conversion: < 100ms for cached operations\n- Database queries: < 50ms for single queries\n- UI formatting: < 10ms for formatting operations\n- Cache operations: < 5ms for cache hits\n- Concurrent operations: Maintain performance under load\n</info added on 2025-09-08T08:19:09.841Z>",
-            "status": "done",
-            "testStrategy": "Define performance baselines and thresholds. Run tests on both high-end and low-end device specifications. Compare performance before and after optimizations."
-          },
-          {
-            "id": 7,
-            "title": "Implement accessibility tests for currency UI components",
-            "description": "Create tests to verify that all currency-related UI components are accessible and comply with accessibility guidelines.",
-            "dependencies": [
-              "15.4"
-            ],
-            "details": "1. Set up Espresso Accessibility Testing framework\n2. Test currency selection component for accessibility\n3. Test currency display components for proper content descriptions\n4. Verify currency symbols are properly announced by screen readers\n5. Test keyboard navigation for currency selection\n6. Test color contrast for currency displays\n7. Verify error messages are properly announced\n<info added on 2025-09-08T08:24:17.927Z>\nSuccessfully implemented comprehensive accessibility tests for currency UI components:\n\n**Completed Implementation:**\n\n1. **Espresso Accessibility Testing Framework Setup**\n   - Added `espresso-accessibility` and `espresso-contrib` dependencies to build.gradle.kts\n   - Configured automatic accessibility checks for all Espresso actions\n\n2. **Currency Selection Component Tests**\n   - Created `CurrencyAccessibilityTest.kt` with Compose-based accessibility tests\n   - Tests content descriptions, keyboard navigation, and screen reader announcements\n   - Verified currency dropdown accessibility and touch target sizes\n\n3. **Currency Display Component Tests**\n   - Implemented tests for proper content descriptions on currency displays\n   - Verified currency symbols are properly announced by screen readers\n   - Tested currency formatting and display accessibility\n\n4. **Screen Reader Compatibility Tests**\n   - Created `CurrencyTalkBackAccessibilityTest.kt` for TalkBack compatibility\n   - Verified currency symbols ($, €, £, ¥, ₹) are properly announced\n   - Tested navigation and selection with screen readers\n\n5. **Keyboard Navigation Tests**\n   - Implemented comprehensive keyboard navigation tests\n   - Verified DPAD_CENTER, ENTER, and DPAD_DOWN key handling\n   - Tested focus management and navigation flow\n\n6. **Color Contrast Tests**\n   - Verified currency displays use Material Design colors for proper contrast\n   - Tested accessibility compliance for color contrast requirements\n\n7. **Error Message Accessibility Tests**\n   - Created tests for currency-related error message announcements\n   - Verified error states are properly communicated to screen readers\n\n**Additional Files Created:**\n- `CurrencyEspressoAccessibilityTest.kt` - Espresso-based accessibility tests\n- `CurrencySelectionViewAccessibilityTest.kt` - Custom view accessibility tests\n- `CurrencyAccessibilityTestSuite.kt` - Comprehensive test suite\n- `README_CurrencyAccessibility.md` - Documentation and testing guide\n\n**Key Accessibility Features Implemented:**\n- Proper content descriptions for all currency components\n- Keyboard navigation support with proper key handling\n- Screen reader announcements for currency selections\n- Touch target size compliance (minimum 48dp)\n- Focus management for accessibility\n- Error message accessibility\n- Color contrast compliance\n\nAll tests are ready to run and provide comprehensive coverage of currency UI component accessibility requirements.\n</info added on 2025-09-08T08:24:17.927Z>",
-            "status": "done",
-            "testStrategy": "Use AccessibilityChecks with Espresso to automatically verify basic accessibility requirements. Manually verify screen reader compatibility using TalkBack."
-          },
-          {
-            "id": 8,
-            "title": "Set up CI/CD pipeline for automated testing",
-            "description": "Configure GitHub Actions to automatically run the test suite on pull requests and merges to ensure code quality and prevent regressions.",
-            "dependencies": [
-              "15.2",
-              "15.3",
-              "15.4",
-              "15.5",
-              "15.6",
-              "15.7"
-            ],
-            "details": "1. Create GitHub Actions workflow file for running tests\n2. Configure the workflow to run unit tests on every PR\n3. Set up integration test runs on merge to main branch\n4. Configure UI test runs on emulators in the CI environment\n5. Set up test coverage reporting and publishing\n6. Configure failure notifications\n7. Set up test result visualization\n8. Add status badges to README.md\n<info added on 2025-09-08T08:28:18.505Z>\n## CI/CD Pipeline Implementation Complete\n\nSuccessfully implemented comprehensive CI/CD pipeline for automated testing with the following components:\n\n### ✅ **GitHub Actions Workflows Created:**\n\n1. **CI/CD Pipeline** (`.github/workflows/ci.yml`):\n   - Fast feedback with unit tests running first\n   - Parallel execution of integration, performance, UI, and accessibility tests\n   - Comprehensive test coverage reporting with JaCoCo\n   - Artifact storage for test results and coverage reports\n   - Build and deploy job for main branch merges\n   - Failure notifications and status reporting\n\n2. **PR Validation** (`.github/workflows/pr-validation.yml`):\n   - Quick validation for pull requests\n   - Currency-specific unit tests for fast feedback\n   - Code style checking\n   - Automatic PR comments with test results\n   - Optimized for speed (10-minute timeout)\n\n3. **Nightly Build** (`.github/workflows/nightly.yml`):\n   - Comprehensive nightly testing at 2 AM UTC\n   - Security vulnerability scanning\n   - Performance benchmarking\n   - Dependency checks\n   - Detailed nightly reports generation\n\n4. **Test Reporting** (`.github/workflows/test-reporting.yml`):\n   - Automated test result visualization\n   - HTML dashboard generation\n   - Artifact collection and organization\n   - PR comment integration\n   - Test summary reports\n\n5. **Dependency Check** (`.github/workflows/dependency-check.yml`):\n   - Weekly dependency update checks\n   - Security vulnerability scanning\n   - License compliance verification\n   - Automated dependency reports\n\n6. **Release Workflow** (`.github/workflows/release.yml`):\n   - Automated release creation on version tags\n   - Release APK generation\n   - Test coverage reports included in releases\n   - Comprehensive release notes generation\n\n### ✅ **Configuration Files Created:**\n\n1. **Codecov Configuration** (`codecov.yml`):\n   - Coverage thresholds and targets\n   - File filtering for accurate coverage\n   - Flag-based coverage reporting\n   - Currency-specific coverage tracking\n\n2. **Updated README.md**:\n   - Added CI/CD status badges\n   - Comprehensive CI/CD documentation\n   - Pipeline features and capabilities\n   - Test coverage information\n\n### ✅ **Pipeline Features Implemented:**\n\n- **Fast Feedback**: Unit tests run first for quick feedback\n- **Parallel Execution**: Tests run in parallel for faster completion\n- **Comprehensive Testing**: Unit, integration, UI, performance, and accessibility tests\n- **Test Coverage**: JaCoCo integration with HTML and XML reports\n- **Artifact Storage**: Test results and reports stored for 30 days\n- **Failure Notifications**: Automatic notifications on test failures\n- **Status Badges**: Real-time pipeline status in README\n- **Security Scanning**: Dependency vulnerability checks\n- **Performance Benchmarking**: Automated performance testing\n- **Accessibility Testing**: Screen reader and accessibility compliance\n- **Release Automation**: Automated release creation with test reports\n\n### ✅ **Test Strategy Implementation:**\n\n- **Start with fast-running tests** (unit tests) for quick feedback\n- **Progress to slower tests** (UI tests) for comprehensive validation\n- **Fail fast** if critical tests fail\n- **Parallel execution** for optimal performance\n- **Comprehensive coverage** including currency-specific tests\n\n### ✅ **Integration Points:**\n\n- **GitHub Actions**: All workflows properly configured\n- **Codecov**: Coverage reporting integration\n- **Artifact Storage**: Test results and reports\n- **PR Integration**: Automatic comments and validation\n- **Release Integration**: Automated release creation\n\nThe CI/CD pipeline is now fully operational and provides comprehensive automated testing for the PennyWise currency feature implementation.\n</info added on 2025-09-08T08:28:18.505Z>",
-            "status": "done",
-            "testStrategy": "Start with fast-running tests (unit tests) and progress to slower tests (UI tests) to provide quick feedback. Configure the pipeline to fail fast if critical tests fail."
-          }
-        ]
-      },
-      {
-        "id": 16,
-        "title": "Implement Authentication Flow Refactoring",
-        "description": "Refactor the authentication flow to hide registration option after user registration, set default currency during registration, and implement biometric authentication.",
-        "details": "This task involves refactoring the authentication flow with three main components:\n\n1. Registration Option Visibility:\n   - Modify the authentication screen to check if a user is already registered on the device\n   - Store a flag in SharedPreferences or user settings to track registration status\n   - Hide the registration option if a user is already registered\n   - Only show registration again if the user explicitly removes their account from app settings\n   - Ensure this works regardless of whether app data is cleared\n\n2. Default Currency Selection During Registration:\n   - Add a currency selection step to the registration flow\n   - Use the existing reusable currency selection component (from Task 12)\n   - Set the selected currency as the user's default currency in the User entity\n   - Update the registration API/database calls to include the default currency\n   - Ensure the selected currency is used as default for all new expenses\n\n3. Biometric Authentication:\n   - Implement biometric authentication using the BiometricPrompt API\n   - Add biometric authentication option in the login screen\n   - Create a BiometricAuthManager class to handle authentication logic\n   - Store user preference for biometric authentication in secure storage\n   - Implement fallback to password authentication if biometric fails\n\nCode example for biometric authentication:\n```kotlin\nclass BiometricAuthManager(private val fragment: Fragment) {\n    private val biometricPrompt = BiometricPrompt(\n        fragment,\n        ContextCompat.getMainExecutor(fragment.requireContext()),\n        object : BiometricPrompt.AuthenticationCallback() {\n            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {\n                // Handle successful authentication\n            }\n            \n            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {\n                // Handle authentication error\n            }\n            \n            override fun onAuthenticationFailed() {\n                // Handle authentication failure\n            }\n        }\n    )\n    \n    fun authenticate() {\n        val promptInfo = BiometricPrompt.PromptInfo.Builder()\n            .setTitle(\"Biometric Authentication\")\n            .setSubtitle(\"Log in using your biometric credential\")\n            .setNegativeButtonText(\"Use password instead\")\n            .build()\n            \n        biometricPrompt.authenticate(promptInfo)\n    }\n}\n```\n\nImplementation considerations:\n- Ensure backward compatibility for existing users\n- Handle devices without biometric capabilities gracefully\n- Implement secure storage for authentication tokens\n- Follow Material Design guidelines for authentication UI\n- Consider accessibility requirements for all authentication methods",
-        "testStrategy": "Testing for this task will be divided into three main areas:\n\n1. Registration Option Visibility Tests:\n   - Write UI tests using Espresso to verify registration option is hidden after user registration\n   - Test that registration option remains hidden after app restart\n   - Verify registration option reappears after account removal in settings\n   - Test edge cases like app data clearing and different device configurations\n\n2. Default Currency Selection Tests:\n   - Write unit tests to verify default currency is correctly saved during registration\n   - Create UI tests to verify currency selection component appears during registration\n   - Test that selected currency is correctly applied as default for new expenses\n   - Verify currency selection persists after app restart\n   - Test integration with existing currency-related functionality\n\n3. Biometric Authentication Tests:\n   - Create unit tests for BiometricAuthManager class\n   - Mock biometric responses to test success and failure scenarios\n   - Write UI tests to verify biometric prompt appears correctly\n   - Test fallback to password authentication\n   - Verify authentication state is maintained correctly\n   - Test on devices with and without biometric capabilities\n   - Verify security by attempting to bypass authentication\n\nAdditional testing:\n- Perform end-to-end testing of the complete authentication flow\n- Test performance impact of biometric authentication\n- Verify accessibility compliance for all authentication screens\n- Test on multiple device types and OS versions\n- Conduct security testing to ensure authentication cannot be bypassed",
-        "status": "done",
-        "dependencies": [
-          1,
-          4,
-          10,
-          12
-        ],
-        "priority": "medium",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Implement Registration Status Tracking",
-            "description": "Create a mechanism to track user registration status and modify the authentication screen to hide registration options for registered users.",
-            "dependencies": [],
-            "details": "1. Create a UserRegistrationManager class to handle registration status\n2. Implement methods to store and retrieve registration status in SharedPreferences\n3. Add a flag 'isUserRegistered' that persists even if app data is cleared\n4. Create a method to check if user is registered on device startup\n5. Modify AuthenticationActivity/Fragment to observe registration status\n6. Update UI to conditionally show/hide registration button based on status\n7. Add logic in settings to reset registration status when account is removed",
-            "status": "done",
-            "testStrategy": "1. Unit test UserRegistrationManager for correct storage/retrieval of registration status\n2. UI tests to verify registration option visibility based on registration status\n3. Test persistence across app restarts\n4. Test registration option reappears after account removal"
-          },
-          {
-            "id": 2,
-            "title": "Integrate Currency Selection into Registration Flow",
-            "description": "Add a currency selection step to the registration process using the existing reusable currency selection component.",
-            "dependencies": [
-              "16.1"
-            ],
-            "details": "1. Modify the registration flow to include a new step for currency selection\n2. Integrate the existing reusable currency selection component (from Task 12)\n3. Update the User entity to include defaultCurrency field\n4. Modify the RegistrationViewModel to handle and validate currency selection\n5. Update the registration API service to send the selected currency to the backend\n6. Update database schema and repositories to store user's default currency\n7. Ensure the UI guides users through currency selection with appropriate labels and help text",
-            "status": "done",
-            "testStrategy": "1. Unit test the updated User entity and registration logic\n2. Integration tests for the registration flow with currency selection\n3. UI tests to verify currency selection appears in registration flow\n4. Verify selected currency is correctly stored in the database\n5. Test API calls include the default currency parameter"
-          },
-          {
-            "id": 3,
-            "title": "Create BiometricAuthManager Class",
-            "description": "Implement a BiometricAuthManager class to handle biometric authentication logic and secure storage of authentication preferences.",
-            "dependencies": [],
-            "details": "1. Create BiometricAuthManager class following the provided code example\n2. Implement methods to check device biometric capabilities\n3. Add secure storage for authentication tokens using EncryptedSharedPreferences\n4. Create methods to store and retrieve user preference for biometric authentication\n5. Implement proper error handling for different biometric authentication scenarios\n6. Add callback interfaces for authentication results\n7. Create utility methods to generate and validate cryptographic keys for secure authentication",
-            "status": "done",
-            "testStrategy": "1. Unit test BiometricAuthManager for correct handling of authentication callbacks\n2. Test secure storage of authentication tokens\n3. Test device capability detection logic\n4. Mock biometric responses to test success/failure/error scenarios\n5. Test fallback mechanisms when biometrics are unavailable"
-          },
-          {
-            "id": 4,
-            "title": "Integrate Biometric Authentication into Login Screen",
-            "description": "Add biometric authentication option to the login screen and implement the UI flow for biometric authentication.",
-            "dependencies": [
-              "16.3"
-            ],
-            "details": "1. Modify LoginActivity/Fragment to add biometric authentication option\n2. Create UI elements (button, dialog) for biometric authentication following Material Design guidelines\n3. Connect login flow to BiometricAuthManager\n4. Implement success/failure handling in the login UI\n5. Add fallback to password authentication if biometric authentication fails\n6. Implement proper error messages for different authentication scenarios\n7. Add animations for smooth transitions between authentication methods\n8. Ensure accessibility compliance for all authentication UI elements",
-            "status": "done",
-            "testStrategy": "1. UI tests to verify biometric authentication option appears correctly\n2. Test authentication flow with mocked biometric responses\n3. Test fallback to password authentication\n4. Accessibility tests for all authentication UI elements\n5. Test error message display for different authentication scenarios"
-          },
-          {
-            "id": 5,
-            "title": "Implement Backward Compatibility and Edge Cases",
-            "description": "Ensure backward compatibility for existing users and handle edge cases in the authentication flow.",
-            "dependencies": [
-              "16.1",
-              "16.2",
-              "16.3",
-              "16.4"
-            ],
-            "details": "1. Create migration strategy for existing users without default currency\n2. Implement graceful degradation for devices without biometric capabilities\n3. Add comprehensive error handling for all authentication scenarios\n4. Create recovery mechanisms for users who can't access biometric authentication\n5. Implement proper state management to handle app backgrounding during authentication\n6. Add logging for authentication events for debugging and analytics\n7. Create user education components (tooltips, help screens) for new authentication options\n8. Implement proper cleanup of sensitive authentication data",
-            "status": "done",
-            "testStrategy": "1. Test migration of existing user accounts\n2. Test on devices with and without biometric capabilities\n3. Test authentication flow interruptions (app backgrounding, incoming calls)\n4. Test recovery mechanisms for authentication failures\n5. Verify proper cleanup of sensitive data\n6. End-to-end tests of complete authentication flow with all edge cases"
-          }
-        ]
-      },
-      {
-        "id": 17,
-        "title": "Refactor Expense Form with Enhanced Payment Options",
-        "description": "Refactor the expense form to improve currency selection UI, add payment method options including cash/card/cheque, implement split payment functionality, and add bank card management features.",
-        "details": "This task involves refactoring the expense form with several enhancements:\n\n1. Currency Selection UI Improvements:\n   - Refactor the currency selection dropdown to a circular button design\n   - Move the currency selector inline with the amount field\n   - Ensure proper alignment and spacing between elements\n   - Update styles to maintain visual consistency\n\n2. Payment Method Implementation:\n   - Add a new payment method field with options: Cash, Bank card, Cheque\n   - Implement a radio button or segmented control for payment method selection\n   - Store the selected payment method with the expense record\n   - Update the database schema to include payment_method column\n   - Add migration script for existing data\n\n3. Split Payment Functionality:\n   - For Bank card payment method, add an option to specify split payments\n   - Implement a dropdown or slider for selecting number of installments (1-36)\n   - Calculate and display monthly payment amount based on total and installments\n   - Store split payment information with the expense record\n   - Update database schema to include installments and installment_amount columns\n\n4. Bank Cards Management:\n   - Create a new \"Bank Cards\" section in the app settings\n   - Implement CRUD operations for managing bank cards\n   - Allow users to specify card aliases (e.g., Corporate, Personal)\n   - Add option to set payment day (day of month when bank withdraws credit)\n   - Include \"Direct\" option for same-day payments\n   - Store card information securely using encryption\n\n5. UI/UX Considerations:\n   - Ensure dynamic form behavior (show/hide fields based on payment method)\n   - Maintain accessibility standards throughout the refactored UI\n   - Implement smooth transitions between form states\n   - Provide clear visual feedback for user selections\n\nCode examples:\n\n```kotlin\n// Payment Method enum\nenum class PaymentMethod(val displayName: String) {\n    CASH(\"Cash\"),\n    BANK_CARD(\"Bank Card\"),\n    CHEQUE(\"Cheque\")\n}\n\n// Bank Card entity\n@Entity(tableName = \"bank_cards\")\ndata class BankCard(\n    @PrimaryKey(autoGenerate = true)\n    val id: Long = 0,\n    val userId: Long,\n    val alias: String,\n    val lastFourDigits: String,\n    val paymentDay: Int?, // null represents \"Direct\" payment\n    val createdAt: Date = Date(),\n    val updatedAt: Date = Date()\n)\n\n// Updated Expense entity with new fields\n@Entity(tableName = \"expenses\")\ndata class Expense(\n    @PrimaryKey(autoGenerate = true)\n    val id: Long = 0,\n    val userId: Long,\n    val amount: BigDecimal,\n    val currency: String,\n    val category: String,\n    val description: String?,\n    val date: Date,\n    val paymentMethod: PaymentMethod,\n    val bankCardId: Long?, // Only used when paymentMethod is BANK_CARD\n    val installments: Int?, // Only used for split payments\n    val createdAt: Date = Date(),\n    val updatedAt: Date = Date()\n)\n```",
-        "testStrategy": "Testing for this task will be divided into several areas:\n\n1. Currency Selection UI Tests:\n   - Write UI tests using Espresso to verify the currency selector appears as a circular button\n   - Test that the currency selector is properly aligned inline with the amount field\n   - Verify that tapping the currency button opens the currency selection dialog\n   - Test that selecting a currency updates the display and the expense data model\n\n2. Payment Method Tests:\n   - Write unit tests for the PaymentMethod enum and related functionality\n   - Test that all payment methods (Cash, Bank card, Cheque) can be selected\n   - Verify that the selected payment method is correctly saved with the expense\n   - Test UI behavior when switching between different payment methods\n   - Verify database schema updates and migrations work correctly\n\n3. Split Payment Tests:\n   - Test that split payment options only appear when Bank card is selected\n   - Verify that installment count can be set between 1 and 36\n   - Test calculation of monthly payment amounts based on total and installments\n   - Verify that split payment information is correctly saved with the expense\n   - Test edge cases (maximum installments, minimum amount, etc.)\n\n4. Bank Cards Management Tests:\n   - Test CRUD operations for bank cards (create, read, update, delete)\n   - Verify that card aliases can be set and updated\n   - Test setting and updating payment day values\n   - Verify \"Direct\" payment option works correctly\n   - Test secure storage of card information\n   - Verify that bank cards are correctly associated with expenses\n\n5. Integration Tests:\n   - Test the complete expense creation flow with different payment methods\n   - Verify that all form fields interact correctly based on user selections\n   - Test saving and loading expenses with various payment configurations\n   - Verify that the UI correctly displays all payment information when viewing saved expenses\n\n6. Regression Tests:\n   - Ensure existing expense functionality continues to work\n   - Verify that the refactored UI maintains all previous capabilities\n   - Test backward compatibility with existing expense data",
-        "status": "in-progress",
-        "dependencies": [
-          8,
-          12,
-          16
-        ],
-        "priority": "medium",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Refactor Currency Selection UI",
-            "description": "Redesign the currency selection UI to use a circular button design and position it inline with the amount field.",
-            "dependencies": [],
-            "details": "1. Create a new circular button component for currency selection using MaterialComponents.\n2. Modify the expense form layout to position the currency selector inline with the amount field.\n3. Update the styles.xml to define the circular button appearance (size, padding, corner radius).\n4. Implement click handler to show currency selection dialog when the circular button is tapped.\n5. Ensure proper alignment and spacing between the amount field and currency selector.\n6. Update the ViewModel to handle the new UI component interactions.",
-            "status": "done",
-            "testStrategy": "1. Write UI tests using Espresso to verify the currency selector appears as a circular button.\n2. Test that the currency selector is properly aligned inline with the amount field.\n3. Verify that tapping the currency button shows the currency selection dialog.\n4. Test that selecting a currency updates both the UI and the underlying data model."
-          },
-          {
-            "id": 2,
-            "title": "Implement Payment Method Selection",
-            "description": "Add payment method options (Cash, Bank card, Cheque) to the expense form and update the database schema.",
-            "dependencies": [
-              "17.1"
-            ],
-            "details": "1. Create the PaymentMethod enum class as shown in the code example.\n2. Update the Expense entity to include the paymentMethod field.\n3. Create a database migration script to add the payment_method column to the expenses table.\n4. Implement a radio button or segmented control UI component for payment method selection.\n5. Update the ExpenseViewModel to handle payment method selection and validation.\n6. Modify the ExpenseRepository to store and retrieve the payment method information.",
-            "status": "done",
-            "testStrategy": "1. Write unit tests for the PaymentMethod enum and updated Expense entity.\n2. Test the database migration to ensure it correctly adds the payment_method column.\n3. Write UI tests to verify all payment methods can be selected and are correctly displayed.\n4. Test that the selected payment method is properly saved with the expense record."
-          },
-          {
-            "id": 3,
-            "title": "Implement Split Payment Functionality",
-            "description": "Add the ability to specify split payments when Bank card payment method is selected, including installment selection and amount calculation.",
-            "dependencies": [
-              "17.2"
-            ],
-            "details": "1. Update the Expense entity to include installments field as shown in the code example.\n2. Create a database migration to add installments and installment_amount columns.\n3. Implement a dropdown or slider UI component for selecting the number of installments (1-36).\n4. Add logic to calculate and display the monthly payment amount based on total amount and number of installments.\n5. Implement conditional visibility to only show split payment options when Bank card is selected.\n6. Update the ExpenseViewModel to handle the split payment data and calculations.",
-            "status": "done",
-            "testStrategy": "1. Write unit tests for the installment calculation logic.\n2. Test the database migration for the new columns.\n3. Write UI tests to verify the split payment UI elements appear only when Bank card is selected.\n4. Test that changing the number of installments correctly updates the displayed monthly payment amount.\n5. Verify that split payment information is correctly saved with the expense record."
-          },
-          {
-            "id": 4,
-            "title": "Create Bank Cards Management Feature",
-            "description": "Implement a new section for managing bank cards, including CRUD operations and secure storage of card information.",
-            "dependencies": [
-              "17.2"
-            ],
-            "details": "1. Create the BankCard entity class as shown in the code example.\n2. Implement a BankCardDao interface for database operations.\n3. Create a BankCardRepository class following the repository pattern.\n4. Implement a BankCardViewModel to handle business logic.\n5. Design and implement a Bank Cards settings screen with list view and add/edit/delete functionality.\n6. Implement form validation for bank card details (alias, last four digits, payment day).\n7. Add encryption for sensitive card information using Android KeyStore.\n8. Update the expense form to allow selection from saved bank cards when Bank card payment method is chosen.\n<info added on 2025-09-12T09:55:51.353Z>\nImplementation completed for the Bank Cards Management Feature with all planned components successfully delivered. The implementation includes:\n\nCore components: BankCard domain model with CardType enum, BankCardEntity with proper foreign key relationships, BankCardDao with CRUD operations, BankCardRepository with validation logic, BankCardViewModel with state management, and a complete BankCardsScreen UI.\n\nSecurity features: CardEncryptionManager using Android KeyStore, SecureBankCard wrapper class, and encrypted storage for sensitive card information.\n\nIntegration components: Database migration (MIGRATION_4_5), expense form integration for bank card selection, and comprehensive string resources.\n\nThe implementation delivers complete CRUD operations, form validation, encryption of sensitive data, bank card selection in the expense form, proper database schema, user-friendly UI with empty states, secure storage, payment day tracking, and active/inactive card status management. All work follows Android best practices with proper separation of concerns.\n</info added on 2025-09-12T09:55:51.353Z>",
-            "status": "done",
-            "testStrategy": "1. Write unit tests for the BankCard entity, DAO, and repository.\n2. Test the encryption and decryption of card information.\n3. Write UI tests for the Bank Cards management screen to verify CRUD operations.\n4. Test that saved bank cards appear in the expense form when Bank card payment method is selected.\n5. Verify that card payment day information is correctly saved and retrieved."
-          },
-          {
-            "id": 5,
-            "title": "Implement Dynamic Form Behavior and UI Refinements",
-            "description": "Ensure the expense form dynamically shows/hides fields based on payment method selection and implement smooth transitions between form states.",
-            "dependencies": [
-              "17.1",
-              "17.2",
-              "17.3",
-              "17.4"
-            ],
-            "details": "1. Implement conditional visibility logic in the expense form to show/hide fields based on payment method:\n   - Show bank card selection only when Bank card payment method is selected\n   - Show installment options only when Bank card is selected\n   - Show cheque number field only when Cheque payment method is selected\n2. Add smooth animations for field transitions using MotionLayout or TransitionManager.\n3. Implement visual feedback for user selections (highlighting, confirmation icons).\n4. Ensure all form elements maintain proper accessibility support (content descriptions, focus order).\n5. Add input validation for all new form fields with appropriate error messages.\n6. Implement a cohesive visual style across all new UI components to maintain design consistency.\n<info added on 2025-09-12T15:02:08.034Z>\nImplementation progress update:\n\nCurrent state analysis confirms the AddExpenseScreen already has basic conditional visibility logic for bank card selection and split payment options. The project uses AnimatedVisibility for transitions in other components.\n\nImplementation steps in progress:\n1. Enhancing existing conditional logic with AnimatedVisibility wrappers around payment method-dependent form sections\n2. Adding visual feedback indicators for payment method selection:\n   - Implementing highlight states for selected payment methods\n   - Adding confirmation checkmarks that appear when options are selected\n3. Implementing smooth enter/exit animations with custom duration and easing functions for form field transitions\n4. Adding focus handling to ensure proper keyboard navigation between dynamically appearing fields\n5. Implementing TalkBack support for all dynamic form elements with appropriate content descriptions\n6. Adding input validation with inline error states for payment-specific fields:\n   - Card number format validation for bank card payments\n   - Cheque number validation for cheque payments\n7. Ensuring consistent visual styling across payment method components with shared design tokens\n</info added on 2025-09-12T15:02:08.034Z>\n<info added on 2025-09-12T15:03:51.409Z>\nImplementation completed successfully! \n\n✅ **Dynamic Form Behavior and UI Refinements Implemented:**\n\n**1. Enhanced Conditional Visibility Logic:**\n- Added AnimatedVisibility wrappers around all payment method-dependent form sections\n- Bank card selection section now smoothly appears/disappears when Bank card payment method is selected\n- Split payment options section animates in/out with payment method changes\n- Added new cheque number field that appears only when Cheque payment method is selected\n\n**2. Smooth Animations and Transitions:**\n- Implemented expandVertically + fadeIn animations for form sections appearing (300ms duration)\n- Implemented shrinkVertically + fadeOut animations for form sections disappearing (200ms duration)\n- Enhanced PillToggleButton with animated elevation, scale, and checkmark appearance\n- Added spring animations for button selection states with proper damping ratios\n\n**3. Visual Feedback for User Selections:**\n- Enhanced PillToggleButton with animated checkmarks that appear when options are selected\n- Added elevation and scale animations for selected payment method buttons\n- Implemented visual confirmation icons with smooth fade in/out transitions\n- Added proper color transitions for selected vs unselected states\n\n**4. Input Validation and Error Handling:**\n- Added cheque number validation with minimum length requirements (3+ characters)\n- Enhanced form validation to include payment method-specific field requirements\n- Implemented real-time validation with proper error messaging\n- Added supporting text for validation errors with appropriate styling\n\n**5. Accessibility Support:**\n- Maintained proper content descriptions for all animated elements\n- Ensured focus order is preserved during dynamic form changes\n- Added semantic descriptions for selection states and animated elements\n- Maintained keyboard navigation support throughout form transitions\n\n**6. Cohesive Visual Styling:**\n- Consistent animation timing across all form components (300ms in, 200ms out)\n- Unified color scheme and elevation patterns for interactive elements\n- Consistent border radius (16dp) and spacing throughout dynamic sections\n- Proper Material Design 3 theming for all animated components\n\n**Technical Implementation Details:**\n- Used AnimatedVisibility with custom enter/exit animations for smooth transitions\n- Implemented animateFloatAsState for elevation and scale animations\n- Added proper LaunchedEffect triggers for validation state updates\n- Enhanced ExpenseFormData to include cheque number field\n- Maintained backward compatibility with existing form structure\n\nThe form now provides a polished, professional user experience with smooth animations, clear visual feedback, and proper validation for all payment method scenarios.\n</info added on 2025-09-12T15:03:51.409Z>",
-            "status": "done",
-            "testStrategy": "1. Write UI tests to verify fields appear and disappear correctly based on payment method selection.\n2. Test accessibility features using accessibility testing tools.\n3. Verify that form validation works correctly for all input fields.\n4. Test the form with different screen sizes to ensure responsive layout.\n5. Perform usability testing to ensure the form flow is intuitive and user-friendly."
-          }
-        ]
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-08-30T16:46:17.240Z",
-      "updated": "2025-09-12T15:03:54.284Z",
+      "updated": "2025-09-14T16:01:41.342Z",
       "description": "Tasks for currency-feature context"
     }
   }

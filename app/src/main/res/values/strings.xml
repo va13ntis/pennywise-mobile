@@ -122,11 +122,31 @@
     <string name="passwords_dont_match">Passwords do not match</string>
     <string name="password_too_short">Password must be at least 6 characters</string>
     
-    <!-- Biometric Authentication -->
-    <string name="biometric_login_title">Login with Biometric</string>
-    <string name="biometric_login_subtitle">Use your fingerprint or face to log in</string>
-    <string name="biometric_login_use_password">Use password</string>
-    <string name="login_with_biometric">Login with Biometric</string>
+    <!-- Device Authentication -->
+    <string name="device_auth_title">Unlock PennyWise</string>
+    <string name="device_auth_subtitle">Use your fingerprint, face, or device PIN to continue</string>
+    <string name="device_auth_cancel">Cancel</string>
+    <string name="biometric_auth_title">Biometric Authentication</string>
+    <string name="biometric_auth_subtitle">Use your fingerprint or face to continue</string>
+    <string name="biometric_auth_description">Use your fingerprint or face recognition</string>
+    <string name="biometric_auth_cancel">Cancel</string>
+    <string name="enable_device_auth">Enable Device Authentication</string>
+    <string name="disable_device_auth">Disable Device Authentication</string>
+    <string name="device_auth_setup_title">Secure Your App</string>
+    <string name="device_auth_setup_subtitle">Protect your financial data with device authentication</string>
+    <string name="device_auth_setup_description">You can use your fingerprint, face recognition, or device PIN to secure access to your financial information.</string>
+    <string name="skip_device_auth">Skip for now</string>
+    <string name="setup_device_auth">Set up security</string>
+    <string name="device_auth_not_available">Device authentication is not available on this device</string>
+    <string name="choose_auth_method">Choose your preferred authentication method:</string>
+    <string name="device_credentials_title">Device Credentials</string>
+    <string name="device_credentials_description">Use your device PIN, pattern, or password</string>
+    <string name="no_auth_title">No Authentication</string>
+    <string name="no_auth_description">Do not use device authentication (not recommended)</string>
+    <string name="continue_setup">Continue Setup</string>
+    <string name="next_step">Next</string>
+    <string name="welcome_to_pennywise">Welcome to PennyWise</string>
+    <string name="welcome_description">Let\'s set up your personal finance tracker with your device preferences</string>
     
     <!-- Date Picker -->
     <string name="ok">OK</string>
@@ -217,6 +237,7 @@
     
     <!-- Account -->
     <string name="account">Account</string>
+    <string name="security">Security</string>
     <string name="logout">Logout</string>
     
     <!-- Language Names -->
@@ -269,5 +290,45 @@
     <string name="content_desc_calendar">Calendar</string>
     <string name="content_desc_decrease_installments">Decrease installments</string>
     <string name="content_desc_increase_installments">Increase installments</string>
+    
+    <!-- Developer Options -->
+    <string name="developer_options">Developer Options</string>
+    <string name="test_data_controls">Test Data Controls</string>
+    <string name="seed_test_data">Seed Test Data</string>
+    <string name="clear_test_data">Clear Test Data</string>
+    <string name="seeding_data">Seeding Data...</string>
+    <string name="clearing_data">Clearing Data...</string>
+    <string name="developer_options_enabled">Developer options enabled</string>
+    <string name="developer_options_disabled">Developer options disabled</string>
+    <string name="tap_to_enable_developer_options">Tap 12 times to enable developer options</string>
+    <string name="tap_to_disable_developer_options">Tap 6 times to disable developer options</string>
+    
+    <!-- First Run Setup -->
+    <string name="language_region_title">Language &amp; Region</string>
+    <string name="default_currency_title">Default Currency</string>
+    <string name="setup_summary_title">Setup Summary</string>
+    <string name="setup_summary_language">Language: %s</string>
+    <string name="setup_summary_currency">Currency: %s</string>
+    <string name="setup_summary_payment_method">Payment method: %s</string>
+    <string name="finish_setup">Finish</string>
+    <string name="not_selected">-</string>
+    <string name="finalizing_setup">Finalizing setup…</string>
+    
+    <!-- Authentication Method Configuration -->
+    <string name="authentication_method">Authentication Method</string>
+    <string name="current_auth_method">Current Authentication Method</string>
+    <string name="change_auth_method">Change Authentication Method</string>
+    <string name="auth_method_biometric">Biometric Authentication</string>
+    <string name="auth_method_device_credentials">Device Credentials</string>
+    <string name="auth_method_none">No Authentication</string>
+    <string name="auth_method_biometric_description">Use fingerprint or face recognition</string>
+    <string name="auth_method_device_credentials_description">Use device PIN, pattern, or password</string>
+    <string name="auth_method_none_description">No authentication required</string>
+    <string name="auth_method_updated">Authentication method updated successfully</string>
+    <string name="auth_method_update_failed">Failed to update authentication method</string>
+    <string name="updating_auth_method">Updating authentication method…</string>
+    
+    <!-- Copyright -->
+    <string name="copyright">© Quantum Doodles, 2025</string>
 </resources>
 

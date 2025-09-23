@@ -20,8 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class DataSeeder @Inject constructor(
     private val userDao: UserDao,
-    private val transactionDao: TransactionDao,
-    private val passwordHasher: PasswordHasher
+    private val transactionDao: TransactionDao
 ) {
     
     /**
@@ -33,7 +32,7 @@ class DataSeeder @Inject constructor(
             
             // Create a test user
             val testUser = createTestUser()
-            println("✅ Test user created: ${testUser.username} (${testUser.email})")
+            println("✅ Test user created (ID: ${testUser.id})")
             
             // Create sample transactions for the current month
             createSampleTransactions(testUser.id)
@@ -48,9 +47,6 @@ class DataSeeder @Inject constructor(
             println("✅ Future transactions created")
             
             println("✅ Test data seeded successfully!")
-            println("📝 Login credentials:")
-            println("   Username: ${testUser.username}")
-            println("   Password: test123")
         } catch (e: Exception) {
             println("❌ Failed to seed test data: ${e.message}")
             e.printStackTrace()
@@ -62,43 +58,28 @@ class DataSeeder @Inject constructor(
      * Create a test user
      */
     private suspend fun createTestUser(): UserEntity {
-        val hashedPassword = passwordHasher.hashPassword("test123")
-        
-        // Check if user already exists by email
-        val existingUserByEmail = userDao.getUserByEmail("test@pennywise.com")
-        if (existingUserByEmail != null) {
-            println("⚠️ Test user already exists by email with ID: ${existingUserByEmail.id}")
-            return existingUserByEmail
-        }
-        
-        // Check if user already exists by username
-        val existingUserByUsername = userDao.getUserByUsername("testuser")
-        if (existingUserByUsername != null) {
-            println("⚠️ Test user already exists by username with ID: ${existingUserByUsername.id}")
-            return existingUserByUsername
+        // Check if user already exists
+        val existingUser = userDao.getSingleUser()
+        if (existingUser != null) {
+            println("⚠️ Test user already exists with ID: ${existingUser.id}")
+            return existingUser
         }
         
         val testUser = UserEntity(
             id = 0, // Let Room auto-generate the ID
-            email = "test@pennywise.com",
-            passwordHash = hashedPassword,
-            username = "testuser",
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
             createdAt = Date()
         )
         
-        println("🔄 Creating test user: ${testUser.username} with email: ${testUser.email}")
+        println("🔄 Creating test user with default settings")
         val userId = userDao.insertUser(testUser)
         println("✅ Test user created with ID: $userId")
         
         // Verify the user was created correctly
-        val createdUser = userDao.getUserByUsername("testuser")
-        println("🔍 Verification - Created user: ${createdUser?.username} (ID: ${createdUser?.id})")
-        
-        // Test authentication to make sure it works
-        if (createdUser != null) {
-            val authTest = userDao.getUserByUsername("testuser")
-            println("🔍 Auth test - Retrieved user: ${authTest?.username} (ID: ${authTest?.id})")
-        }
+        val createdUser = userDao.getUserById(userId)
+        println("🔍 Verification - Created user (ID: ${createdUser?.id})")
         
         // Return the created user with the correct ID, not the original testUser
         return createdUser ?: testUser.copy(id = userId)

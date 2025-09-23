@@ -11,12 +11,14 @@ import com.pennywise.app.domain.repository.UserRepository
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
 import com.pennywise.app.presentation.auth.AuthManager
+import com.pennywise.app.presentation.auth.DeviceAuthService
 import com.pennywise.app.presentation.utils.CurrencyViewModelExtensions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,6 +30,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val userRepository: UserRepository,
     private val authManager: AuthManager,
+    private val deviceAuthService: DeviceAuthService,
     private val currencySortingService: CurrencySortingService,
     private val paymentMethodConfigRepository: PaymentMethodConfigRepository
 ) : ViewModel() {
@@ -75,6 +78,22 @@ class SettingsViewModel @Inject constructor(
     // Payment method update state
     private val _paymentMethodUpdateState = MutableStateFlow<PaymentMethodUpdateState>(PaymentMethodUpdateState.Idle)
     val paymentMethodUpdateState: StateFlow<PaymentMethodUpdateState> = _paymentMethodUpdateState
+    
+    // Developer options state
+    private val _developerOptionsEnabled = MutableStateFlow(false)
+    val developerOptionsEnabled: StateFlow<Boolean> = _developerOptionsEnabled
+    
+    // Authentication method state
+    private val _currentAuthMethod = MutableStateFlow<AuthMethod?>(null)
+    val currentAuthMethod: StateFlow<AuthMethod?> = _currentAuthMethod
+    
+    private val _authMethodUpdateState = MutableStateFlow<AuthMethodUpdateState>(AuthMethodUpdateState.Idle)
+    val authMethodUpdateState: StateFlow<AuthMethodUpdateState> = _authMethodUpdateState
+    
+    // Device authentication capabilities
+    val canUseBiometric: Boolean get() = deviceAuthService.canUseBiometric()
+    val canUseDeviceCredentials: Boolean get() = deviceAuthService.canUseDeviceCredentials()
+    val isDeviceAuthEnabled: Flow<Boolean> = deviceAuthService.isDeviceAuthEnabled
 
     init {
         loadSettings()
@@ -82,6 +101,49 @@ class SettingsViewModel @Inject constructor(
         loadSortedCurrencies()
         loadPaymentMethodConfigs()
         loadDefaultPaymentMethod()
+        loadCurrentAuthMethod()
+    }
+
+    private fun loadCurrentAuthMethod() {
+        viewModelScope.launch {
+            try {
+                val isDeviceAuthEnabled = deviceAuthService.isDeviceAuthEnabled.first()
+                _currentAuthMethod.value = when {
+                    isDeviceAuthEnabled && canUseBiometric -> AuthMethod.BIOMETRIC
+                    isDeviceAuthEnabled && canUseDeviceCredentials -> AuthMethod.DEVICE_CREDENTIALS
+                    else -> AuthMethod.NONE
+                }
+            } catch (e: Exception) {
+                _currentAuthMethod.value = AuthMethod.NONE
+            }
+        }
+    }
+    
+    fun updateAuthMethod(authMethod: AuthMethod) {
+        viewModelScope.launch {
+            try {
+                _authMethodUpdateState.value = AuthMethodUpdateState.Loading
+                
+                val enabled = authMethod != AuthMethod.NONE
+                deviceAuthService.setDeviceAuthEnabled(enabled)
+                
+                _currentAuthMethod.value = authMethod
+                _authMethodUpdateState.value = AuthMethodUpdateState.Success
+                
+                // Reset success state after a delay
+                kotlinx.coroutines.delay(2000)
+                _authMethodUpdateState.value = AuthMethodUpdateState.Idle
+                
+            } catch (e: Exception) {
+                _authMethodUpdateState.value = AuthMethodUpdateState.Error(
+                    e.message ?: "Failed to update authentication method"
+                )
+            }
+        }
+    }
+    
+    fun resetAuthMethodUpdateState() {
+        _authMethodUpdateState.value = AuthMethodUpdateState.Idle
     }
 
     private fun loadSettings() {
@@ -347,6 +409,16 @@ class SettingsViewModel @Inject constructor(
     fun resetPaymentMethodUpdateState() {
         _paymentMethodUpdateState.value = PaymentMethodUpdateState.Idle
     }
+    
+    // Developer Options Management
+    
+    fun toggleDeveloperOptions() {
+        _developerOptionsEnabled.value = !_developerOptionsEnabled.value
+    }
+    
+    fun setDeveloperOptionsEnabled(enabled: Boolean) {
+        _developerOptionsEnabled.value = enabled
+    }
 
     enum class ThemeMode {
         LIGHT, DARK, SYSTEM
@@ -376,5 +448,18 @@ class SettingsViewModel @Inject constructor(
         object Loading : PaymentMethodUpdateState()
         data class Success(val message: String) : PaymentMethodUpdateState()
         data class Error(val message: String) : PaymentMethodUpdateState()
+    }
+    
+    enum class AuthMethod {
+        BIOMETRIC,
+        DEVICE_CREDENTIALS,
+        NONE
+    }
+    
+    sealed class AuthMethodUpdateState {
+        object Idle : AuthMethodUpdateState()
+        object Loading : AuthMethodUpdateState()
+        object Success : AuthMethodUpdateState()
+        data class Error(val message: String) : AuthMethodUpdateState()
     }
 }

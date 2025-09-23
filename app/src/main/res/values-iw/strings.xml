@@ -34,6 +34,7 @@
     
     <!-- Payment Methods -->
     <string name="payment_method_cash">מזומן</string>
+    <string name="payment_method_credit_card">כרטיס אשראי</string>
     <string name="payment_method_cheque">צ\'ק</string>
     <string name="recurring_expenses">הוצאות קבועות</string>
     <string name="week_format">שבוע %d</string>
@@ -176,10 +177,11 @@
     <string name="change_default_currency_confirmation">האם אתה בטוח שברצונך לשנות את מטבע ברירת המחדל שלך ל-%s? זה ישפיע על אופן הצגת הסכומים בכל האפליקציה.</string>
     <string name="default_currency_updated">מטבע ברירת המחדל עודכן בהצלחה</string>
     <string name="default_currency_update_failed">נכשל בעדכון מטבע ברירת המחדל</string>
-    <string name="currency_change_warning">שינוי מ-%s ל-%s עלול להשפיע על נתונים קיימים</string>
+    <string name="currency_change_warning" formatted="false">שינוי מ-%s ל-%s עלול להשפיע על נתונים קיימים</string>
     
     <!-- Account -->
     <string name="account">חשבון</string>
+    <string name="security">אבטחה</string>
     <string name="logout">התנתקות</string>
     
     <!-- Language Names -->
@@ -209,6 +211,7 @@
     <string name="month_december">דצמבר</string>
     
     <!-- Payment Method and Type -->
+    <string name="payment_methods">שיטות התשלום</string>
     <string name="payment_method_and_type">שיטת תשלום וסוג</string>
     <string name="select_bank_card">בחר כרטיס אשראי</string>
     <string name="payments_layout">פריסת תשלומים</string>
@@ -226,10 +229,55 @@
     
     <!-- Currency Validation -->
     <string name="currency_no_decimal_places">המטבע הזה לא משתמש במקומות עשרוניים</string>
-    <string name="currency_decimal_places_info">%s - %d מקומות עשרוניים</string>
+    <string name="currency_decimal_places_info" formatted="false">%s - %d מקומות עשרוניים</string>
     
     <!-- Content Descriptions -->
     <string name="content_desc_calendar">לוח שנה</string>
     <string name="content_desc_decrease_installments">הקטן מספר תשלומים</string>
     <string name="content_desc_increase_installments">הגדל מספר תשלומים</string>
+    
+    <!-- First Run Setup -->
+    <string name="welcome_to_pennywise">ברוכים הבאים ל-PennyWise</string>
+    <string name="welcome_description">בואו נגדיר את מעקב הכספים האישי שלכם עם ההעדפות של המכשיר</string>
+    <string name="device_auth_setup_title">אבטח את האפליקציה</string>
+    <string name="device_auth_setup_subtitle">הגן על נתוני הכספים שלך עם אימות מכשיר</string>
+    <string name="device_auth_setup_description">תוכל להשתמש בטביעת האצבע, זיהוי פנים או קוד PIN של המכשיר כדי לאבטח את הגישה למידע הכספי שלך.</string>
+    <string name="choose_auth_method">בחר את שיטת האימות המועדפת עליך:</string>
+    <string name="biometric_auth_title">אימות ביומטרי</string>
+    <string name="biometric_auth_description">השתמש בטביעת האצבע או זיהוי פנים</string>
+    <string name="device_credentials_title">פרטי מכשיר</string>
+    <string name="device_credentials_description">השתמש בקוד PIN, תבנית או סיסמה של המכשיר</string>
+    <string name="no_auth_title">ללא אימות</string>
+    <string name="no_auth_description">לא להשתמש באימות מכשיר (לא מומלץ)</string>
+    <string name="device_auth_not_available">אימות מכשיר אינו זמין במכשיר זה</string>
+    
+    <!-- First Run Setup Additional -->
+    <string name="language_region_title">שפה ואזור</string>
+    <string name="default_currency_title">מטבע ברירת מחדל</string>
+    <string name="default_payment_method">שיטת התשלום ברירת מחדל</string>
+    <string name="setup_summary_title">סיכום הגדרה</string>
+    <string name="setup_summary_language">שפה: %s</string>
+    <string name="setup_summary_currency">מטבע: %s</string>
+    <string name="setup_summary_payment_method">שיטת תשלום: %s</string>
+    <string name="finish_setup">סיום</string>
+    <string name="not_selected">-</string>
+    <string name="next_step">הבא</string>
+    <string name="finalizing_setup">מיישם הגדרות…</string>
+    
+    <!-- Authentication Method Configuration -->
+    <string name="authentication_method">שיטת אימות</string>
+    <string name="current_auth_method">שיטת אימות נוכחית</string>
+    <string name="change_auth_method">שנה שיטת אימות</string>
+    <string name="auth_method_biometric">אימות ביומטרי</string>
+    <string name="auth_method_device_credentials">פרטי מכשיר</string>
+    <string name="auth_method_none">ללא אימות</string>
+    <string name="auth_method_biometric_description">השתמש בטביעת אצבע או זיהוי פנים</string>
+    <string name="auth_method_device_credentials_description">השתמש בקוד PIN, תבנית או סיסמה של המכשיר</string>
+    <string name="auth_method_none_description">לא נדרש אימות</string>
+    <string name="auth_method_updated">שיטת האימות עודכנה בהצלחה</string>
+    <string name="auth_method_update_failed">נכשל בעדכון שיטת האימות</string>
+    <string name="updating_auth_method">מעדכן שיטת אימות…</string>
+    
+    <!-- Copyright -->
+    <string name="copyright">© Quantum Doodles, 2025</string>
 </resources>

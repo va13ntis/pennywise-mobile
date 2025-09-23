@@ -11,45 +11,48 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material3.Text
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
+import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.flow.collect
 import com.pennywise.app.presentation.viewmodel.AuthViewModel
-import com.pennywise.app.presentation.viewmodel.LoginViewModel
-import com.pennywise.app.presentation.viewmodel.RegisterViewModel
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
-import com.pennywise.app.presentation.screens.LoginScreen
-import com.pennywise.app.presentation.screens.RegisterScreen
+import com.pennywise.app.presentation.screens.FirstRunSetupScreen
 import com.pennywise.app.presentation.screens.HomeScreen
 import com.pennywise.app.presentation.screens.AddExpenseScreen
 import com.pennywise.app.presentation.screens.SettingsScreen
-import com.pennywise.app.presentation.navigation.LOGIN_ROUTE
-import com.pennywise.app.presentation.navigation.REGISTER_ROUTE
+import com.pennywise.app.presentation.viewmodel.DeviceAuthPromptViewModel
 
 /**
- * Main app navigation that handles authentication state and routes
+ * Main app navigation that handles simplified authentication flow
  */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
+    
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
-    val isAuthenticated = currentUser != null
+    val shouldRequireDeviceAuth by authViewModel.shouldRequireDeviceAuth.collectAsState(initial = false)
+    val isAuthenticated by authViewModel.isAuthenticated.collectAsState(initial = false)
+    val isInitialized by authViewModel.isInitialized.collectAsState(initial = false)
     
-    // Show loading state initially
-    var isInitialized by remember { mutableStateOf(false) }
+    // Log route changes
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            println("🧭 Navigation: current route = ${entry.destination.route}")
+        }
+    }
     
-    // Initialize authentication state when the app starts
+    // Initialize authentication state when the app starts; the ViewModel will
+    // set isInitialized=true only after its async work completes
     LaunchedEffect(Unit) {
         try {
             authViewModel.initializeAuthState()
-        } catch (e: Exception) {
-            // If initialization fails, just continue with unauthenticated state
-        } finally {
-            isInitialized = true
+        } catch (_: Exception) {
         }
     }
     
@@ -64,60 +67,111 @@ fun AppNavigation() {
         return
     }
     
-    // Handle navigation when authentication state changes
-    LaunchedEffect(currentUser) {
+    // Determine the appropriate start destination (no separate device-auth screen)
+    val startDestination = when {
+        currentUser == null -> FIRST_RUN_SETUP_ROUTE
+        else -> MAIN_ROUTE
+    }
+    
+    // Handle navigation based on authentication state changes
+    LaunchedEffect(currentUser, shouldRequireDeviceAuth, isAuthenticated, isInitialized) {
+        val currentRoute = navController.currentDestination?.route
+        
+        // Extended logging for debugging preferences
+        val localUser = currentUser // Store in local variable to fix smart cast issue
+        localUser?.let { user ->
+            println("🔍 AppNavigation: USER PREFERENCES CHECK")
+            println("   - User ID: ${user.id}")
+            println("   - Default Currency: ${user.defaultCurrency}")
+            println("   - Locale: ${user.locale}")
+            println("   - Device Auth Enabled: ${user.deviceAuthEnabled}")
+            println("   - Created At: ${user.createdAt}")
+            println("   - Updated At: ${user.updatedAt}")
+        }
+        
+        println("🔍 AppNavigation: currentUser = $currentUser, shouldRequireDeviceAuth = $shouldRequireDeviceAuth, isAuthenticated = $isAuthenticated, isInitialized = $isInitialized, currentRoute = $currentRoute")
+        
+        if (!isInitialized) return@LaunchedEffect
+        
         if (currentUser != null) {
-            // User is authenticated, navigate to main app
-            navController.navigate(MAIN_ROUTE) {
-                // Clear the back stack so user can't go back to login/register
-                popUpTo(LOGIN_ROUTE) { inclusive = true }
+            if (isAuthenticated && currentRoute != MAIN_ROUTE) {
+                // User is authenticated, go to main screen
+                println("🔍 AppNavigation: Navigating to MAIN_ROUTE (user authenticated)")
+                // Verify settings are properly applied before navigation
+                val user = currentUser // Capture local reference to avoid smart cast issue
+                println("✅ AppNavigation: FINAL VERIFICATION - Currency: ${user?.defaultCurrency}, Locale: ${user?.locale}")
+                navController.navigate(MAIN_ROUTE) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
-        } else {
-            // User is not authenticated, navigate to login
-            navController.navigate(LOGIN_ROUTE) {
-                // Clear the back stack so user can't go back to main app
-                popUpTo(MAIN_ROUTE) { inclusive = true }
+        } else if (currentRoute != FIRST_RUN_SETUP_ROUTE) {
+            // No user, go to first run setup
+            println("🔍 AppNavigation: Navigating to FIRST_RUN_SETUP_ROUTE")
+            navController.navigate(FIRST_RUN_SETUP_ROUTE) {
+                popUpTo(0) { inclusive = true }
             }
         }
     }
     
     NavHost(
         navController = navController,
-        startDestination = if (currentUser != null) MAIN_ROUTE else LOGIN_ROUTE
+        startDestination = startDestination
     ) {
-        // Login screen
-        composable(LOGIN_ROUTE) {
-            val viewModel = hiltViewModel<LoginViewModel>()
-            LoginScreen(
-                viewModel = viewModel,
-                onNavigateToRegister = { navController.navigate(REGISTER_ROUTE) },
-                onLoginSuccess = { user ->
-                    // Navigation will be handled automatically by the isAuthenticated state change
-                }
-            )
-        }
-        
-        // Register screen
-        composable(REGISTER_ROUTE) {
-            val viewModel = hiltViewModel<RegisterViewModel>()
-            RegisterScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onRegisterSuccess = { 
-                    // Navigation will be handled automatically by the authentication state change
-                    // No need to navigate manually here
+        // First run setup screen
+        composable(FIRST_RUN_SETUP_ROUTE) {
+            LaunchedEffect(Unit) { println("🖼️ Screen: FirstRunSetupScreen composing") }
+            FirstRunSetupScreen(
+                onSetupComplete = {
+                    // After setup, the user should be authenticated automatically
+                    // Refresh authentication state to ensure all settings are recognized
+                    println("🔍 AppNavigation: Setup complete, explicitly refreshing auth state")
+                    authViewModel.initializeAuthState() // Re-initialize to pick up new settings
+                    // The LaunchedEffect will handle navigation based on authentication state
                 }
             )
         }
         
         // Main app content after authentication
         composable(MAIN_ROUTE) {
+            val context = LocalContext.current
+            val devicePromptViewModel = hiltViewModel<DeviceAuthPromptViewModel>()
+            val deviceUiState = devicePromptViewModel.uiState.collectAsState()
+            
+            var promptStarted by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { println("🖼️ Screen: MainRoute composing (promptStarted=$promptStarted)") }
+            
+            // Trigger device auth when required, without a dedicated screen
+            LaunchedEffect(shouldRequireDeviceAuth, isAuthenticated) {
+                if (shouldRequireDeviceAuth && !isAuthenticated && !promptStarted) {
+                    println("🔐 DeviceAuth: required, starting authenticate() before rendering main content")
+                    (context as? FragmentActivity)?.let { activity ->
+                        promptStarted = true
+                        devicePromptViewModel.authenticate(activity)
+                    }
+                }
+            }
+            
+            // When device auth succeeds, mark authenticated
+            LaunchedEffect(deviceUiState.value.isAuthenticated) {
+                if (deviceUiState.value.isAuthenticated) {
+                    println("✅ DeviceAuth: success detected in MainRoute, marking user authenticated")
+                    authViewModel.markUserAsAuthenticated()
+                }
+            }
+            
+            // If auth required and not yet authenticated, render nothing to avoid flash
+            if (shouldRequireDeviceAuth && !isAuthenticated) {
+                println("⏸️ MainRoute: withholding UI until device auth completes (no rendering)")
+                return@composable
+            }
+            
+            println("🖼️ Screen: HomeScreen composing")
             val homeViewModel = hiltViewModel<HomeViewModel>()
-            val currentUser = authViewModel.getCurrentUser()
+            val mainCurrentUser = authViewModel.getCurrentUser()
             
             // Set the user ID for the HomeViewModel
-            LaunchedEffect(currentUser) {
-                currentUser?.let { user ->
+            LaunchedEffect(mainCurrentUser) {
+                mainCurrentUser?.let { user ->
                     println("🔄 AppNavigation: Setting user ID ${user.id} for HomeViewModel")
                     homeViewModel.setUserId(user.id)
                 } ?: run {
@@ -149,10 +203,7 @@ fun AppNavigation() {
             val settingsViewModel = hiltViewModel<com.pennywise.app.presentation.viewmodel.SettingsViewModel>()
             SettingsScreen(
                 viewModel = settingsViewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onLogout = {
-                    authViewModel.logout()
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
@@ -161,6 +212,7 @@ fun AppNavigation() {
 /**
  * Navigation routes for the main app
  */
+const val FIRST_RUN_SETUP_ROUTE = "first_run_setup"
 const val MAIN_ROUTE = "main"
 const val ADD_EXPENSE_ROUTE = "add_expense"
 const val SETTINGS_ROUTE = "settings"

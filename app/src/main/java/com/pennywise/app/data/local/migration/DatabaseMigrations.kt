@@ -383,4 +383,55 @@ object DatabaseMigrations {
             database.execSQL("CREATE INDEX index_split_payment_installments_isPaid ON split_payment_installments (isPaid)")
         }
     }
+    
+    /**
+     * Migration from version 9 to 10
+     * - Simplify users table for single-user per app with device authentication
+     * - Remove username, passwordHash, email fields
+     * - Add deviceAuthEnabled field
+     * - Preserve existing user data (defaultCurrency, locale, etc.)
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Create temporary table with new schema
+            database.execSQL(
+                """
+                CREATE TABLE users_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    defaultCurrency TEXT NOT NULL,
+                    locale TEXT NOT NULL,
+                    deviceAuthEnabled INTEGER NOT NULL DEFAULT 0,
+                    role TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """
+            )
+            
+            // Migrate existing user data, preserving preferences
+            database.execSQL(
+                """
+                INSERT INTO users_new (
+                    id, defaultCurrency, locale, deviceAuthEnabled, 
+                    role, status, createdAt, updatedAt
+                )
+                SELECT 
+                    id,
+                    COALESCE(defaultCurrency, 'USD') as defaultCurrency,
+                    COALESCE(locale, 'en') as locale,
+                    0 as deviceAuthEnabled,
+                    COALESCE(role, 'USER') as role,
+                    COALESCE(status, 'ACTIVE') as status,
+                    COALESCE(createdAt, strftime('%s', 'now') * 1000) as createdAt,
+                    strftime('%s', 'now') * 1000 as updatedAt
+                FROM users
+                """
+            )
+            
+            // Drop old table and rename new table
+            database.execSQL("DROP TABLE users")
+            database.execSQL("ALTER TABLE users_new RENAME TO users")
+        }
+    }
 }

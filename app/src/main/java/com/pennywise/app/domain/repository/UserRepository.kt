@@ -6,19 +6,17 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Repository interface for user data operations
+ * Simplified for single-user per app
  */
 interface UserRepository {
-    suspend fun registerUser(username: String, password: String, defaultCurrency: String = "USD", locale: String = "en"): Result<Long>
-    suspend fun authenticateUser(username: String, password: String): Result<User>
+    suspend fun createUser(defaultCurrency: String = "USD", locale: String = "en"): Result<Long>
     suspend fun getUserById(userId: Long): User?
-    suspend fun getUserByUsername(username: String): User?
-    suspend fun getUserByEmail(email: String): User?
+    suspend fun getSingleUser(): User?
+    fun getSingleUserFlow(): Flow<User?>
     suspend fun updateUser(user: User)
     suspend fun deleteUser(user: User)
     suspend fun updateUserStatus(userId: Long, status: UserStatus)
     suspend fun updateDefaultCurrency(userId: Long, currency: String)
-    suspend fun isUsernameTaken(username: String): Boolean
-    suspend fun isEmailTaken(email: String): Boolean
-    fun getUsersByStatus(status: UserStatus): Flow<List<User>>
-    fun getAllUsers(): Flow<List<User>>
+    suspend fun updateDeviceAuthEnabled(userId: Long, enabled: Boolean)
+    suspend fun getUserCount(): Int
 }

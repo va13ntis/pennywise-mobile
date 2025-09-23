@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Data Access Object for user operations
+ * Simplified for single-user per app
  */
 @Dao
 interface UserDao {
@@ -22,26 +23,14 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE id = :userId")
     suspend fun getUserById(userId: Long): UserEntity?
     
-    @Query("SELECT * FROM users WHERE username = :username")
-    suspend fun getUserByUsername(username: String): UserEntity?
+    @Query("SELECT * FROM users LIMIT 1")
+    suspend fun getSingleUser(): UserEntity?
     
-    @Query("SELECT * FROM users WHERE email = :email")
-    suspend fun getUserByEmail(email: String): UserEntity?
+    @Query("SELECT * FROM users LIMIT 1")
+    fun getSingleUserFlow(): Flow<UserEntity?>
     
-    @Query("SELECT * FROM users WHERE username = :username AND passwordHash = :passwordHash")
-    suspend fun authenticateUser(username: String, passwordHash: String): UserEntity?
-    
-    @Query("SELECT * FROM users WHERE status = :status")
-    fun getUsersByStatus(status: UserStatus): Flow<List<UserEntity>>
-    
-    @Query("SELECT * FROM users ORDER BY createdAt DESC")
-    fun getAllUsers(): Flow<List<UserEntity>>
-    
-    @Query("SELECT COUNT(*) FROM users WHERE username = :username")
-    suspend fun isUsernameTaken(username: String): Int
-    
-    @Query("SELECT COUNT(*) FROM users WHERE email = :email")
-    suspend fun isEmailTaken(email: String): Int
+    @Query("SELECT COUNT(*) FROM users")
+    suspend fun getUserCount(): Int
     
     @Query("UPDATE users SET status = :status WHERE id = :userId")
     suspend fun updateUserStatus(userId: Long, status: UserStatus)
@@ -51,6 +40,9 @@ interface UserDao {
     
     @Query("UPDATE users SET defaultCurrency = :currency, updatedAt = :updatedAt WHERE id = :userId")
     suspend fun updateDefaultCurrency(userId: Long, currency: String, updatedAt: Long)
+    
+    @Query("UPDATE users SET deviceAuthEnabled = :enabled, updatedAt = :updatedAt WHERE id = :userId")
+    suspend fun updateDeviceAuthEnabled(userId: Long, enabled: Boolean, updatedAt: Long)
     
     @Query("DELETE FROM users")
     suspend fun deleteAllUsers()

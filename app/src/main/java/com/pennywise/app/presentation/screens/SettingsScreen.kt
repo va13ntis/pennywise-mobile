@@ -6,9 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -21,9 +23,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.pennywise.app.R
 import com.pennywise.app.presentation.viewmodel.SettingsViewModel
+import com.pennywise.app.presentation.viewmodel.TestDataViewModel
 import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.PaymentMethodConfig
+import androidx.hilt.navigation.compose.hiltViewModel
 import javax.inject.Inject
 
 /**
@@ -86,7 +90,7 @@ fun CollapsibleSection(
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateBack: () -> Unit,
-    onLogout: () -> Unit
+    testDataViewModel: TestDataViewModel = hiltViewModel()
 ) {
     val themeMode by viewModel.themeMode.collectAsState(initial = SettingsViewModel.ThemeMode.SYSTEM)
     val language by viewModel.language.collectAsState(initial = "")
@@ -100,6 +104,12 @@ fun SettingsScreen(
     val defaultPaymentMethodState by viewModel.defaultPaymentMethodState.collectAsState(initial = SettingsViewModel.DefaultPaymentMethodState.Loading)
     val paymentMethodUpdateState by viewModel.paymentMethodUpdateState.collectAsState(initial = SettingsViewModel.PaymentMethodUpdateState.Idle)
     
+    // Authentication method states
+    val currentAuthMethod by viewModel.currentAuthMethod.collectAsState(initial = null)
+    val authMethodUpdateState by viewModel.authMethodUpdateState.collectAsState(initial = SettingsViewModel.AuthMethodUpdateState.Idle)
+    val canUseBiometric = viewModel.canUseBiometric
+    val canUseDeviceCredentials = viewModel.canUseDeviceCredentials
+    
     // State for tracking which sections are expanded (all collapsed by default)
     var isAppearanceExpanded by remember { mutableStateOf(false) }
     var isLanguageExpanded by remember { mutableStateOf(false) }
@@ -108,6 +118,19 @@ fun SettingsScreen(
     var isPaymentMethodsExpanded by remember { mutableStateOf(false) }
     var isBackupExpanded by remember { mutableStateOf(false) }
     var isAccountExpanded by remember { mutableStateOf(false) }
+    var isDeveloperOptionsExpanded by remember { mutableStateOf(false) }
+    
+    // Developer options state
+    val developerOptionsEnabled by viewModel.developerOptionsEnabled.collectAsState(initial = false)
+    
+    // Test data state
+    val testDataMessage by testDataViewModel.message.collectAsState(initial = "")
+    val isSeeding by testDataViewModel.isSeeding.collectAsState(initial = false)
+    val isClearing by testDataViewModel.isClearing.collectAsState(initial = false)
+    
+    // Tap counter for app version
+    var tapCount by remember { mutableStateOf(0) }
+    var lastTapTime by remember { mutableStateOf(0L) }
     
     Scaffold(
         topBar = {
@@ -116,7 +139,7 @@ fun SettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            Icons.Default.ArrowBack, 
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.back),
                             modifier = Modifier.graphicsLayer(
                                 scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
@@ -150,18 +173,26 @@ fun SettingsScreen(
                             onClick = { viewModel.setThemeMode(SettingsViewModel.ThemeMode.LIGHT) },
                             icon = Icons.Default.LightMode
                         )
-                        
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
-                        
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = DividerDefaults.Thickness,
+                            color = DividerDefaults.color
+                        )
+
                         ThemeOption(
                             title = stringResource(R.string.dark_theme),
                             selected = themeMode == SettingsViewModel.ThemeMode.DARK,
                             onClick = { viewModel.setThemeMode(SettingsViewModel.ThemeMode.DARK) },
                             icon = Icons.Default.DarkMode
                         )
-                        
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
-                        
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = DividerDefaults.Thickness,
+                            color = DividerDefaults.color
+                        )
+
                         ThemeOption(
                             title = stringResource(R.string.system_theme),
                             selected = themeMode == SettingsViewModel.ThemeMode.SYSTEM,
@@ -187,17 +218,25 @@ fun SettingsScreen(
                             selected = language.isEmpty() || language == "en",
                             onClick = { viewModel.setLanguage("en") }
                         )
-                        
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
-                        
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = DividerDefaults.Thickness,
+                            color = DividerDefaults.color
+                        )
+
                         LanguageOption(
                             title = stringResource(R.string.language_hebrew),
                             selected = language == "iw",
                             onClick = { viewModel.setLanguage("iw") }
                         )
-                        
-                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
-                        
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = DividerDefaults.Thickness,
+                            color = DividerDefaults.color
+                        )
+
                         LanguageOption(
                             title = stringResource(R.string.language_russian),
                             selected = language == "ru",
@@ -722,44 +761,178 @@ fun SettingsScreen(
                 }
             }
             
-            // Account section
+            // Security section
             item {
                 CollapsibleSection(
-                    title = stringResource(R.string.account),
+                    title = stringResource(R.string.security),
                     isExpanded = isAccountExpanded,
                     onToggle = { isAccountExpanded = !isAccountExpanded }
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onLogout() }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Logout,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(24.dp)
+                        Text(
+                            text = stringResource(R.string.authentication_method),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                        
+                        // Biometric option
+                        if (canUseBiometric) {
+                            AuthMethodOption(
+                                title = stringResource(R.string.auth_method_biometric),
+                                description = stringResource(R.string.auth_method_biometric_description),
+                                icon = Icons.Default.Fingerprint,
+                                isSelected = currentAuthMethod == SettingsViewModel.AuthMethod.BIOMETRIC,
+                                onClick = { viewModel.updateAuthMethod(SettingsViewModel.AuthMethod.BIOMETRIC) }
                             )
-                            
-                            Text(
-                                text = stringResource(R.string.logout),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .weight(1f)
+                        }
+                        
+                        // Device credentials option
+                        if (canUseDeviceCredentials) {
+                            AuthMethodOption(
+                                title = stringResource(R.string.auth_method_device_credentials),
+                                description = stringResource(R.string.auth_method_device_credentials_description),
+                                icon = Icons.Default.Lock,
+                                isSelected = currentAuthMethod == SettingsViewModel.AuthMethod.DEVICE_CREDENTIALS,
+                                onClick = { viewModel.updateAuthMethod(SettingsViewModel.AuthMethod.DEVICE_CREDENTIALS) }
                             )
+                        }
+                        
+                        // No authentication option
+                        AuthMethodOption(
+                            title = stringResource(R.string.auth_method_none),
+                            description = stringResource(R.string.auth_method_none_description),
+                            icon = Icons.Default.LockOpen,
+                            isSelected = currentAuthMethod == SettingsViewModel.AuthMethod.NONE,
+                            onClick = { viewModel.updateAuthMethod(SettingsViewModel.AuthMethod.NONE) }
+                        )
+                        
+                        // Show update state
+                        when (authMethodUpdateState) {
+                            is SettingsViewModel.AuthMethodUpdateState.Loading -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.updating_auth_method),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                            is SettingsViewModel.AuthMethodUpdateState.Success -> {
+                                Text(
+                                    text = stringResource(R.string.auth_method_updated),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                                LaunchedEffect(Unit) {
+                                    kotlinx.coroutines.delay(2000)
+                                    viewModel.resetAuthMethodUpdateState()
+                                }
+                            }
+                            is SettingsViewModel.AuthMethodUpdateState.Error -> {
+                                Text(
+                                    text = (authMethodUpdateState as SettingsViewModel.AuthMethodUpdateState.Error).message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            else -> { /* Idle state, do nothing */ }
                         }
                     }
                 }
             }
             
-            // App version info
+            // Developer options section (only show if enabled)
+            if (developerOptionsEnabled) {
+                item {
+                    CollapsibleSection(
+                        title = stringResource(R.string.developer_options),
+                        isExpanded = isDeveloperOptionsExpanded,
+                        onToggle = { isDeveloperOptionsExpanded = !isDeveloperOptionsExpanded }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.test_data_controls),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                            
+                            // Seed test data button
+                            Button(
+                                onClick = { testDataViewModel.seedTestData() },
+                                enabled = !isSeeding && !isClearing,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            ) {
+                                if (isSeeding) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (isSeeding) stringResource(R.string.seeding_data) else stringResource(R.string.seed_test_data)
+                                )
+                            }
+                            
+                            // Clear test data button
+                            Button(
+                                onClick = { testDataViewModel.clearTestData() },
+                                enabled = !isSeeding && !isClearing,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                if (isClearing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = MaterialTheme.colorScheme.onError
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (isClearing) stringResource(R.string.clearing_data) else stringResource(R.string.clear_test_data)
+                                )
+                            }
+                            
+                            // Show test data messages
+                            testDataMessage?.let { message ->
+                                if (message.isNotEmpty()) {
+                                    Text(
+                                        text = message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (message.startsWith("✅")) 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // App version info with tap counter
             item {
                 Box(
                     modifier = Modifier
@@ -769,6 +942,45 @@ fun SettingsScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.app_version),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable {
+                            val currentTime = System.currentTimeMillis()
+                            
+                            // Reset counter if more than 2 seconds have passed
+                            if (currentTime - lastTapTime > 2000) {
+                                tapCount = 0
+                            }
+                            
+                            tapCount++
+                            lastTapTime = currentTime
+                            
+                            // Enable developer options after 12 taps
+                            if (tapCount >= 12 && !developerOptionsEnabled) {
+                                viewModel.setDeveloperOptionsEnabled(true)
+                                tapCount = 0
+                            }
+                            // Disable developer options after 6 taps (when already enabled)
+                            else if (tapCount >= 6 && developerOptionsEnabled) {
+                                viewModel.setDeveloperOptionsEnabled(false)
+                                isDeveloperOptionsExpanded = false
+                                tapCount = 0
+                            }
+                        }
+                    )
+                }
+            }
+            
+            // Copyright
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.copyright),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -980,5 +1192,56 @@ fun PaymentMethodConfigItem(
                 }
             }
         }
+    }
+}
+
+/**
+ * Authentication method option composable
+ */
+@Composable
+fun AuthMethodOption(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        
+        Column(
+            modifier = Modifier
+                .padding(start = 16.dp)
+                .weight(1f)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        RadioButton(
+            selected = isSelected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = MaterialTheme.colorScheme.primary
+            )
+        )
     }
 }
