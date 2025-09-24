@@ -71,7 +71,7 @@ class CurrencyUsageTracker @Inject constructor(
         return withContext(ioDispatcher) {
             try {
                 val usageList = currencyUsageRepository.getCurrencyUsageByUser(userId).first()
-                val totalUsage = usageList.sumOf { it.usageCount }
+                val totalUsage = usageList.sumOf { it.usageCount.toLong() }
                 val mostUsedCurrency = usageList.maxByOrNull { it.usageCount }?.currency
                 val leastUsedCurrency = usageList.minByOrNull { it.usageCount }?.currency
                 val uniqueCurrencies = usageList.size
@@ -155,10 +155,20 @@ class CurrencyUsageTracker @Inject constructor(
         return withContext(ioDispatcher) {
             try {
                 val allCurrencies = currencyUsageRepository.getCurrencyUsageByUser(userId).first()
-                val cutoffDate = Date(System.currentTimeMillis() - (daysBack * 24 * 60 * 60 * 1000L))
+                val actualDaysBack = maxOf(0, daysBack) // Handle negative days by treating as 0
                 
-                val recentCurrencies = allCurrencies.filter { it.lastUsed.after(cutoffDate) }
-                val historicalCurrencies = allCurrencies.filter { it.lastUsed.before(cutoffDate) }
+                val recentCurrencies: List<com.pennywise.app.domain.model.CurrencyUsage>
+                val historicalCurrencies: List<com.pennywise.app.domain.model.CurrencyUsage>
+                
+                if (actualDaysBack == 0) {
+                    // When daysBack is 0, all currencies are considered recent
+                    recentCurrencies = allCurrencies
+                    historicalCurrencies = emptyList()
+                } else {
+                    val cutoffDate = Date(System.currentTimeMillis() - (actualDaysBack * 24 * 60 * 60 * 1000L))
+                    recentCurrencies = allCurrencies.filter { it.lastUsed.after(cutoffDate) || it.lastUsed == cutoffDate }
+                    historicalCurrencies = allCurrencies.filter { it.lastUsed.before(cutoffDate) }
+                }
                 
                 CurrencyUsageTrend(
                     recentCurrencies = recentCurrencies.map { it.currency },
@@ -179,17 +189,35 @@ class CurrencyUsageTracker @Inject constructor(
     suspend fun getCurrencyUsageSummary(userId: Long): CurrencyUsageSummary {
         return withContext(ioDispatcher) {
             try {
-                val stats = getCurrencyUsageStats(userId)
-                val mostUsed = getMostUsedCurrencies(userId, 3)
-                val trend = getCurrencyUsageTrend(userId)
+                // Directly call repository methods to handle exceptions properly
+                val usageList = currencyUsageRepository.getCurrencyUsageByUser(userId).first()
+                val topCurrencies = currencyUsageRepository.getTopCurrenciesByUser(userId, 3).first()
+                
+                val totalUsage = usageList.sumOf { it.usageCount.toLong() }
+                val mostUsedCurrency = usageList.maxByOrNull { it.usageCount }?.currency
+                val uniqueCurrencies = usageList.size
+                
+                // Calculate trend
+                val cutoffDate = Date(System.currentTimeMillis() - (30 * 24 * 60 * 60 * 1000L))
+                val recentCurrencies = usageList.filter { it.lastUsed.after(cutoffDate) || it.lastUsed == cutoffDate }
+                val activeCurrencies = recentCurrencies.size
+                
+                val mostUsedInfo = topCurrencies.map { 
+                    CurrencyUsageInfo(
+                        currency = it.currency,
+                        usageCount = it.usageCount,
+                        lastUsed = it.lastUsed,
+                        percentage = if (totalUsage > 0) (it.usageCount.toDouble() / totalUsage) * 100 else 0.0
+                    )
+                }
                 
                 CurrencyUsageSummary(
-                    totalTransactions = stats.totalUsage,
-                    uniqueCurrencies = stats.uniqueCurrencies,
-                    primaryCurrency = stats.mostUsedCurrency,
-                    topCurrencies = mostUsed,
-                    recentActivity = trend.activeCurrencies > 0,
-                    usageTrend = if (trend.activeCurrencies > 0) "Active" else "Inactive"
+                    totalTransactions = totalUsage,
+                    uniqueCurrencies = uniqueCurrencies,
+                    primaryCurrency = mostUsedCurrency,
+                    topCurrencies = mostUsedInfo,
+                    recentActivity = activeCurrencies > 0,
+                    usageTrend = if (activeCurrencies > 0) "Active" else "Inactive"
                 )
             } catch (e: Exception) {
                 println("Error getting currency usage summary: ${e.message}")
@@ -203,7 +231,7 @@ class CurrencyUsageTracker @Inject constructor(
  * Data class representing currency usage statistics
  */
 data class CurrencyUsageStats(
-    val totalUsage: Int = 0,
+    val totalUsage: Long = 0L,
     val uniqueCurrencies: Int = 0,
     val mostUsedCurrency: String? = null,
     val leastUsedCurrency: String? = null,
@@ -234,7 +262,7 @@ data class CurrencyUsageTrend(
  * Data class representing currency usage summary for UI display
  */
 data class CurrencyUsageSummary(
-    val totalTransactions: Int = 0,
+    val totalTransactions: Long = 0L,
     val uniqueCurrencies: Int = 0,
     val primaryCurrency: String? = null,
     val topCurrencies: List<CurrencyUsageInfo> = emptyList(),

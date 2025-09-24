@@ -15,7 +15,7 @@ import java.util.*
  * Tests various currency formatting scenarios including RTL support, decimal precision, and edge cases
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [33], application = android.app.Application::class)
 class CurrencyFormatterTest {
     
     private lateinit var context: Context

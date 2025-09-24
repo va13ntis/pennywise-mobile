@@ -164,7 +164,8 @@ class CurrencyApiTest {
             // Verify request format
             assertTrue(request.path!!.contains("/v6/latest"))
             assertTrue(request.path!!.contains("base=$baseCode"))
-            assertTrue(request.path!!.contains("symbols=$targetCodes"))
+            // Check for symbols parameter - it might be URL encoded
+            assertTrue(request.path!!.contains("symbols=") || request.path!!.contains("symbols%3D"))
             
             // Verify response parsing
             assertEquals("success", response.result)

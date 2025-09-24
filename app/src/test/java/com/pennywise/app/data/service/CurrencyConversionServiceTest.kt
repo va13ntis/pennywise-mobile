@@ -259,6 +259,10 @@ class CurrencyConversionServiceTest {
                 "other_key" to "other_data"
             )
             
+            // Mock the getString calls that getCacheStats() makes
+            every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns """{"baseCode":"USD","targetCode":"EUR","conversionRate":0.85,"lastUpdateTime":$validTime}"""
+            every { mockSharedPreferences.getString("exchange_rate_EUR_GBP", null) } returns """{"baseCode":"EUR","targetCode":"GBP","conversionRate":0.86,"lastUpdateTime":$expiredTime}"""
+            
             val stats = service.getCacheStats()
             
             assertEquals(2, stats["total_cached"])
@@ -273,6 +277,10 @@ class CurrencyConversionServiceTest {
                 "exchange_rate_USD_EUR" to "invalid_json",
                 "exchange_rate_EUR_GBP" to """{"baseCode":"EUR","targetCode":"GBP","conversionRate":0.86,"lastUpdateTime":${System.currentTimeMillis()}}"""
             )
+            
+            // Mock the getString calls that getCacheStats() makes
+            every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns "invalid_json"
+            every { mockSharedPreferences.getString("exchange_rate_EUR_GBP", null) } returns """{"baseCode":"EUR","targetCode":"GBP","conversionRate":0.86,"lastUpdateTime":${System.currentTimeMillis()}}"""
             
             val stats = service.getCacheStats()
             

@@ -336,8 +336,9 @@ class CurrencyConverterTest {
         @Test
         @DisplayName("Should maintain consistent rates during a session")
         fun `should maintain consistent rates during a session`() = runTest {
-            // Given
-            every { mockSharedPreferences.getString(any(), null) } returns null
+            // Given - Mock cache to return null initially, then return cached value after first call
+            var cacheValue: String? = null
+            every { mockSharedPreferences.getString(any(), null) } answers { cacheValue }
             
             val rateResponse = ExchangeRateResponse(
                 result = "success",
@@ -348,6 +349,12 @@ class CurrencyConverterTest {
                 nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns rateResponse
+            
+            // Mock the cache update behavior
+            every { mockSharedPreferencesEditor.putString(any(), any()) } answers {
+                cacheValue = secondArg()
+                mockSharedPreferencesEditor
+            }
             
             // When - Convert multiple times
             val results = List(5) { 
@@ -486,8 +493,9 @@ class CurrencyConverterTest {
             // This test verifies that multiple conversions for the same currency pair
             // are handled efficiently using caching
             
-            // Given
-            every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
+            // Given - Mock cache to return null initially, then return cached value after first call
+            var cacheValue: String? = null
+            every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } answers { cacheValue }
             
             val rateResponse = ExchangeRateResponse(
                 result = "success",
@@ -498,6 +506,12 @@ class CurrencyConverterTest {
                 nextUpdateTime = "2023-01-02T00:00:00Z"
             )
             coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } returns rateResponse
+            
+            // Mock the cache update behavior
+            every { mockSharedPreferencesEditor.putString("exchange_rate_USD_EUR", any()) } answers {
+                cacheValue = secondArg()
+                mockSharedPreferencesEditor
+            }
             
             // When - Convert multiple amounts in sequence
             val amounts = listOf(100.0, 200.0, 500.0, 1000.0, 5000.0)

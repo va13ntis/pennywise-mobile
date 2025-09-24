@@ -314,7 +314,7 @@ class CurrencyTest {
         @DisplayName("Should handle NaN amounts gracefully")
         fun `should handle NaN amounts gracefully`() {
             val result = Currency.formatAmount(Double.NaN, Currency.USD)
-            assertEquals("$NaN", result)
+            assertEquals("\$NaN", result)
         }
 
         @Test

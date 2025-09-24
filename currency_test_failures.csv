@@ -1,0 +1,51 @@
+Category,Class,Method,Error,Priority
+API,CurrencyApiTest$GetExchangeRatesMethod,Should format request correctly for multiple currencies,API request formatting issue,Medium
+Service,CurrencyConversionServiceIntegrationTest$CacheManagementIntegration,Should provide accurate cache statistics,Cache statistics calculation issue,Medium
+Service,CurrencyConversionServiceIntegrationTest$PerformanceIntegration,Should handle multiple concurrent conversions,Concurrent conversion handling issue,High
+Service,CurrencyConversionServiceTest$CacheManagement,Should clear cache correctly,Cache clearing functionality issue,Medium
+Service,CurrencyConversionServiceTest$CacheManagement,Should get cache statistics correctly,Cache statistics retrieval issue,Medium
+Service,CurrencyConversionServiceTest$CacheManagement,Should handle malformed cache entries,Malformed cache entry handling issue,Medium
+Service,CurrencyConversionServiceTest$CachedExchangeRateModel,Should handle edge case of exactly 24 hours,24-hour edge case handling issue,Low
+Service,CurrencyConversionServiceTest$ConvertCurrencyMethod,Should return same amount when converting to same currency case insensitive,Case insensitive conversion issue,Medium
+Model,CurrencyTest$CurrencyEnumCompleteness,Should have unique symbols,Currency symbol uniqueness validation issue,High
+Model,CurrencyTest$EdgeCasesAndErrorHandling,Should handle NaN amounts gracefully,NaN amount handling issue,Medium
+UseCase,CurrencyErrorHandlingTest$APIErrorHandling,Should handle API rate limiting gracefully,API rate limiting error handling issue,High
+UseCase,CurrencyErrorHandlingTest$APIErrorHandling,Should handle HTTP error responses gracefully,HTTP error response handling issue,High
+UseCase,CurrencyErrorHandlingTest$APIErrorHandling,Should handle network connection errors gracefully,Network connection error handling issue,High
+UseCase,CurrencyErrorHandlingTest$APIErrorHandling,Should handle network timeout errors gracefully,Network timeout error handling issue,High
+UseCase,CurrencyErrorHandlingTest$ErrorRecoveryAndResilience,Should maintain service availability during errors,Service availability during errors issue,High
+UseCase,CurrencyErrorHandlingTest$FallbackMechanisms,Should provide fallback for currency validation errors,Currency validation fallback issue,Medium
+UseCase,CurrencyErrorHandlingTest$RepositoryErrorHandling,Should handle database connection errors gracefully,Database connection error handling issue,High
+UseCase,CurrencyErrorHandlingTest$RepositoryErrorHandling,Should handle database timeout errors gracefully,Database timeout error handling issue,High
+UseCase,CurrencyErrorHandlingTest$RepositoryErrorHandling,Should handle null pointer exceptions gracefully,Null pointer exception handling issue,Medium
+UseCase,CurrencyServiceIntegrationTest$CurrencySortingAndUsageTrackingIntegration,Should maintain cache consistency between services,Cache consistency between services issue,Medium
+UseCase,CurrencyServiceIntegrationTest$ErrorHandlingAndFallbackMechanisms,Should handle conversion service errors gracefully,Conversion service error handling issue,High
+UseCase,CurrencyServiceIntegrationTest$ErrorHandlingAndFallbackMechanisms,Should handle repository errors gracefully,Repository error handling issue,High
+UseCase,CurrencyServiceIntegrationTest$ErrorHandlingAndFallbackMechanisms,Should provide fallback mechanisms for all services,Service fallback mechanisms issue,High
+UseCase,CurrencyServiceIntegrationTest$ServiceIntegrationScenarios,Should handle error scenarios in complete workflow,Error scenario handling in workflow issue,High
+UseCase,CurrencySortingServiceTest$GetSortedCurrenciesMethod,Should return currencies sorted by usage when user has usage data,Currency sorting by usage issue,Medium
+UseCase,CurrencySortingServiceTest$GetTopCurrenciesMethod,Should return top N currencies,Top N currencies retrieval issue,Medium
+UseCase,CurrencyUsageTrackerTest$EdgeCases,Should handle negative days back in trend calculation,Negative days trend calculation issue,Low
+UseCase,CurrencyUsageTrackerTest$EdgeCases,Should handle very large usage counts,Very large usage count handling issue,Low
+UseCase,CurrencyUsageTrackerTest$GetCurrencyUsageSummaryMethod,Should handle repository errors gracefully,Repository error handling in usage summary issue,Medium
+UseCase,DefaultCurrencySelectionTest$BusinessRulesAndEdgeCases,Should handle empty usage data with default currency,Empty usage data with default currency issue,Medium
+UseCase,DefaultCurrencySelectionTest$BusinessRulesAndEdgeCases,Should handle repository errors gracefully,Repository error handling in default selection issue,Medium
+UseCase,DefaultCurrencySelectionTest$BusinessRulesAndEdgeCases,Should handle user with multiple default currency changes,Multiple default currency changes issue,Low
+UseCase,DefaultCurrencySelectionTest$CurrencyUsagePriorityLogic,Should include default currency even with zero usage,Default currency inclusion with zero usage issue,High
+UseCase,DefaultCurrencySelectionTest$UserDefaultCurrencySelection,Should fallback to USD when user has no default currency,USD fallback when no default currency issue,High
+UseCase,DefaultCurrencySelectionTest$UserDefaultCurrencySelection,Should prioritize user's default currency in sorting,User default currency prioritization in sorting issue,High
+Util,CurrencyConverterTest$CurrencyConversionPerformance,Should handle batch conversions efficiently,Batch conversion efficiency issue,Medium
+Util,CurrencyConverterTest$RateStabilityAndConsistency,Should maintain consistent rates during a session,Rate consistency during session issue,Medium
+Validator,CurrencyValidatorTest,formatAmountWithValidation should handle invalid currency codes gracefully,Invalid currency code handling in formatting issue,Medium
+Validator,CurrencyValidatorTest,validateAmountForCurrency should return error for NaN amounts,NaN amount validation issue,Medium
+Validator,CurrencyValidatorTest,validateAmountForCurrency should return error for decimal places in JPY,JPY decimal places validation issue,Medium
+Validator,CurrencyValidatorTest,validateAmountForCurrency should return error for infinite amounts,Infinite amount validation issue,Medium
+Validator,CurrencyValidatorTest,validateAmountForCurrency should return error for negative amounts,Negative amount validation issue,Medium
+Validator,CurrencyValidatorTest,validateCurrencyCode should return error for blank code,Blank currency code validation issue,Medium
+Validator,CurrencyValidatorTest,validateCurrencyCode should return error for empty code,Empty currency code validation issue,Medium
+Validator,CurrencyValidatorTest,validateCurrencyCode should return error for invalid length,Invalid currency code length validation issue,Medium
+Validator,CurrencyValidatorTest,validateCurrencyCode should return error for unsupported currency,Unsupported currency validation issue,Medium
+UI,CurrencyUiUtilsTest$CurrencyUiUtilsClassTests,collectSortedCurrencies should return StateFlow of sorted currencies,Lifecycle scope casting issue in sorted currencies,High
+UI,CurrencyUiUtilsTest$CurrencyUiUtilsClassTests,collectSortedCurrenciesReactive should return StateFlow of reactive sorted currencies,Lifecycle scope casting issue in reactive sorted currencies,High
+UI,CurrencyUiUtilsTest$CurrencyUiUtilsClassTests,collectTopCurrencies should return StateFlow of top currencies,Lifecycle scope casting issue in top currencies,High
+UI,CurrencyUiUtilsTest$CurrencyUiUtilsClassTests,collectUsedCurrencies should return StateFlow of used currencies,Lifecycle scope casting issue in used currencies,High

@@ -222,7 +222,7 @@
     <string name="currency_recovery_invalid_amount">Please enter a valid positive number</string>
     
     <!-- Currency Change Warnings -->
-    <string name="currency_change_warning">Changing from %s to %s may affect existing data</string>
+    <string name="currency_change_warning" formatted="false">Changing from %s to %s may affect existing data</string>
     
     <!-- Default Currency Settings -->
     <string name="change_default_currency">Change Default Currency</string>
@@ -284,7 +284,7 @@
     
     <!-- Currency Validation -->
     <string name="currency_no_decimal_places">This currency doesn\'t use decimal places</string>
-    <string name="currency_decimal_places_info">%s - %d decimal places</string>
+    <string name="currency_decimal_places_info" formatted="false">%s - %d decimal places</string>
     
     <!-- Content Descriptions -->
     <string name="content_desc_calendar">Calendar</string>

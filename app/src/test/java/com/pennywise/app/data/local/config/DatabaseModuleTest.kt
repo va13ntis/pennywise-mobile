@@ -170,7 +170,7 @@ class DatabaseModuleTest {
         // Insert multiple transactions
         for (i in 1..100) {
             val transaction = TransactionEntity(
-                id = i,
+                id = i.toLong(),
                 userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
@@ -186,7 +186,7 @@ class DatabaseModuleTest {
         // Insert multiple currency usages
         for (i in 1..50) {
             val currencyUsage = CurrencyUsageEntity(
-                id = i,
+                id = i.toLong(),
                 userId = 1,
                 currency = "USD",
                 usageCount = i,
@@ -230,7 +230,7 @@ class DatabaseModuleTest {
         // Insert transactions concurrently
         val transactions = (1..50).map { i ->
             TransactionEntity(
-                id = i,
+                id = i.toLong(),
                 userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
@@ -249,7 +249,7 @@ class DatabaseModuleTest {
         // Insert currency usages concurrently
         val currencyUsages = (1..25).map { i ->
             CurrencyUsageEntity(
-                id = i,
+                id = i.toLong(),
                 userId = 1,
                 currency = "USD",
                 usageCount = i,
@@ -325,8 +325,8 @@ class DatabaseModuleTest {
         assertNotNull(retrievedCurrencyUsage)
 
         // Verify relationships
-        assertEquals(retrievedUser.id, retrievedTransaction.userId)
-        assertEquals(retrievedUser.id, retrievedCurrencyUsage.userId)
+        assertEquals(retrievedUser?.id, retrievedTransaction?.userId)
+        assertEquals(retrievedUser?.id, retrievedCurrencyUsage?.userId)
     }
 
     @Test
@@ -372,9 +372,13 @@ class DatabaseModuleTest {
         assertNotNull(currencyUsageDao.getCurrencyUsageById(1))
 
         // Clean up data
-        transactionDao.deleteTransaction(1)
-        currencyUsageDao.deleteCurrencyUsage(1)
-        userDao.deleteUser(1)
+        val transactionToDelete = transactionDao.getTransactionById(1)
+        val currencyUsageToDelete = currencyUsageDao.getCurrencyUsageById(1)
+        val userToDelete = userDao.getUserById(1)
+        
+        transactionToDelete?.let { transactionDao.deleteTransaction(it) }
+        currencyUsageToDelete?.let { currencyUsageDao.deleteCurrencyUsage(it) }
+        userToDelete?.let { userDao.deleteUser(it) }
 
         // Verify data was cleaned up
         assert(userDao.getUserById(1) == null)
@@ -419,8 +423,9 @@ class DatabaseModuleTest {
         try {
             val duplicateUser = UserEntity(
                 id = 1, // Same ID as existing user
-                email = "duplicate@example.com",
-                passwordHash = "hashed_password",
+                defaultCurrency = "EUR",
+                locale = "fr",
+                deviceAuthEnabled = true,
                 createdAt = Date(),
                 updatedAt = Date()
             )

@@ -61,8 +61,8 @@ class CurrencyConversionService @Inject constructor(
         toCurrency: String
     ): Double? = withContext(Dispatchers.IO) {
         try {
-            // If currencies are the same, no conversion needed
-            if (fromCurrency == toCurrency) {
+            // If currencies are the same, no conversion needed (case insensitive)
+            if (fromCurrency.uppercase() == toCurrency.uppercase()) {
                 return@withContext amount
             }
             
@@ -154,7 +154,7 @@ class CurrencyConversionService @Inject constructor(
     fun clearCache() {
         val editor = sharedPreferences.edit()
         val allKeys = sharedPreferences.all.keys
-        allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) }
+        allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) || it.startsWith(CACHE_TIMESTAMP_PREFIX) }
             .forEach { editor.remove(it) }
         editor.apply()
     }
@@ -166,24 +166,33 @@ class CurrencyConversionService @Inject constructor(
         val allKeys = sharedPreferences.all.keys
         val cachedRates = allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) }
         
-        val validRates = cachedRates.count { key ->
+        var validRates = 0
+        var expiredRates = 0
+        
+        cachedRates.forEach { key ->
             val json = sharedPreferences.getString(key, null)
             if (json != null) {
                 try {
                     val rate = gson.fromJson(json, CachedExchangeRate::class.java)
-                    !rate.isExpired()
+                    if (!rate.isExpired()) {
+                        validRates++
+                    } else {
+                        expiredRates++
+                    }
                 } catch (e: Exception) {
-                    false
+                    // Malformed JSON entries count as expired
+                    expiredRates++
                 }
             } else {
-                false
+                // Null entries count as expired
+                expiredRates++
             }
         }
         
         return mapOf(
             "total_cached" to cachedRates.size,
             "valid_cached" to validRates,
-            "expired_cached" to (cachedRates.size - validRates)
+            "expired_cached" to expiredRates
         )
     }
     

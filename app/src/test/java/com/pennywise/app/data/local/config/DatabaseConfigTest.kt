@@ -230,7 +230,7 @@ class DatabaseConfigTest {
         // Insert 1000 transactions
         for (i in 1..1000) {
             val transaction = TransactionEntity(
-                id = i,
+                id = i.toLong(),
                 userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
@@ -273,7 +273,7 @@ class DatabaseConfigTest {
         // Insert multiple transactions concurrently
         val transactions = (1..100).map { i ->
             TransactionEntity(
-                id = i,
+                id = i.toLong(),
                 userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
@@ -348,8 +348,8 @@ class DatabaseConfigTest {
         assertNotNull(retrievedCurrencyUsage)
 
         // Verify relationships
-        assertEquals(retrievedUser.id, retrievedTransaction.userId)
-        assertEquals(retrievedUser.id, retrievedCurrencyUsage.userId)
+        assertEquals(retrievedUser?.id, retrievedTransaction?.userId)
+        assertEquals(retrievedUser?.id, retrievedCurrencyUsage?.userId)
     }
 
     @Test
@@ -395,9 +395,13 @@ class DatabaseConfigTest {
         assertNotNull(database.currencyUsageDao().getCurrencyUsageById(1))
 
         // Clean up data
-        database.transactionDao().deleteTransaction(1)
-        database.currencyUsageDao().deleteCurrencyUsage(1)
-        database.userDao().deleteUser(1)
+        val transactionToDelete = database.transactionDao().getTransactionById(1)
+        val currencyUsageToDelete = database.currencyUsageDao().getCurrencyUsageById(1)
+        val userToDelete = database.userDao().getUserById(1)
+        
+        transactionToDelete?.let { database.transactionDao().deleteTransaction(it) }
+        currencyUsageToDelete?.let { database.currencyUsageDao().deleteCurrencyUsage(it) }
+        userToDelete?.let { database.userDao().deleteUser(it) }
 
         // Verify data was cleaned up
         assert(database.userDao().getUserById(1) == null)

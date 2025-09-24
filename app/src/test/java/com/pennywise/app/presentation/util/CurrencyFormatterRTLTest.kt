@@ -15,7 +15,7 @@ import java.util.*
  * Tests currency formatting in RTL languages like Arabic and Hebrew
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [33], application = android.app.Application::class)
 class CurrencyFormatterRTLTest {
     
     private lateinit var context: Context

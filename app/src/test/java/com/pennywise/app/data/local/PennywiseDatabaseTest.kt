@@ -25,7 +25,7 @@ import java.util.Date
 @RunWith(AndroidJUnit4::class)
 class PennywiseDatabaseTest {
 
-    private lateinit var database: PennywiseDatabase
+    private lateinit var database: PennyWiseDatabase
     private lateinit var userDao: com.pennywise.app.data.local.dao.UserDao
     private lateinit var transactionDao: com.pennywise.app.data.local.dao.TransactionDao
     private lateinit var currencyUsageDao: com.pennywise.app.data.local.dao.CurrencyUsageDao
@@ -73,8 +73,8 @@ class PennywiseDatabaseTest {
         // Retrieve user
         val retrievedUser = userDao.getUserById(1)
         assertNotNull(retrievedUser)
-        assertEquals(user.defaultCurrency, retrievedUser.defaultCurrency)
-        assertEquals(user.locale, retrievedUser.locale)
+        assertEquals(user.defaultCurrency, retrievedUser?.defaultCurrency)
+        assertEquals(user.locale, retrievedUser?.locale)
 
         // Update user
         val updatedUser = user.copy(defaultCurrency = "EUR")
@@ -82,10 +82,11 @@ class PennywiseDatabaseTest {
 
         val retrievedUpdatedUser = userDao.getUserById(1)
         assertNotNull(retrievedUpdatedUser)
-        assertEquals("EUR", retrievedUpdatedUser.defaultCurrency)
+        assertEquals("EUR", retrievedUpdatedUser?.defaultCurrency)
 
         // Delete user
-        userDao.deleteUser(1)
+        val userToDelete = userDao.getUserById(1)
+        userToDelete?.let { userDao.deleteUser(it) }
         val deletedUser = userDao.getUserById(1)
         assertNull(deletedUser)
     }
@@ -122,8 +123,8 @@ class PennywiseDatabaseTest {
         // Retrieve transaction
         val retrievedTransaction = transactionDao.getTransactionById(1)
         assertNotNull(retrievedTransaction)
-        assertEquals(transaction.amount, retrievedTransaction.amount)
-        assertEquals(transaction.description, retrievedTransaction.description)
+        assertEquals(transaction.amount, retrievedTransaction?.amount)
+        assertEquals(transaction.description, retrievedTransaction?.description)
 
         // Update transaction
         val updatedTransaction = transaction.copy(amount = 150.0)
@@ -131,10 +132,11 @@ class PennywiseDatabaseTest {
 
         val retrievedUpdatedTransaction = transactionDao.getTransactionById(1)
         assertNotNull(retrievedUpdatedTransaction)
-        assertEquals(150.0, retrievedUpdatedTransaction.amount)
+        assertEquals(150.0, retrievedUpdatedTransaction?.amount)
 
         // Delete transaction
-        transactionDao.deleteTransaction(1)
+        val transactionToDelete = transactionDao.getTransactionById(1)
+        transactionToDelete?.let { transactionDao.deleteTransaction(it) }
         val deletedTransaction = transactionDao.getTransactionById(1)
         assertNull(deletedTransaction)
     }
@@ -169,8 +171,8 @@ class PennywiseDatabaseTest {
         // Retrieve currency usage
         val retrievedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(1)
         assertNotNull(retrievedCurrencyUsage)
-        assertEquals(currencyUsage.currency, retrievedCurrencyUsage.currency)
-        assertEquals(currencyUsage.usageCount, retrievedCurrencyUsage.usageCount)
+        assertEquals(currencyUsage.currency, retrievedCurrencyUsage?.currency)
+        assertEquals(currencyUsage.usageCount, retrievedCurrencyUsage?.usageCount)
 
         // Update currency usage
         val updatedCurrencyUsage = currencyUsage.copy(usageCount = 10)
@@ -178,10 +180,11 @@ class PennywiseDatabaseTest {
 
         val retrievedUpdatedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(1)
         assertNotNull(retrievedUpdatedCurrencyUsage)
-        assertEquals(10, retrievedUpdatedCurrencyUsage.usageCount)
+        assertEquals(10, retrievedUpdatedCurrencyUsage?.usageCount)
 
         // Delete currency usage
-        currencyUsageDao.deleteCurrencyUsage(1)
+        val currencyUsageToDelete = currencyUsageDao.getCurrencyUsageById(1)
+        currencyUsageToDelete?.let { currencyUsageDao.deleteCurrencyUsage(it) }
         val deletedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(1)
         assertNull(deletedCurrencyUsage)
     }
@@ -212,12 +215,12 @@ class PennywiseDatabaseTest {
         currencyUsageDao.insertCurrencyUsage(currencyUsage)
 
         // Increment usage
-        currencyUsageDao.incrementUsage(1, "USD")
+        currencyUsageDao.incrementCurrencyUsage(1, "USD", Date(), Date())
 
         // Verify increment
         val updatedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(1)
         assertNotNull(updatedCurrencyUsage)
-        assertEquals(2, updatedCurrencyUsage.usageCount)
+        assertEquals(2, updatedCurrencyUsage?.usageCount)
     }
 
     @Test
@@ -267,11 +270,11 @@ class PennywiseDatabaseTest {
         currencyUsages.forEach { currencyUsageDao.insertCurrencyUsage(it) }
 
         // Retrieve currency usage by user
-        val userCurrencyUsages = currencyUsageDao.getCurrencyUsageByUser(1)
+        val userCurrencyUsages = currencyUsageDao.getCurrencyUsageByUser(1).first()
         assertEquals(3, userCurrencyUsages.size)
 
         // Verify currencies are present
-        val currencyCodes = userCurrencyUsages.map { it.currencyCode }
+        val currencyCodes = userCurrencyUsages.map { it.currency }
         assertTrue(currencyCodes.contains("USD"))
         assertTrue(currencyCodes.contains("EUR"))
         assertTrue(currencyCodes.contains("GBP"))
@@ -440,7 +443,7 @@ class PennywiseDatabaseTest {
         // Insert 1000 transactions
         for (i in 1..1000) {
             val transaction = TransactionEntity(
-                id = i,
+                id = i.toLong(),
                 userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
@@ -460,7 +463,7 @@ class PennywiseDatabaseTest {
         assert(duration < 10000) { "Insertion took too long: ${duration}ms" }
 
         // Verify all transactions were inserted
-        val transactionCount = transactionDao.getTransactionsByUser(1).size
+        val transactionCount = transactionDao.getTransactionsByUser(1).first().size
         assertEquals(1000, transactionCount)
     }
 

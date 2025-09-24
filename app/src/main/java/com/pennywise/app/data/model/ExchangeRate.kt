@@ -61,6 +61,6 @@ data class CachedExchangeRate(
     fun isExpired(): Boolean {
         val currentTime = System.currentTimeMillis()
         val cacheExpiryTime = lastUpdateTime + (CACHE_DURATION_HOURS * 60 * 60 * 1000)
-        return currentTime > cacheExpiryTime
+        return currentTime >= cacheExpiryTime
     }
 }
