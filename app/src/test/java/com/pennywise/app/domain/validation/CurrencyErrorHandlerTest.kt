@@ -5,16 +5,16 @@ import com.pennywise.app.R
 import com.pennywise.app.domain.model.Currency
 import io.mockk.every
 import io.mockk.mockk
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class CurrencyErrorHandlerTest {
     
     private lateinit var currencyErrorHandler: CurrencyErrorHandler
     private lateinit var mockContext: Context
     
-    @Before
+    @BeforeEach
     fun setUp() {
         currencyErrorHandler = CurrencyErrorHandler()
         mockContext = mockk<Context>()
@@ -29,7 +29,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getUserFriendlyErrorMessage(errorType)
         
         // Then
-        assertEquals("Should return correct message", "Please select a currency", result)
+        assertEquals("Please select a currency", result, "Should return correct message")
     }
     
     @Test
@@ -42,7 +42,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getUserFriendlyErrorMessage(errorType, invalidValue)
         
         // Then
-        assertEquals("Should return correct message", "Currency code must be exactly 3 characters", result)
+        assertEquals("Currency code must be exactly 3 characters", result, "Should return correct message")
     }
     
     @Test
@@ -55,7 +55,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getUserFriendlyErrorMessage(errorType, invalidValue)
         
         // Then
-        assertEquals("Should return correct message", "Currency 'XXX' is not supported", result)
+        assertEquals("Currency 'XXX' is not supported", result, "Should return correct message")
     }
     
     @Test
@@ -67,7 +67,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getUserFriendlyErrorMessage(errorType)
         
         // Then
-        assertEquals("Should return correct message", "Please enter a valid amount", result)
+        assertEquals("Please enter a valid amount", result, "Should return correct message")
     }
     
     @Test
@@ -80,7 +80,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getUserFriendlyErrorMessage(errorType, context = mockContext)
         
         // Then
-        assertEquals("Should use context string", "Custom empty code message", result)
+        assertEquals("Custom empty code message", result, "Should use context string")
     }
     
     @Test
@@ -96,8 +96,8 @@ class CurrencyErrorHandlerTest {
         )
         
         // Then
-        assertTrue("Should include suggestions", result.contains("USD, EUR, GBP"))
-        assertTrue("Should include base message", result.contains("Currency 'US' is not supported"))
+        assertTrue(result.contains("USD, EUR, GBP"), "Should include suggestions")
+        assertTrue(result.contains("Currency 'US' is not supported"), "Should include base message")
     }
     
     @Test
@@ -112,7 +112,7 @@ class CurrencyErrorHandlerTest {
         )
         
         // Then
-        assertEquals("Should not include suggestions", "Please select a currency", result)
+        assertEquals("Please select a currency", result, "Should not include suggestions")
     }
     
     @Test
@@ -130,7 +130,7 @@ class CurrencyErrorHandlerTest {
         )
         
         // Then
-        assertEquals("Should use context string", "Custom message with USD, EUR", result)
+        assertEquals("Custom message with USD, EUR", result, "Should use context string")
     }
     
     @Test
@@ -142,7 +142,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getRecoverySuggestion(errorType)
         
         // Then
-        assertEquals("Should return correct suggestion", "Please select a currency from the dropdown", result)
+        assertEquals("Please select a currency from the dropdown", result, "Should return correct suggestion")
     }
     
     @Test
@@ -154,7 +154,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getRecoverySuggestion(errorType)
         
         // Then
-        assertEquals("Should return correct suggestion", "Please enter a 3-letter currency code", result)
+        assertEquals("Please enter a 3-letter currency code", result, "Should return correct suggestion")
     }
     
     @Test
@@ -166,7 +166,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getRecoverySuggestion(errorType)
         
         // Then
-        assertEquals("Should return correct suggestion", "Please select from the supported currencies", result)
+        assertEquals("Please select from the supported currencies", result, "Should return correct suggestion")
     }
     
     @Test
@@ -178,7 +178,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getRecoverySuggestion(errorType)
         
         // Then
-        assertEquals("Should return correct suggestion", "Please enter a valid positive number", result)
+        assertEquals("Please enter a valid positive number", result, "Should return correct suggestion")
     }
     
     @Test
@@ -191,7 +191,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getRecoverySuggestion(errorType, mockContext)
         
         // Then
-        assertEquals("Should use context string", "Custom recovery message", result)
+        assertEquals("Custom recovery message", result, "Should use context string")
     }
     
     @Test
@@ -204,7 +204,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.isCurrencyChangeSafe(oldCurrency, newCurrency)
         
         // Then
-        assertTrue("Should return true for safe currency change", result)
+        assertTrue(result, "Should return true for safe currency change")
     }
     
     @Test
@@ -217,7 +217,7 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.getCurrencyChangeWarning(oldCurrency, newCurrency)
         
         // Then
-        assertNull("Should return null for safe currency change", result)
+        assertNull(result, "Should return null for safe currency change")
     }
     
     @Test
@@ -232,12 +232,12 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.createErrorReport(errorType, invalidValue, context, additionalInfo)
         
         // Then
-        assertTrue("Should include error type", result.contains("UNSUPPORTED_CODE"))
-        assertTrue("Should include context", result.contains("TestContext"))
-        assertTrue("Should include invalid value", result.contains("XXX"))
-        assertTrue("Should include additional info", result.contains("key1: value1"))
-        assertTrue("Should include additional info", result.contains("key2: 123"))
-        assertTrue("Should include timestamp", result.contains("Timestamp:"))
+        assertTrue(result.contains("UNSUPPORTED_CODE"), "Should include error type")
+        assertTrue(result.contains("TestContext"), "Should include context")
+        assertTrue(result.contains("XXX"), "Should include invalid value")
+        assertTrue(result.contains("key1: value1"), "Should include additional info")
+        assertTrue(result.contains("key2: 123"), "Should include additional info")
+        assertTrue(result.contains("Timestamp:"), "Should include timestamp")
     }
     
     @Test
@@ -249,10 +249,10 @@ class CurrencyErrorHandlerTest {
         val result = currencyErrorHandler.createErrorReport(errorType)
         
         // Then
-        assertTrue("Should include error type", result.contains("EMPTY_CODE"))
-        assertTrue("Should include context", result.contains("Unknown"))
-        assertTrue("Should include timestamp", result.contains("Timestamp:"))
-        assertFalse("Should not include invalid value section", result.contains("Invalid Value:"))
-        assertFalse("Should not include additional info section", result.contains("Additional Info:"))
+        assertTrue(result.contains("EMPTY_CODE"), "Should include error type")
+        assertTrue(result.contains("Unknown"), "Should include context")
+        assertTrue(result.contains("Timestamp:"), "Should include timestamp")
+        assertFalse(result.contains("Invalid Value:"), "Should not include invalid value section")
+        assertFalse(result.contains("Additional Info:"), "Should not include additional info section")
     }
 }

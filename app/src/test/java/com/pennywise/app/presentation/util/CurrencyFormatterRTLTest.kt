@@ -2,11 +2,9 @@ package com.pennywise.app.presentation.util
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.robolectric.annotation.Config
 import java.util.*
 
@@ -14,13 +12,12 @@ import java.util.*
  * Comprehensive RTL (Right-to-Left) support tests for CurrencyFormatter
  * Tests currency formatting in RTL languages like Arabic and Hebrew
  */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33], application = android.app.Application::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class CurrencyFormatterRTLTest {
     
     private lateinit var context: Context
     
-    @Before
+    @BeforeEach
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
     }
@@ -32,12 +29,12 @@ class CurrencyFormatterRTLTest {
         // Test basic Hebrew currency formatting
         val result = CurrencyFormatter.formatAmount(100.0, "ILS", context, hebrewLocale)
         
-        assertTrue("Hebrew result should contain ₪ symbol", result.contains("₪"))
-        assertTrue("Hebrew result should contain amount", result.contains("100"))
+        assertTrue(result.contains("₪"), "Hebrew result should contain ₪ symbol")
+        assertTrue(result.contains("100"), "Hebrew result should contain amount")
         
         // Test RTL locale detection
-        assertTrue("Hebrew locale should be detected as RTL", 
-            CurrencyFormatter.isRTLLocale(hebrewLocale))
+        assertTrue(CurrencyFormatter.isRTLLocale(hebrewLocale), 
+            "Hebrew locale should be detected as RTL")
         assertEquals("rtl", CurrencyFormatter.getTextDirection(hebrewLocale))
     }
     
@@ -48,11 +45,11 @@ class CurrencyFormatterRTLTest {
         // Test basic Arabic currency formatting
         val result = CurrencyFormatter.formatAmount(100.0, "SAR", context, arabicLocale)
         
-        assertTrue("Arabic result should contain amount", result.contains("100"))
+        assertTrue(result.contains("100"), "Arabic result should contain amount")
         
         // Test RTL locale detection
-        assertTrue("Arabic locale should be detected as RTL", 
-            CurrencyFormatter.isRTLLocale(arabicLocale))
+        assertTrue(CurrencyFormatter.isRTLLocale(arabicLocale), 
+            "Arabic locale should be detected as RTL")
         assertEquals("rtl", CurrencyFormatter.getTextDirection(arabicLocale))
     }
     
@@ -62,12 +59,12 @@ class CurrencyFormatterRTLTest {
         val rtlResult = CurrencyFormatter.formatAmountForRTL(100.0, "USD", context)
         
         // Should contain RTL markers (U+200F Right-to-Left Mark)
-        assertTrue("RTL result should contain RTL markers", 
-            rtlResult.contains("\u200F"))
+        assertTrue(rtlResult.contains("\u200F"), 
+            "RTL result should contain RTL markers")
         
         // Should contain the currency symbol and amount
-        assertTrue("RTL result should contain $ symbol", rtlResult.contains("$"))
-        assertTrue("RTL result should contain amount", rtlResult.contains("100"))
+        assertTrue(rtlResult.contains("$"), "RTL result should contain $ symbol")
+        assertTrue(rtlResult.contains("100"), "RTL result should contain amount")
     }
     
     @Test
@@ -76,8 +73,8 @@ class CurrencyFormatterRTLTest {
         val mixedResult = CurrencyFormatter.formatAmount(100.0, "USD", context, forceRTL = true)
         
         // Should contain RTL markers for proper mixed-direction display
-        assertTrue("Mixed direction result should contain RTL markers", 
-            mixedResult.contains("\u200F"))
+        assertTrue(mixedResult.contains("\u200F"), 
+            "Mixed direction result should contain RTL markers")
     }
     
     @Test
@@ -88,12 +85,12 @@ class CurrencyFormatterRTLTest {
             val rtlResult = CurrencyFormatter.formatAmountForRTL(100.0, currency, context)
             
             // All should contain RTL markers
-            assertTrue("$currency RTL result should contain RTL markers", 
-                rtlResult.contains("\u200F"))
+            assertTrue(rtlResult.contains("\u200F"), 
+                "$currency RTL result should contain RTL markers")
             
             // Should contain amount
-            assertTrue("$currency RTL result should contain amount", 
-                rtlResult.contains("100"))
+            assertTrue(rtlResult.contains("100"), 
+                "$currency RTL result should contain amount")
         }
     }
     
@@ -102,10 +99,10 @@ class CurrencyFormatterRTLTest {
         // Test RTL formatting with negative amounts
         val negativeResult = CurrencyFormatter.formatAmountForRTL(-100.0, "USD", context)
         
-        assertTrue("RTL negative result should contain RTL markers", 
-            negativeResult.contains("\u200F"))
-        assertTrue("RTL negative result should contain negative sign or amount", 
-            negativeResult.contains("-") || negativeResult.contains("100"))
+        assertTrue(negativeResult.contains("\u200F"), 
+            "RTL negative result should contain RTL markers")
+        assertTrue(negativeResult.contains("-") || negativeResult.contains("100"), 
+            "RTL negative result should contain negative sign or amount")
     }
     
     @Test
@@ -113,10 +110,10 @@ class CurrencyFormatterRTLTest {
         // Test RTL formatting with zero amounts
         val zeroResult = CurrencyFormatter.formatAmountForRTL(0.0, "USD", context)
         
-        assertTrue("RTL zero result should contain RTL markers", 
-            zeroResult.contains("\u200F"))
-        assertTrue("RTL zero result should contain zero", 
-            zeroResult.contains("0"))
+        assertTrue(zeroResult.contains("\u200F"), 
+            "RTL zero result should contain RTL markers")
+        assertTrue(zeroResult.contains("0"), 
+            "RTL zero result should contain zero")
     }
     
     @Test
@@ -124,10 +121,10 @@ class CurrencyFormatterRTLTest {
         // Test RTL formatting with large amounts
         val largeResult = CurrencyFormatter.formatAmountForRTL(1234567.89, "USD", context)
         
-        assertTrue("RTL large result should contain RTL markers", 
-            largeResult.contains("\u200F"))
-        assertTrue("RTL large result should contain amount", 
-            largeResult.contains("1234567") || largeResult.contains("1,234,567"))
+        assertTrue(largeResult.contains("\u200F"), 
+            "RTL large result should contain RTL markers")
+        assertTrue(largeResult.contains("1234567") || largeResult.contains("1,234,567"), 
+            "RTL large result should contain amount")
     }
     
     @Test
@@ -144,9 +141,9 @@ class CurrencyFormatterRTLTest {
         )
         
         // Should contain both currencies and conversion info
-        assertTrue("RTL conversion result should contain USD", conversionResult.contains("$100"))
-        assertTrue("RTL conversion result should contain EUR", conversionResult.contains("€85"))
-        assertTrue("RTL conversion result should contain rate", conversionResult.contains("0.8500"))
+        assertTrue(conversionResult.contains("$100"), "RTL conversion result should contain USD")
+        assertTrue(conversionResult.contains("€85"), "RTL conversion result should contain EUR")
+        assertTrue(conversionResult.contains("0.8500"), "RTL conversion result should contain rate")
     }
     
     @Test
@@ -160,7 +157,7 @@ class CurrencyFormatterRTLTest {
         val sarSymbol = CurrencyFormatter.getCurrencySymbol("SAR", arabicLocale)
         
         assertEquals("₪", ilsSymbol)
-        assertNotNull("SAR symbol should not be null", sarSymbol)
+        assertNotNull(sarSymbol, "SAR symbol should not be null")
     }
     
     @Test
@@ -170,11 +167,11 @@ class CurrencyFormatterRTLTest {
         val usdResult = CurrencyFormatter.formatAmountForRTL(100.0, "USD", context)
         
         // Both should contain RTL markers
-        assertTrue("JPY RTL result should contain RTL markers", jpyResult.contains("\u200F"))
-        assertTrue("USD RTL result should contain RTL markers", usdResult.contains("\u200F"))
+        assertTrue(jpyResult.contains("\u200F"), "JPY RTL result should contain RTL markers")
+        assertTrue(usdResult.contains("\u200F"), "USD RTL result should contain RTL markers")
         
         // JPY should not have decimal places, USD should
-        assertTrue("JPY RTL result should not contain .00", !jpyResult.contains(".00"))
-        assertTrue("USD RTL result should contain decimal places", usdResult.contains(".00"))
+        assertTrue(!jpyResult.contains(".00"), "JPY RTL result should not contain .00")
+        assertTrue(usdResult.contains(".00"), "USD RTL result should contain decimal places")
     }
 }

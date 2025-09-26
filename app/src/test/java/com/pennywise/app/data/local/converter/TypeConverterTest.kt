@@ -4,8 +4,8 @@ import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.domain.model.UserRole
 import com.pennywise.app.domain.model.UserStatus
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.util.Date
 
 class TypeConverterTest {

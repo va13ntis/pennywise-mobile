@@ -6,8 +6,7 @@ import androidx.compose.ui.test.performClick
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
-import org.junit.Rule
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.util.*
 
 /**
@@ -16,8 +15,7 @@ import java.util.*
  */
 class ExpenseSectionPerformanceTest {
     
-    @get:Rule
-    val composeTestRule = createComposeRule()
+    private val composeTestRule = createComposeRule()
     
     private fun createTestTransaction(
         id: Long,

@@ -14,6 +14,12 @@ class UserStatusConverter {
     
     @TypeConverter
     fun toUserStatus(statusString: String?): UserStatus? {
-        return statusString?.let { UserStatus.valueOf(it) }
+        return statusString?.let { 
+            try {
+                UserStatus.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        }
     }
 }

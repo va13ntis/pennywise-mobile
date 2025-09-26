@@ -1,9 +1,9 @@
 package com.pennywise.app.domain.validation
 
 import com.pennywise.app.domain.model.Currency
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 /**
  * Integration test for currency validation flow
@@ -13,7 +13,7 @@ class CurrencyValidationIntegrationTest {
     private lateinit var currencyValidator: CurrencyValidator
     private lateinit var currencyErrorHandler: CurrencyErrorHandler
     
-    @Before
+    @BeforeEach
     fun setUp() {
         currencyValidator = CurrencyValidator()
         currencyErrorHandler = CurrencyErrorHandler()
@@ -32,10 +32,10 @@ class CurrencyValidationIntegrationTest {
         val formattedAmount = currencyValidator.formatAmountWithValidation(amount, validCurrencyCode)
         
         // Then
-        assertTrue("Currency validation should succeed", currencyValidation is ValidationResult.Success)
-        assertEquals("Should return correct currency", Currency.USD, currency)
-        assertTrue("Amount validation should succeed", amountValidation is ValidationResult.Success)
-        assertEquals("Should format amount correctly", "$100.00", formattedAmount)
+        assertTrue(currencyValidation is ValidationResult.Success, "Currency validation should succeed")
+        assertEquals(Currency.USD, currency, "Should return correct currency")
+        assertTrue(amountValidation is ValidationResult.Success, "Amount validation should succeed")
+        assertEquals("$100.00", formattedAmount, "Should format amount correctly")
     }
     
     @Test
@@ -51,10 +51,10 @@ class CurrencyValidationIntegrationTest {
         val formattedAmount = currencyValidator.formatAmountWithValidation(amount, invalidCurrencyCode)
         
         // Then
-        assertTrue("Currency validation should fail", currencyValidation is ValidationResult.Error)
-        assertEquals("Should fallback to USD", Currency.USD, currency)
-        assertTrue("Amount validation should succeed with fallback currency", amountValidation is ValidationResult.Success)
-        assertEquals("Should format amount with fallback currency", "$100.00", formattedAmount)
+        assertTrue(currencyValidation is ValidationResult.Error, "Currency validation should fail")
+        assertEquals(Currency.USD, currency, "Should fallback to USD")
+        assertTrue(amountValidation is ValidationResult.Success, "Amount validation should succeed with fallback currency")
+        assertEquals("$100.00", formattedAmount, "Should format amount with fallback currency")
     }
     
     @Test
@@ -72,11 +72,11 @@ class CurrencyValidationIntegrationTest {
         val formattedInvalidAmount = currencyValidator.formatAmountWithValidation(invalidAmount, jpyCurrencyCode)
         
         // Then
-        assertEquals("Should return JPY currency", Currency.JPY, currency)
-        assertTrue("Valid amount should succeed", validAmountValidation is ValidationResult.Success)
-        assertTrue("Invalid amount should fail", invalidAmountValidation is ValidationResult.Error)
-        assertEquals("Should format valid amount correctly", "¥100", formattedValidAmount)
-        assertEquals("Should format invalid amount with fallback", "¥0", formattedInvalidAmount)
+        assertEquals(Currency.JPY, currency, "Should return JPY currency")
+        assertTrue(validAmountValidation is ValidationResult.Success, "Valid amount should succeed")
+        assertTrue(invalidAmountValidation is ValidationResult.Error, "Invalid amount should fail")
+        assertEquals("¥100", formattedValidAmount, "Should format valid amount correctly")
+        assertEquals("¥0", formattedInvalidAmount, "Should format invalid amount with fallback")
     }
     
     @Test
@@ -98,9 +98,9 @@ class CurrencyValidationIntegrationTest {
         )
         
         // Then
-        assertEquals("Should provide correct message for empty code", "Please select a currency", emptyCodeMessage)
-        assertEquals("Should provide correct message for invalid length", "Currency code must be exactly 3 characters", invalidLengthMessage)
-        assertEquals("Should provide correct message for unsupported code", "Currency 'XXX' is not supported", unsupportedCodeMessage)
+        assertEquals("Please select a currency", emptyCodeMessage, "Should provide correct message for empty code")
+        assertEquals("Currency code must be exactly 3 characters", invalidLengthMessage, "Should provide correct message for invalid length")
+        assertEquals("Currency 'XXX' is not supported", unsupportedCodeMessage, "Should provide correct message for unsupported code")
     }
     
     @Test
@@ -115,8 +115,8 @@ class CurrencyValidationIntegrationTest {
         )
         
         // Then
-        assertTrue("Should include base message", messageWithSuggestions.contains("Currency 'US' is not supported"))
-        assertTrue("Should include suggestions", messageWithSuggestions.contains("USD, EUR, GBP"))
+        assertTrue(messageWithSuggestions.contains("Currency 'US' is not supported"), "Should include base message")
+        assertTrue(messageWithSuggestions.contains("USD, EUR, GBP"), "Should include suggestions")
     }
     
     @Test
@@ -128,11 +128,11 @@ class CurrencyValidationIntegrationTest {
         val detailedResult = currencyValidator.validateCurrencyCodeWithDetails(invalidCode)
         
         // Then
-        assertTrue("Should return detailed error", detailedResult is DetailedValidationResult.Error)
+        assertTrue(detailedResult is DetailedValidationResult.Error, "Should return detailed error")
         val error = detailedResult as DetailedValidationResult.Error
-        assertEquals("Should have correct error type", CurrencyErrorType.INVALID_LENGTH, error.errorType)
-        assertEquals("Should have correct message", "Currency code must be exactly 3 characters", error.message)
-        assertTrue("Should have suggestion", error.suggestedFix.isNotEmpty())
+        assertEquals(CurrencyErrorType.INVALID_LENGTH, error.errorType, "Should have correct error type")
+        assertEquals("Currency code must be exactly 3 characters", error.message, "Should have correct message")
+        assertTrue(error.suggestedFix.isNotEmpty(), "Should have suggestion")
     }
     
     @Test
@@ -150,10 +150,10 @@ class CurrencyValidationIntegrationTest {
         // When & Then
         edgeCases.forEach { (code, description) ->
             val result = currencyValidator.validateCurrencyCode(code)
-            assertTrue("Validation should handle $description", result is ValidationResult)
+            assertTrue(result is ValidationResult, "Validation should handle $description")
             
             val fallback = currencyValidator.getValidCurrencyCodeOrFallback(code)
-            assertTrue("Fallback should always return valid code", Currency.isValidCode(fallback))
+            assertTrue(Currency.isValidCode(fallback), "Fallback should always return valid code")
         }
     }
     
@@ -176,9 +176,9 @@ class CurrencyValidationIntegrationTest {
         testCases.forEach { (amount, shouldBeValid) ->
             val result = currencyValidator.validateAmountForCurrency(amount, currency)
             if (shouldBeValid) {
-                assertTrue("Amount $amount should be valid", result is ValidationResult.Success)
+                assertTrue(result is ValidationResult.Success, "Amount $amount should be valid")
             } else {
-                assertTrue("Amount $amount should be invalid", result is ValidationResult.Error)
+                assertTrue(result is ValidationResult.Error, "Amount $amount should be invalid")
             }
         }
     }
@@ -198,7 +198,7 @@ class CurrencyValidationIntegrationTest {
         testCases.forEach { (currencyCode, amounts) ->
             amounts.forEach { (amount, expectedFormat) ->
                 val result = currencyValidator.formatAmountWithValidation(amount, currencyCode)
-                assertEquals("Should format $amount in $currencyCode correctly", expectedFormat, result)
+                assertEquals(expectedFormat, result, "Should format $amount in $currencyCode correctly")
             }
         }
     }

@@ -14,7 +14,13 @@ class RecurringPeriodConverter {
     
     @TypeConverter
     fun toRecurringPeriod(value: String?): RecurringPeriod? {
-        return value?.let { RecurringPeriod.valueOf(it) }
+        return value?.let { 
+            try {
+                RecurringPeriod.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        }
     }
 }
 

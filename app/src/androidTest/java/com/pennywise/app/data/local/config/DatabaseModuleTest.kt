@@ -13,17 +13,17 @@ import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.runner.RunWith
 import java.util.Date
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 
 /**
- * Integration tests for database module configuration
+ * Instrumented integration tests for database module configuration
  * Tests database module setup, dependency injection, and configuration
  */
 @RunWith(AndroidJUnit4::class)
@@ -34,7 +34,7 @@ class DatabaseModuleTest {
     private lateinit var transactionDao: TransactionDao
     private lateinit var currencyUsageDao: CurrencyUsageDao
 
-    @Before
+    @BeforeEach
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
@@ -46,7 +46,7 @@ class DatabaseModuleTest {
         currencyUsageDao = database.currencyUsageDao()
     }
 
-    @After
+    @AfterEach
     fun tearDown() {
         database.close()
     }

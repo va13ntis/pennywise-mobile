@@ -4,7 +4,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywise.app.data.local.PennyWiseDatabase
-import org.junit.Assert.*
+import org.junit.jupiter.api.Assertions.*
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
@@ -12,14 +12,14 @@ import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.junit.runner.RunWith
 import java.util.Date
 
 /**
- * Integration tests for PennywiseDatabase
+ * Instrumented integration tests for PennywiseDatabase
  * Tests database configuration, entity relationships, and data integrity
  */
 @RunWith(AndroidJUnit4::class)
@@ -30,7 +30,7 @@ class PennywiseDatabaseTest {
     private lateinit var transactionDao: com.pennywise.app.data.local.dao.TransactionDao
     private lateinit var currencyUsageDao: com.pennywise.app.data.local.dao.CurrencyUsageDao
 
-    @Before
+    @BeforeEach
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
@@ -42,7 +42,7 @@ class PennywiseDatabaseTest {
         currencyUsageDao = database.currencyUsageDao()
     }
 
-    @After
+    @AfterEach
     fun tearDown() {
         database.close()
     }

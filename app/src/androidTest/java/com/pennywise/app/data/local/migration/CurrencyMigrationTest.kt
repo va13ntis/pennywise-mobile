@@ -4,7 +4,6 @@ import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.*
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.entity.CurrencyUsageEntity
@@ -12,13 +11,13 @@ import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.data.local.migration.DatabaseMigrations.MIGRATION_1_2
 import com.pennywise.app.domain.model.Currency
-import org.junit.Rule
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import org.junit.runner.RunWith
 import java.io.IOException
 
 /**
- * Integration tests for database migrations
+ * Instrumented integration tests for database migrations
  * Tests migration from version 1 to version 2 (adding currency support)
  */
 @RunWith(AndroidJUnit4::class)
@@ -26,8 +25,7 @@ class CurrencyMigrationTest {
 
     private val TEST_DB = "migration-test"
 
-    @get:Rule
-    val helper: MigrationTestHelper = MigrationTestHelper(
+    private val helper: MigrationTestHelper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
         PennyWiseDatabase::class.java,
         emptyList(),

@@ -14,7 +14,13 @@ class TransactionTypeConverter {
     
     @TypeConverter
     fun toTransactionType(value: String?): TransactionType? {
-        return value?.let { TransactionType.valueOf(it) }
+        return value?.let { 
+            try {
+                TransactionType.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        }
     }
 }
 

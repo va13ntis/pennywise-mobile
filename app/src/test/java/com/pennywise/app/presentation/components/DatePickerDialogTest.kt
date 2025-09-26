@@ -7,14 +7,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.pennywise.app.presentation.components.CustomDatePickerDialog
-import org.junit.Rule
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.time.LocalDate
 
 class DatePickerDialogTest {
 
-    @get:Rule
-    val composeTestRule = createComposeRule()
+    private val composeTestRule = createComposeRule()
 
     @Test
     fun testDatePickerDialog_ShowsCorrectly() {

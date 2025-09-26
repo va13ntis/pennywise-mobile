@@ -3,9 +3,8 @@ package com.pennywise.app.testutils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
-import org.junit.Rule
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 /**
  * Test to verify that the test configuration is working properly.
@@ -15,13 +14,12 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class TestConfigurationTest {
     
-    @get:Rule
-    val testDispatcherRule = TestDispatcherRule()
+    private val testDispatcherRule = TestDispatcherRule()
     
     @Test
     fun `test configuration should be properly set up`() {
         // This test verifies that the test environment is properly configured
-        assertTrue("Test should pass if configuration is correct", true)
+        assertTrue(true, "Test should pass if configuration is correct")
     }
     
     @Test
@@ -38,6 +36,6 @@ class TestConfigurationTest {
     fun `test should have access to test dispatcher`() {
         // This test verifies that the test dispatcher is accessible
         val dispatcher = testDispatcherRule.getTestDispatcher()
-        assertNotNull("Test dispatcher should not be null", dispatcher)
+        assertNotNull(dispatcher, "Test dispatcher should not be null")
     }
 }

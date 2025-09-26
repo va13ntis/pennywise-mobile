@@ -6,26 +6,25 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import org.junit.rules.TestWatcher
-import org.junit.runner.Description
+import org.junit.jupiter.api.extension.BeforeEachCallback
+import org.junit.jupiter.api.extension.AfterEachCallback
+import org.junit.jupiter.api.extension.ExtensionContext
 
 /**
- * JUnit rule for managing coroutine test dispatchers.
- * This rule ensures proper setup and cleanup of test dispatchers
+ * JUnit 5 extension for managing coroutine test dispatchers.
+ * This extension ensures proper setup and cleanup of test dispatchers
  * to prevent test interference and memory leaks.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class TestDispatcherRule : TestWatcher() {
+class TestDispatcherRule : BeforeEachCallback, AfterEachCallback {
     
     private val testDispatcher: TestDispatcher = StandardTestDispatcher()
     
-    override fun starting(description: Description) {
-        super.starting(description)
+    override fun beforeEach(context: ExtensionContext?) {
         Dispatchers.setMain(testDispatcher)
     }
     
-    override fun finished(description: Description) {
-        super.finished(description)
+    override fun afterEach(context: ExtensionContext?) {
         Dispatchers.resetMain()
     }
     
