@@ -21,6 +21,8 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import retrofit2.Response
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import java.util.concurrent.TimeUnit
 
 /**
@@ -54,12 +56,7 @@ class CurrencyConversionServiceTest {
         every { mockSharedPreferencesEditor.putString(any(), any()) } returns mockSharedPreferencesEditor
         every { mockSharedPreferencesEditor.apply() } just Runs
 
-        service = CurrencyConversionService(mockContext)
-        
-        // Use reflection to inject the mock API for testing
-        val apiField = service.javaClass.getDeclaredField("currencyApi")
-        apiField.isAccessible = true
-        apiField.set(service, mockCurrencyApi)
+        service = CurrencyConversionService(mockContext, mockCurrencyApi)
     }
 
     @AfterEach
@@ -175,7 +172,7 @@ class CurrencyConversionServiceTest {
         fun `should handle API response correctly`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse =             ExchangeRateResponse(
+            val apiResponse = ExchangeRateResponse(
                 result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
@@ -327,7 +324,7 @@ class CurrencyConversionServiceTest {
         fun `should return true when API succeeds`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse =             ExchangeRateResponse(
+            val apiResponse = ExchangeRateResponse(
                 result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
@@ -384,7 +381,7 @@ class CurrencyConversionServiceTest {
         fun `should handle invalid currency codes gracefully`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_XXX_YYY", null) } returns null
             coEvery { mockCurrencyApi.getExchangeRate("XXX", "YYY") } throws 
-                retrofit2.HttpException(Response.error<Any>(400, okhttp3.ResponseBody.create(null, "Invalid currency")))
+                retrofit2.HttpException(Response.error<Any>(400, "Invalid currency".toResponseBody("application/json".toMediaType())))
             
             val result = service.convertCurrency(100.0, "XXX", "YYY")
             assertNull(result)
@@ -407,7 +404,7 @@ class CurrencyConversionServiceTest {
         fun `should handle very large amounts`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse =             ExchangeRateResponse(
+            val apiResponse = ExchangeRateResponse(
                 result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
@@ -426,7 +423,7 @@ class CurrencyConversionServiceTest {
         fun `should handle very small amounts`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse =             ExchangeRateResponse(
+            val apiResponse = ExchangeRateResponse(
                 result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",
@@ -445,7 +442,7 @@ class CurrencyConversionServiceTest {
         fun `should handle negative amounts`() = runTest {
             every { mockSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            val apiResponse =             ExchangeRateResponse(
+            val apiResponse = ExchangeRateResponse(
                 result = "success",
                 baseCode = "USD",
                 targetCode = "EUR",

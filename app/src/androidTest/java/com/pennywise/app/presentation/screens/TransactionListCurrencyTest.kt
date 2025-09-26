@@ -20,7 +20,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display USD currency symbol correctly`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -38,7 +38,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display EUR currency symbol correctly`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -55,7 +55,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display JPY currency symbol correctly`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -72,7 +72,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display GBP currency symbol correctly`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -89,7 +89,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should format amounts correctly for different currencies`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -113,7 +113,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display currency code alongside symbol`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -131,7 +131,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should group transactions by currency when multiple currencies present`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -149,7 +149,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display recurring transaction indicator with currency`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -166,7 +166,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should handle currency conversion display when enabled`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -188,7 +188,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display currency totals correctly`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -205,7 +205,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should handle empty state with currency context`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         
         // When
         composeTestRule.onNode(hasText("Transactions")).performClick()
@@ -221,7 +221,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display currency in transaction details`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -241,7 +241,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should handle currency search and filtering`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -261,7 +261,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display currency in transaction categories`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -279,7 +279,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should handle currency symbol updates when user changes default currency`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -299,7 +299,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display currency conversion rates when available`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -319,7 +319,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should handle currency formatting for large amounts`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When
@@ -336,7 +336,7 @@ class TransactionListCurrencyTest : BaseCurrencyUiTest() {
     @Test
     fun `transaction list should display currency in transaction timestamps`() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         val testTransactions = CurrencyTestFixtures.createTestTransactions()
         
         // When

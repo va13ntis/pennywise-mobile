@@ -2,9 +2,11 @@ package com.pennywise.app.presentation.util
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.*
 
@@ -12,12 +14,13 @@ import java.util.*
  * Unit tests for CurrencyFormatter utility class
  * Tests various currency formatting scenarios including RTL support, decimal precision, and edge cases
  */
+@RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class CurrencyFormatterTest {
     
     private lateinit var context: Context
     
-    @BeforeEach
+    @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
     }
@@ -26,43 +29,43 @@ class CurrencyFormatterTest {
     fun testBasicCurrencyFormatting() {
         // Test USD formatting
         val usdResult = CurrencyFormatter.formatAmount(10.0, "USD", context)
-        assertTrue(usdResult.contains("$"), "USD formatting should contain $ symbol")
-        assertTrue(usdResult.contains("10"), "USD formatting should contain amount")
+        assertTrue("USD formatting should contain $ symbol", usdResult.contains("$"))
+        assertTrue("USD formatting should contain amount", usdResult.contains("10"))
         
         // Test EUR formatting
         val eurResult = CurrencyFormatter.formatAmount(15.0, "EUR", context)
-        assertTrue(eurResult.contains("€"), "EUR formatting should contain € symbol")
-        assertTrue(eurResult.contains("15"), "EUR formatting should contain amount")
+        assertTrue("EUR formatting should contain € symbol", eurResult.contains("€"))
+        assertTrue("EUR formatting should contain amount", eurResult.contains("15"))
         
         // Test GBP formatting
         val gbpResult = CurrencyFormatter.formatAmount(20.0, "GBP", context)
-        assertTrue(gbpResult.contains("£"), "GBP formatting should contain £ symbol")
-        assertTrue(gbpResult.contains("20"), "GBP formatting should contain amount")
+        assertTrue("GBP formatting should contain £ symbol", gbpResult.contains("£"))
+        assertTrue("GBP formatting should contain amount", gbpResult.contains("20"))
     }
     
     @Test
     fun testJPYFormattingNoDecimals() {
         // JPY should not have decimal places
         val jpyResult = CurrencyFormatter.formatAmount(1000.0, "JPY", context)
-        assertTrue(jpyResult.contains("¥"), "JPY formatting should contain ¥ symbol")
-        assertTrue(!jpyResult.contains(".00"), "JPY formatting should not contain decimal places")
-        assertTrue(jpyResult.contains("1000"), "JPY formatting should contain amount")
+        assertTrue("JPY formatting should contain ¥ symbol", jpyResult.contains("¥"))
+        assertTrue("JPY formatting should not contain decimal places", !jpyResult.contains(".00"))
+        assertTrue("JPY formatting should contain amount", jpyResult.contains("1000"))
     }
     
     @Test
     fun testNegativeAmounts() {
         // Test negative USD formatting
         val negativeResult = CurrencyFormatter.formatAmount(-25.5, "USD", context)
-        assertTrue(negativeResult.contains("-"), "Negative amount should be formatted correctly")
-        assertTrue(negativeResult.contains("$"), "Negative amount should contain currency symbol")
+        assertTrue("Negative amount should be formatted correctly", negativeResult.contains("-"))
+        assertTrue("Negative amount should contain currency symbol", negativeResult.contains("$"))
     }
     
     @Test
     fun testInvalidCurrencyCode() {
         // Should fall back to USD when invalid currency code is provided
         val invalidResult = CurrencyFormatter.formatAmount(10.0, "XYZ", context)
-        assertTrue(invalidResult.contains("$"), "Invalid currency should fall back to USD")
-        assertTrue(invalidResult.contains("10"), "Invalid currency should still format amount")
+        assertTrue("Invalid currency should fall back to USD", invalidResult.contains("$"))
+        assertTrue("Invalid currency should still format amount", invalidResult.contains("10"))
     }
     
     @Test
@@ -82,16 +85,16 @@ class CurrencyFormatterTest {
     @Test
     fun testAmountWithoutSymbol() {
         val amountOnly = CurrencyFormatter.formatAmountWithoutSymbol(123.45, "USD", Locale.US)
-        assertTrue(!amountOnly.contains("$"), "Amount without symbol should not contain $")
-        assertTrue(amountOnly.contains("123"), "Amount without symbol should contain formatted number")
+        assertTrue("Amount without symbol should not contain $", !amountOnly.contains("$"))
+        assertTrue("Amount without symbol should contain formatted number", amountOnly.contains("123"))
     }
     
     @Test
     fun testAmountWithSeparateSymbol() {
         val (amount, symbol) = CurrencyFormatter.formatAmountWithSeparateSymbol(123.45, "USD", context)
         assertEquals("$", symbol)
-        assertTrue(!amount.contains("$"), "Amount should be formatted without symbol")
-        assertTrue(amount.contains("123"), "Amount should contain formatted number")
+        assertTrue("Amount should be formatted without symbol", !amount.contains("$"))
+        assertTrue("Amount should contain formatted number", amount.contains("123"))
     }
     
     @Test
@@ -106,9 +109,9 @@ class CurrencyFormatterTest {
             conversionRate = 0.85
         )
         
-        assertTrue(result.contains("$100"), "Conversion result should contain original amount")
-        assertTrue(result.contains("€85"), "Conversion result should contain converted amount")
-        assertTrue(result.contains("0.8500"), "Conversion result should contain conversion rate")
+        assertTrue("Conversion result should contain original amount", result.contains("$100"))
+        assertTrue("Conversion result should contain converted amount", result.contains("€85"))
+        assertTrue("Conversion result should contain conversion rate", result.contains("0.8500"))
     }
     
     @Test
@@ -122,49 +125,49 @@ class CurrencyFormatterTest {
             showRate = false
         )
         
-        assertTrue(result.contains("$100"), "Conversion result should contain original amount")
-        assertTrue(result.contains("€85"), "Conversion result should contain converted amount")
-        assertTrue(!result.contains("0.85"), "Conversion result should not contain conversion rate")
+        assertTrue("Conversion result should contain original amount", result.contains("$100"))
+        assertTrue("Conversion result should contain converted amount", result.contains("€85"))
+        assertTrue("Conversion result should not contain conversion rate", !result.contains("0.85"))
     }
     
     @Test
     fun testIsValidCurrencyCode() {
-        assertTrue(CurrencyFormatter.isValidCurrencyCode("USD"), "USD should be valid")
-        assertTrue(CurrencyFormatter.isValidCurrencyCode("EUR"), "EUR should be valid")
-        assertTrue(CurrencyFormatter.isValidCurrencyCode("JPY"), "JPY should be valid")
-        assertFalse(CurrencyFormatter.isValidCurrencyCode("INVALID"), "INVALID should not be valid")
-        assertFalse(CurrencyFormatter.isValidCurrencyCode(""), "Empty string should not be valid")
+        assertTrue("USD should be valid", CurrencyFormatter.isValidCurrencyCode("USD"))
+        assertTrue("EUR should be valid", CurrencyFormatter.isValidCurrencyCode("EUR"))
+        assertTrue("JPY should be valid", CurrencyFormatter.isValidCurrencyCode("JPY"))
+        assertFalse("INVALID should not be valid", CurrencyFormatter.isValidCurrencyCode("INVALID"))
+        assertFalse("Empty string should not be valid", CurrencyFormatter.isValidCurrencyCode(""))
     }
     
     @Test
     fun testGetDefaultFractionDigits() {
-        assertEquals(2, CurrencyFormatter.getDefaultFractionDigits("USD"), "USD should have 2 decimal places")
-        assertEquals(2, CurrencyFormatter.getDefaultFractionDigits("EUR"), "EUR should have 2 decimal places")
-        assertEquals(0, CurrencyFormatter.getDefaultFractionDigits("JPY"), "JPY should have 0 decimal places")
-        assertEquals(2, CurrencyFormatter.getDefaultFractionDigits("INVALID"), "Invalid currency should default to 2 decimal places")
+        assertEquals("USD should have 2 decimal places", 2, CurrencyFormatter.getDefaultFractionDigits("USD"))
+        assertEquals("EUR should have 2 decimal places", 2, CurrencyFormatter.getDefaultFractionDigits("EUR"))
+        assertEquals("JPY should have 0 decimal places", 0, CurrencyFormatter.getDefaultFractionDigits("JPY"))
+        assertEquals("Invalid currency should default to 2 decimal places", 2, CurrencyFormatter.getDefaultFractionDigits("INVALID"))
     }
     
     @Test
     fun testLargeAmountFormatting() {
         // Test without abbreviations
         val largeAmount = CurrencyFormatter.formatLargeAmount(1500000.0, "USD", context, false)
-        assertTrue(largeAmount.contains("1,500,000"), "Large amount should contain full number")
+        assertTrue("Large amount should contain full number", largeAmount.contains("1,500,000"))
         
         // Test with abbreviations
         val abbreviatedAmount = CurrencyFormatter.formatLargeAmount(1500000.0, "USD", context, true)
-        assertTrue(abbreviatedAmount.contains("M"), "Abbreviated amount should contain M")
-        assertTrue(abbreviatedAmount.contains("1.5"), "Abbreviated amount should contain 1.5")
+        assertTrue("Abbreviated amount should contain M", abbreviatedAmount.contains("M"))
+        assertTrue("Abbreviated amount should contain 1.5", abbreviatedAmount.contains("1.5"))
     }
     
     @Test
     fun testZeroAmountFormatting() {
         // Test normal zero formatting
         val normalZero = CurrencyFormatter.formatZeroAmount("USD", context, false)
-        assertTrue(normalZero.contains("$0"), "Normal zero should contain $0")
+        assertTrue("Normal zero should contain $0", normalZero.contains("$0"))
         
         // Test free zero formatting
         val freeZero = CurrencyFormatter.formatZeroAmount("USD", context, true)
-        assertEquals("Free", freeZero, "Free zero should show 'Free'")
+        assertEquals("Free zero should show 'Free'", "Free", freeZero)
     }
     
     @Test
@@ -174,11 +177,11 @@ class CurrencyFormatterTest {
         val frResult = CurrencyFormatter.formatAmount(10.0, "USD", context, Locale.FRANCE)
         
         // Results should be different due to locale-specific formatting
-        assertNotEquals(usResult, frResult, "US and French locales should format differently")
+        assertNotEquals("US and French locales should format differently", usResult, frResult)
         
         // Both should contain the amount
-        assertTrue(usResult.contains("10"), "US result should contain amount")
-        assertTrue(frResult.contains("10"), "French result should contain amount")
+        assertTrue("US result should contain amount", usResult.contains("10"))
+        assertTrue("French result should contain amount", frResult.contains("10"))
     }
     
     @Test
@@ -187,11 +190,8 @@ class CurrencyFormatterTest {
         val hebrewResult = CurrencyFormatter.formatAmount(100.0, "ILS", context, Locale("iw", "IL"))
         
         // Should contain the currency symbol and amount
-        assertTrue(hebrewResult.contains("₪"), "Hebrew result should contain ₪ symbol")
-        assertTrue(hebrewResult.contains("100"), "Hebrew result should contain amount")
-        
-        // Should contain RTL markers if needed
-        // Note: The actual RTL marker behavior depends on the system's text direction handling
+        assertTrue("Hebrew result should contain ₪ symbol", hebrewResult.contains("₪"))
+        assertTrue("Hebrew result should contain amount", hebrewResult.contains("100"))
     }
     
     @Test
@@ -200,8 +200,8 @@ class CurrencyFormatterTest {
         val forcedRTLResult = CurrencyFormatter.formatAmount(100.0, "USD", context, forceRTL = true)
         
         // Should contain RTL markers
-        assertTrue(forcedRTLResult.contains("\u200F") && forcedRTLResult.contains("\u200F"), 
-            "Forced RTL result should contain RTL markers")
+        assertTrue("Forced RTL result should contain RTL markers", 
+            forcedRTLResult.contains("\u200F") && forcedRTLResult.contains("\u200F"))
     }
     
     @Test
@@ -210,18 +210,18 @@ class CurrencyFormatterTest {
         val rtlResult = CurrencyFormatter.formatAmountForRTL(100.0, "USD", context)
         
         // Should always contain RTL markers
-        assertTrue(rtlResult.contains("\u200F") && rtlResult.contains("\u200F"), 
-            "RTL result should contain RTL markers")
-        assertTrue(rtlResult.contains("100"), "RTL result should contain amount")
+        assertTrue("RTL result should contain RTL markers", 
+            rtlResult.contains("\u200F") && rtlResult.contains("\u200F"))
+        assertTrue("RTL result should contain amount", rtlResult.contains("100"))
     }
     
     @Test
     fun testIsRTLLocale() {
         // Test RTL locale detection
-        assertTrue(CurrencyFormatter.isRTLLocale(Locale("iw", "IL")), "Hebrew locale should be RTL")
-        assertTrue(CurrencyFormatter.isRTLLocale(Locale("ar", "SA")), "Arabic locale should be RTL")
-        assertFalse(CurrencyFormatter.isRTLLocale(Locale.US), "English locale should not be RTL")
-        assertFalse(CurrencyFormatter.isRTLLocale(Locale.FRANCE), "French locale should not be RTL")
+        assertTrue("Hebrew locale should be RTL", CurrencyFormatter.isRTLLocale(Locale("iw", "IL")))
+        assertTrue("Arabic locale should be RTL", CurrencyFormatter.isRTLLocale(Locale("ar", "SA")))
+        assertFalse("English locale should not be RTL", CurrencyFormatter.isRTLLocale(Locale.US))
+        assertFalse("French locale should not be RTL", CurrencyFormatter.isRTLLocale(Locale.FRANCE))
     }
     
     @Test
@@ -241,39 +241,39 @@ class CurrencyFormatterTest {
         val ilsRTL = CurrencyFormatter.formatAmountForRTL(100.0, "ILS", context)
         
         // All should contain RTL markers
-        assertTrue(usdRTL.contains("\u200F"), "USD RTL should contain markers")
-        assertTrue(eurRTL.contains("\u200F"), "EUR RTL should contain markers")
-        assertTrue(ilsRTL.contains("\u200F"), "ILS RTL should contain markers")
+        assertTrue("USD RTL should contain markers", usdRTL.contains("\u200F"))
+        assertTrue("EUR RTL should contain markers", eurRTL.contains("\u200F"))
+        assertTrue("ILS RTL should contain markers", ilsRTL.contains("\u200F"))
         
         // Should contain respective currency symbols
-        assertTrue(usdRTL.contains("$"), "USD RTL should contain $")
-        assertTrue(eurRTL.contains("€"), "EUR RTL should contain €")
-        assertTrue(ilsRTL.contains("₪"), "ILS RTL should contain ₪")
+        assertTrue("USD RTL should contain $", usdRTL.contains("$"))
+        assertTrue("EUR RTL should contain €", eurRTL.contains("€"))
+        assertTrue("ILS RTL should contain ₪", ilsRTL.contains("₪"))
     }
     
     @Test
     fun testEdgeCases() {
         // Test very small amounts
         val smallAmount = CurrencyFormatter.formatAmount(0.01, "USD", context)
-        assertTrue(smallAmount.contains("$"), "Small amount should be formatted")
+        assertTrue("Small amount should be formatted", smallAmount.contains("$"))
         
         // Test very large amounts
         val veryLargeAmount = CurrencyFormatter.formatAmount(999999999.99, "USD", context)
-        assertTrue(veryLargeAmount.contains("$"), "Very large amount should be formatted")
+        assertTrue("Very large amount should be formatted", veryLargeAmount.contains("$"))
         
         // Test zero amount
         val zeroAmount = CurrencyFormatter.formatAmount(0.0, "USD", context)
-        assertTrue(zeroAmount.contains("$0"), "Zero amount should be formatted")
+        assertTrue("Zero amount should be formatted", zeroAmount.contains("$0"))
         
         // Test NaN
         val nanAmount = CurrencyFormatter.formatAmount(Double.NaN, "USD", context)
-        assertFalse(nanAmount.isEmpty(), "NaN amount should be handled gracefully")
+        assertFalse("NaN amount should be handled gracefully", nanAmount.isEmpty())
         
         // Test Infinity
         val positiveInfinityAmount = CurrencyFormatter.formatAmount(Double.POSITIVE_INFINITY, "USD", context)
         val negativeInfinityAmount = CurrencyFormatter.formatAmount(Double.NEGATIVE_INFINITY, "USD", context)
-        assertFalse(positiveInfinityAmount.isEmpty(), "Positive infinity amount should be handled gracefully")
-        assertFalse(negativeInfinityAmount.isEmpty(), "Negative infinity amount should be handled gracefully")
+        assertFalse("Positive infinity amount should be handled gracefully", positiveInfinityAmount.isEmpty())
+        assertFalse("Negative infinity amount should be handled gracefully", negativeInfinityAmount.isEmpty())
     }
     
     @Test
@@ -283,42 +283,42 @@ class CurrencyFormatterTest {
         val mixedResult = CurrencyFormatter.formatAmount(10.0, "Usd", context)
         
         // All should produce the same result
-        assertEquals(upperResult, lowerResult, "Upper case should work")
-        assertEquals(upperResult, mixedResult, "Mixed case should work")
+        assertEquals("Upper case should work", upperResult, lowerResult)
+        assertEquals("Mixed case should work", upperResult, mixedResult)
     }
     
     @Test
     fun testFormatCurrenciesWithDifferentDecimalPlaces() {
         // BHD (Bahraini Dinar) has 3 decimal places
         val bhdResult = CurrencyFormatter.formatAmount(1.234, "BHD", context)
-        assertTrue(bhdResult.contains(".234") || bhdResult.contains(",234"), "BHD should show 3 decimal places")
+        assertTrue("BHD should show 3 decimal places", bhdResult.contains(".234") || bhdResult.contains(",234"))
         
         // JPY has 0 decimal places
         val jpyResult = CurrencyFormatter.formatAmount(1.234, "JPY", context)
-        assertFalse(jpyResult.contains(".") || jpyResult.contains(","), "JPY should not show decimal places")
+        assertFalse("JPY should not show decimal places", jpyResult.contains(".") || jpyResult.contains(","))
         
         // USD has 2 decimal places
         val usdResult = CurrencyFormatter.formatAmount(1.234, "USD", context)
-        assertTrue(usdResult.contains(".23") || usdResult.contains(",23"), "USD should show 2 decimal places")
+        assertTrue("USD should show 2 decimal places", usdResult.contains(".23") || usdResult.contains(",23"))
     }
     
     @Test
     fun testCurrenciesWithDifferentSymbolPositions() {
         // USD typically places the symbol before the amount
         val usdResult = CurrencyFormatter.formatAmount(10.0, "USD", context, Locale.US)
-        assertTrue(usdResult.startsWith("$"), "USD should have symbol before amount")
+        assertTrue("USD should have symbol before amount", usdResult.startsWith("$"))
         
         // EUR in French locale typically places the symbol after the amount
         val eurResult = CurrencyFormatter.formatAmount(10.0, "EUR", context, Locale.FRANCE)
-        assertFalse(eurResult.startsWith("€"), "EUR in French locale may have symbol after amount")
+        assertFalse("EUR in French locale may have symbol after amount", eurResult.startsWith("€"))
     }
     
     @Test
     fun testSpecialCurrencyFormattingRules() {
         // Test formatting with grouping separators
         val largeAmountWithSeparators = CurrencyFormatter.formatAmount(1234567.89, "USD", context, Locale.US)
-        assertTrue(largeAmountWithSeparators.contains(",") || largeAmountWithSeparators.contains(" "), 
-            "Large amount should contain grouping separators")
+        assertTrue("Large amount should contain grouping separators", 
+            largeAmountWithSeparators.contains(",") || largeAmountWithSeparators.contains(" "))
         
         // Test different grouping separators in different locales
         val usFormatting = CurrencyFormatter.formatAmount(1234.56, "USD", context, Locale.US)

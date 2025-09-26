@@ -316,7 +316,13 @@ object CurrencyFormatter {
      * @return true if the locale is RTL, false otherwise
      */
     fun isRTLLocale(locale: Locale): Boolean {
-        return TextUtils.getLayoutDirectionFromLocale(locale) == View.LAYOUT_DIRECTION_RTL
+        return try {
+            TextUtils.getLayoutDirectionFromLocale(locale) == View.LAYOUT_DIRECTION_RTL
+        } catch (e: Exception) {
+            // Fallback for testing environments where TextUtils is not available
+            val rtlLanguages = setOf("ar", "he", "iw", "fa", "ur", "ps", "sd", "ku", "dv")
+            rtlLanguages.contains(locale.language.lowercase())
+        }
     }
     
     /**

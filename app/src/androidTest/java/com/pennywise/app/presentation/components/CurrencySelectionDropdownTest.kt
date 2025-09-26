@@ -5,12 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.testutils.BaseCurrencyUiTest
 import com.pennywise.app.testutils.CurrencyTestFixtures
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -21,9 +19,6 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     
-    @get:Rule
-    val composeTestRule = createComposeRule()
-    
     @Test
     fun `currency dropdown should display current currency correctly`() {
         // Given
@@ -31,7 +26,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         var selectedCurrency by mutableStateOf(currentCurrency)
         
         // When
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -52,7 +47,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -77,7 +72,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         var selectedCurrency by mutableStateOf(currentCurrency)
         val allCurrencies = CurrencyTestFixtures.getAllCurrencies()
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -106,7 +101,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -134,7 +129,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -160,7 +155,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -190,7 +185,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "JPY"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -216,7 +211,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "GBP"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -243,7 +238,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         var selectedCurrency by mutableStateOf(currentCurrency)
         val popularCurrencies = CurrencyTestFixtures.getPopularCurrencies()
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -275,7 +270,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -305,7 +300,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -332,7 +327,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         val currentCurrency = "EUR"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -360,7 +355,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
         var selectedCurrency by mutableStateOf(currentCurrency)
         val testCurrencies = listOf("USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "INR")
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,

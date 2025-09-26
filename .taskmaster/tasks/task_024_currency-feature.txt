@@ -1,0 +1,118 @@
+# Task ID: 24
+# Title: Clean Up Legacy Authentication Code
+# Status: done
+# Dependencies: 18, 19, 20, 21, 22, 23
+# Priority: low
+# Description: Remove legacy authentication code, screens, and related components that are no longer needed with the simplified authentication flow.
+# Details:
+1. Identify and remove the following components:
+   - LoginScreen and RegisterScreen
+   - LoginViewModel and RegisterViewModel
+   - Username/password validation logic
+   - Authentication repositories and services related to username/password
+   - Multi-user database queries and operations
+   - Navigation routes to login/register screens
+
+2. Update UserRepository to support single-user operations:
+```kotlin
+class UserRepository @Inject constructor(
+    private val userDao: UserDao
+) {
+    suspend fun getUser(): User? {
+        return userDao.getUser()
+    }
+    
+    suspend fun hasUser(): Boolean {
+        return userDao.getUserCount() > 0
+    }
+    
+    suspend fun createUser(user: User): Long {
+        return userDao.insertUser(user)
+    }
+    
+    suspend fun updateUser(user: User) {
+        userDao.updateUser(user)
+    }
+    
+    suspend fun updateDeviceAuthSetting(enabled: Boolean) {
+        val user = getUser() ?: return
+        updateUser(user.copy(deviceAuthEnabled = enabled))
+    }
+}
+```
+
+3. Update UserDao interface:
+```kotlin
+@Dao
+interface UserDao {
+    @Query("SELECT * FROM users LIMIT 1")
+    suspend fun getUser(): User?
+    
+    @Query("SELECT COUNT(*) FROM users")
+    suspend fun getUserCount(): Int
+    
+    @Insert
+    suspend fun insertUser(user: User): Long
+    
+    @Update
+    suspend fun updateUser(user: User)
+}
+```
+
+4. Remove authentication-related dependencies from build.gradle:
+```kotlin
+// Remove any unused authentication libraries
+// For example, if you were using a password hashing library
+```
+
+5. Update settings screen to only show device authentication toggle:
+```kotlin
+@Composable
+fun SecuritySettingsSection(
+    viewModel: SettingsViewModel
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Security",
+                style = MaterialTheme.typography.h6
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Device Authentication")
+                    Text(
+                        "Use your device's security to protect the app",
+                        style = MaterialTheme.typography.caption
+                    )
+                }
+                
+                Switch(
+                    checked = uiState.isDeviceAuthEnabled,
+                    onCheckedChange = { viewModel.toggleDeviceAuth(it) }
+                )
+            }
+        }
+    }
+}
+```
+
+6. Remove any authentication-related strings from strings.xml
+7. Clean up any authentication-related tests that are no longer relevant
+
+# Test Strategy:
+1. Verify application builds successfully after removing legacy code
+2. Run existing tests to ensure no regressions
+3. Update and fix any broken tests related to authentication
+4. Test settings screen to ensure device authentication toggle works correctly
+5. Perform manual testing to verify no legacy authentication UI appears in the app

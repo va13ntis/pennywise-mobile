@@ -11,8 +11,10 @@ import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.data.local.migration.DatabaseMigrations.MIGRATION_1_2
 import com.pennywise.app.domain.model.Currency
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.Before
+import org.junit.After
 import org.junit.runner.RunWith
 import java.io.IOException
 
@@ -25,12 +27,27 @@ class CurrencyMigrationTest {
 
     private val TEST_DB = "migration-test"
 
-    private val helper: MigrationTestHelper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        PennyWiseDatabase::class.java,
-        emptyList(),
-        FrameworkSQLiteOpenHelperFactory()
-    )
+    private lateinit var helper: MigrationTestHelper
+
+    @Before
+    fun setUp() {
+        helper = MigrationTestHelper(
+            InstrumentationRegistry.getInstrumentation(),
+            PennyWiseDatabase::class.java,
+            emptyList(),
+            FrameworkSQLiteOpenHelperFactory()
+        )
+    }
+
+    @After
+    fun tearDown() {
+        // Clean up any test databases
+        try {
+            InstrumentationRegistry.getInstrumentation().targetContext.deleteDatabase(TEST_DB)
+        } catch (e: Exception) {
+            // Ignore cleanup errors
+        }
+    }
 
     @Test
     @Throws(IOException::class)
@@ -260,6 +277,185 @@ class CurrencyMigrationTest {
         transactionCursor.moveToFirst()
         val transactionCount = transactionCursor.getInt(0)
         assert(transactionCount == 1000)
+        transactionCursor.close()
+
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate1To2WithMultipleUsers() {
+        var db = helper.createDatabase(TEST_DB, 1).apply {
+            // Insert multiple users with different data
+            execSQL("INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (1, 'user1@example.com', 'hash1', 1234567890, 1234567890)")
+            execSQL("INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (2, 'user2@example.com', 'hash2', 1234567890, 1234567890)")
+            execSQL("INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (3, 'user3@example.com', 'hash3', 1234567890, 1234567890)")
+            
+            // Insert transactions for different users
+            execSQL("INSERT INTO transactions (id, user_id, amount, description, category, date, created_at, updated_at) VALUES (1, 1, 100.0, 'User 1 Transaction', 'Food', 1234567890, 1234567890, 1234567890)")
+            execSQL("INSERT INTO transactions (id, user_id, amount, description, category, date, created_at, updated_at) VALUES (2, 2, 200.0, 'User 2 Transaction', 'Transport', 1234567890, 1234567890, 1234567890)")
+            execSQL("INSERT INTO transactions (id, user_id, amount, description, category, date, created_at, updated_at) VALUES (3, 3, 300.0, 'User 3 Transaction', 'Entertainment', 1234567890, 1234567890, 1234567890)")
+            
+            close()
+        }
+
+        // Run migration
+        db = helper.runMigrationsAndValidate(TEST_DB, 2, true, DatabaseMigrations.MIGRATION_1_2)
+
+        // Verify all users are preserved
+        val userCursor = db.query("SELECT COUNT(*) FROM users")
+        userCursor.moveToFirst()
+        val userCount = userCursor.getInt(0)
+        assertEquals(3, userCount)
+        userCursor.close()
+
+        // Verify all transactions are preserved
+        val transactionCursor = db.query("SELECT COUNT(*) FROM transactions")
+        transactionCursor.moveToFirst()
+        val transactionCount = transactionCursor.getInt(0)
+        assertEquals(3, transactionCount)
+        transactionCursor.close()
+
+        // Test currency usage for multiple users
+        db.execSQL("INSERT INTO currency_usage (userId, currency, usageCount, lastUsed, createdAt, updatedAt) VALUES (1, 'USD', 5, 1234567890, 1234567890, 1234567890)")
+        db.execSQL("INSERT INTO currency_usage (userId, currency, usageCount, lastUsed, createdAt, updatedAt) VALUES (2, 'EUR', 3, 1234567890, 1234567890, 1234567890)")
+        db.execSQL("INSERT INTO currency_usage (userId, currency, usageCount, lastUsed, createdAt, updatedAt) VALUES (3, 'GBP', 2, 1234567890, 1234567890, 1234567890)")
+
+        // Verify currency usage data for each user
+        val currencyCursor = db.query("SELECT * FROM currency_usage ORDER BY userId")
+        var count = 0
+        val expectedCurrencies = listOf("USD", "EUR", "GBP")
+        while (currencyCursor.moveToNext()) {
+            val userId = currencyCursor.getInt(currencyCursor.getColumnIndexOrThrow("userId"))
+            val currency = currencyCursor.getString(currencyCursor.getColumnIndexOrThrow("currency"))
+            val usageCount = currencyCursor.getInt(currencyCursor.getColumnIndexOrThrow("usageCount"))
+            
+            assertEquals(count + 1, userId)
+            assertEquals(expectedCurrencies[count], currency)
+            assertTrue(usageCount > 0)
+            count++
+        }
+        assertEquals(3, count)
+        currencyCursor.close()
+
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate1To2WithEmptyDatabase() {
+        var db = helper.createDatabase(TEST_DB, 1).apply {
+            // Create empty database with no data
+            close()
+        }
+
+        // Run migration on empty database
+        db = helper.runMigrationsAndValidate(TEST_DB, 2, true, DatabaseMigrations.MIGRATION_1_2)
+
+        // Verify tables exist even with no data
+        val tablesCursor = db.query("SELECT name FROM sqlite_master WHERE type='table'")
+        val tables = mutableListOf<String>()
+        while (tablesCursor.moveToNext()) {
+            tables.add(tablesCursor.getString(0))
+        }
+        tablesCursor.close()
+
+        assertTrue(tables.contains("users"))
+        assertTrue(tables.contains("transactions"))
+        assertTrue(tables.contains("currency_usage"))
+
+        // Verify no data exists
+        val userCursor = db.query("SELECT COUNT(*) FROM users")
+        userCursor.moveToFirst()
+        assertEquals(0, userCursor.getInt(0))
+        userCursor.close()
+
+        val transactionCursor = db.query("SELECT COUNT(*) FROM transactions")
+        transactionCursor.moveToFirst()
+        assertEquals(0, transactionCursor.getInt(0))
+        transactionCursor.close()
+
+        val currencyCursor = db.query("SELECT COUNT(*) FROM currency_usage")
+        currencyCursor.moveToFirst()
+        assertEquals(0, currencyCursor.getInt(0))
+        currencyCursor.close()
+
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate1To2WithSpecialCharacters() {
+        var db = helper.createDatabase(TEST_DB, 1).apply {
+            // Insert data with special characters
+            execSQL("INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (1, 'test+special@example.com', 'hash', 1234567890, 1234567890)")
+            execSQL("INSERT INTO transactions (id, user_id, amount, description, category, date, created_at, updated_at) VALUES (1, 1, 100.0, 'Transaction with special chars: !@#$%^&*()', 'Food & Drinks', 1234567890, 1234567890, 1234567890)")
+            
+            close()
+        }
+
+        // Run migration
+        db = helper.runMigrationsAndValidate(TEST_DB, 2, true, DatabaseMigrations.MIGRATION_1_2)
+
+        // Verify special characters are preserved
+        val userCursor = db.query("SELECT * FROM users WHERE id = 1")
+        userCursor.moveToFirst()
+        assertEquals("test+special@example.com", userCursor.getString(userCursor.getColumnIndexOrThrow("email")))
+        userCursor.close()
+
+        val transactionCursor = db.query("SELECT * FROM transactions WHERE id = 1")
+        transactionCursor.moveToFirst()
+        assertEquals("Transaction with special chars: !@#$%^&*()", transactionCursor.getString(transactionCursor.getColumnIndexOrThrow("description")))
+        assertEquals("Food & Drinks", transactionCursor.getString(transactionCursor.getColumnIndexOrThrow("category")))
+        transactionCursor.close()
+
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate1To2WithLargeAmounts() {
+        var db = helper.createDatabase(TEST_DB, 1).apply {
+            // Insert data with large amounts
+            execSQL("INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (1, 'test@example.com', 'hash', 1234567890, 1234567890)")
+            execSQL("INSERT INTO transactions (id, user_id, amount, description, category, date, created_at, updated_at) VALUES (1, 1, 999999999.99, 'Large amount transaction', 'Business', 1234567890, 1234567890, 1234567890)")
+            execSQL("INSERT INTO transactions (id, user_id, amount, description, category, date, created_at, updated_at) VALUES (2, 1, 0.01, 'Small amount transaction', 'Misc', 1234567890, 1234567890, 1234567890)")
+            
+            close()
+        }
+
+        // Run migration
+        db = helper.runMigrationsAndValidate(TEST_DB, 2, true, DatabaseMigrations.MIGRATION_1_2)
+
+        // Verify large amounts are preserved
+        val transactionCursor = db.query("SELECT * FROM transactions ORDER BY amount DESC")
+        transactionCursor.moveToFirst()
+        assertEquals(999999999.99, transactionCursor.getDouble(transactionCursor.getColumnIndexOrThrow("amount")), 0.01)
+        transactionCursor.moveToNext()
+        assertEquals(0.01, transactionCursor.getDouble(transactionCursor.getColumnIndexOrThrow("amount")), 0.01)
+        transactionCursor.close()
+
+        db.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate1To2WithNullValues() {
+        var db = helper.createDatabase(TEST_DB, 1).apply {
+            // Insert data with null values where allowed
+            execSQL("INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (1, 'test@example.com', 'hash', 1234567890, 1234567890)")
+            execSQL("INSERT INTO transactions (id, user_id, amount, description, category, date, created_at, updated_at) VALUES (1, 1, 100.0, NULL, 'Food', 1234567890, 1234567890, 1234567890)")
+            
+            close()
+        }
+
+        // Run migration
+        db = helper.runMigrationsAndValidate(TEST_DB, 2, true, DatabaseMigrations.MIGRATION_1_2)
+
+        // Verify null values are preserved
+        val transactionCursor = db.query("SELECT * FROM transactions WHERE id = 1")
+        transactionCursor.moveToFirst()
+        assertTrue(transactionCursor.isNull(transactionCursor.getColumnIndexOrThrow("description")))
         transactionCursor.close()
 
         db.close()

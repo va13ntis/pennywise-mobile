@@ -20,6 +20,10 @@ import com.pennywise.app.data.util.DataSeeder
 import com.pennywise.app.data.util.DataMigrationService
 import com.pennywise.app.data.util.SettingsDataStore
 import com.pennywise.app.data.security.CardEncryptionManager
+import com.pennywise.app.data.api.CurrencyApi
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import com.google.gson.Gson
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.UserRepository
 import com.pennywise.app.domain.repository.CurrencyUsageRepository
@@ -241,6 +245,20 @@ object RepositoryModule {
         userRepository: UserRepository
     ): AuthManager {
         return AuthManager(context, userRepository)
+    }
+    
+    /**
+     * Provides the CurrencyApi
+     */
+    @Provides
+    @Singleton
+    fun provideCurrencyApi(): CurrencyApi {
+        val gson = Gson()
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://v6.exchangerate-api.com/")
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+        return retrofit.create(CurrencyApi::class.java)
     }
     
 }

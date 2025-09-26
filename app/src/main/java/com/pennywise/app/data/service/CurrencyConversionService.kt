@@ -21,7 +21,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class CurrencyConversionService @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val currencyApi: CurrencyApi? = null
 ) {
     
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences(
@@ -40,7 +41,7 @@ class CurrencyConversionService @Inject constructor(
         .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
     
-    private val currencyApi: CurrencyApi = retrofit.create(CurrencyApi::class.java)
+    private val api: CurrencyApi = currencyApi ?: retrofit.create(CurrencyApi::class.java)
     
     companion object {
         private const val CACHE_KEY_PREFIX = "exchange_rate_"
@@ -101,7 +102,7 @@ class CurrencyConversionService @Inject constructor(
         toCurrency: String
     ): CachedExchangeRate? {
         return try {
-            val response = currencyApi.getExchangeRate(fromCurrency, toCurrency)
+            val response = api.getExchangeRate(fromCurrency, toCurrency)
             CachedExchangeRate(
                 baseCode = response.baseCode,
                 targetCode = response.targetCode,

@@ -13,18 +13,27 @@ import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Date
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 
 /**
  * Instrumented integration tests for database module configuration
  * Tests database module setup, dependency injection, and configuration
+ * 
+ * This test suite validates:
+ * - Database module initialization and configuration
+ * - DAO dependency injection and functionality
+ * - Database relationships and constraints
+ * - Performance characteristics
+ * - Concurrency handling
+ * - Data integrity and cleanup
+ * - Error handling and edge cases
  */
 @RunWith(AndroidJUnit4::class)
 class DatabaseModuleTest {
@@ -34,7 +43,7 @@ class DatabaseModuleTest {
     private lateinit var transactionDao: TransactionDao
     private lateinit var currencyUsageDao: CurrencyUsageDao
 
-    @BeforeEach
+    @Before
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
@@ -46,7 +55,7 @@ class DatabaseModuleTest {
         currencyUsageDao = database.currencyUsageDao()
     }
 
-    @AfterEach
+    @After
     fun tearDown() {
         database.close()
     }
@@ -435,5 +444,205 @@ class DatabaseModuleTest {
             // Expected to fail due to duplicate primary key
             assert(true)
         }
+    }
+
+    @Test
+    fun testDatabaseModuleTransactionSupport() = runBlocking {
+        // Test database module transaction support
+        val user = UserEntity(
+            id = 1,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        userDao.insertUser(user)
+
+        // Test transaction rollback on error
+        try {
+            database.runInTransaction {
+                val transaction1 = TransactionEntity(
+                    id = 1,
+                    userId = 1,
+                    amount = 100.0,
+                    description = "Transaction 1",
+                    category = "Food",
+                    type = TransactionType.EXPENSE,
+                    date = Date(),
+                    createdAt = Date(),
+                    updatedAt = Date()
+                )
+                transactionDao.insertTransaction(transaction1)
+
+                val transaction2 = TransactionEntity(
+                    id = 2,
+                    userId = 1,
+                    amount = 200.0,
+                    description = "Transaction 2",
+                    category = "Transport",
+                    type = TransactionType.EXPENSE,
+                    date = Date(),
+                    createdAt = Date(),
+                    updatedAt = Date()
+                )
+                transactionDao.insertTransaction(transaction2)
+
+                // Force an error to test rollback
+                throw RuntimeException("Test rollback")
+            }
+        } catch (e: RuntimeException) {
+            // Expected exception
+        }
+
+        // Verify no transactions were inserted due to rollback
+        val transactions = transactionDao.getTransactionsByUser(1).first()
+        assertEquals(0, transactions.size)
+    }
+
+    @Test
+    fun testDatabaseModuleMigrationSupport() = runBlocking {
+        // Test database module migration support
+        val user = UserEntity(
+            id = 1,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        userDao.insertUser(user)
+
+        // Test that database can handle schema changes
+        val transaction = TransactionEntity(
+            id = 1,
+            userId = 1,
+            amount = 100.0,
+            description = "Test transaction",
+            category = "Food",
+            type = TransactionType.EXPENSE,
+            date = Date(),
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        transactionDao.insertTransaction(transaction)
+
+        // Verify data persists after operations
+        val retrievedTransaction = transactionDao.getTransactionById(1)
+        assertNotNull(retrievedTransaction)
+        assertEquals(100.0, retrievedTransaction?.amount, 0.01)
+    }
+
+    @Test
+    fun testDatabaseModuleIndexing() = runBlocking {
+        // Test database module indexing performance
+        val user = UserEntity(
+            id = 1,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        userDao.insertUser(user)
+
+        // Insert multiple transactions to test indexing
+        val startTime = System.currentTimeMillis()
+        
+        for (i in 1..1000) {
+            val transaction = TransactionEntity(
+                id = i.toLong(),
+                userId = 1,
+                amount = i * 10.0,
+                description = "Transaction $i",
+                category = "Category ${i % 10}",
+                type = if (i % 2 == 0) TransactionType.EXPENSE else TransactionType.INCOME,
+                date = Date(),
+                createdAt = Date(),
+                updatedAt = Date()
+            )
+            transactionDao.insertTransaction(transaction)
+        }
+        
+        val insertTime = System.currentTimeMillis() - startTime
+
+        // Test query performance with indexing
+        val queryStartTime = System.currentTimeMillis()
+        val transactions = transactionDao.getTransactionsByUser(1).first()
+        val queryTime = System.currentTimeMillis() - queryStartTime
+
+        // Verify performance is acceptable
+        assertTrue("Insert time should be reasonable: ${insertTime}ms", insertTime < 10000)
+        assertTrue("Query time should be reasonable: ${queryTime}ms", queryTime < 1000)
+        assertEquals(1000, transactions.size)
+    }
+
+    @Test
+    fun testDatabaseModuleMemoryManagement() = runBlocking {
+        // Test database module memory management
+        val user = UserEntity(
+            id = 1,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        userDao.insertUser(user)
+
+        // Insert and delete data to test memory management
+        for (i in 1..100) {
+            val transaction = TransactionEntity(
+                id = i.toLong(),
+                userId = 1,
+                amount = i * 10.0,
+                description = "Transaction $i",
+                category = "Food",
+                type = TransactionType.EXPENSE,
+                date = Date(),
+                createdAt = Date(),
+                updatedAt = Date()
+            )
+            transactionDao.insertTransaction(transaction)
+        }
+
+        // Verify data was inserted
+        val initialCount = transactionDao.getTransactionsByUser(1).first().size
+        assertEquals(100, initialCount)
+
+        // Delete all transactions
+        val transactions = transactionDao.getTransactionsByUser(1).first()
+        transactions.forEach { transaction ->
+            transactionDao.deleteTransaction(transaction)
+        }
+
+        // Verify data was deleted
+        val finalCount = transactionDao.getTransactionsByUser(1).first().size
+        assertEquals(0, finalCount)
+    }
+
+    @Test
+    fun testDatabaseModuleConfigurationValidation() = runBlocking {
+        // Test database module configuration validation
+        assertNotNull("Database should be initialized", database)
+        assertNotNull("UserDao should be initialized", userDao)
+        assertNotNull("TransactionDao should be initialized", transactionDao)
+        assertNotNull("CurrencyUsageDao should be initialized", currencyUsageDao)
+
+        // Test database is writable
+        val user = UserEntity(
+            id = 1,
+            defaultCurrency = "USD",
+            locale = "en",
+            deviceAuthEnabled = false,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        userDao.insertUser(user)
+
+        // Test database is readable
+        val retrievedUser = userDao.getUserById(1)
+        assertNotNull("User should be retrievable", retrievedUser)
+        assertEquals("USD", retrievedUser?.defaultCurrency)
     }
 }

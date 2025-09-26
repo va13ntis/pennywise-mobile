@@ -1,0 +1,212 @@
+# Task ID: 25
+# Title: Implement Settings Screen for Device Authentication Toggle
+# Status: done
+# Dependencies: 19, 22
+# Priority: medium
+# Description: Create a settings screen that allows users to enable or disable device authentication after initial setup.
+# Details:
+1. Create SettingsScreen using Jetpack Compose:
+```kotlin
+@Composable
+fun SettingsScreen(
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+        ) {
+            // Device Authentication Section
+            SecuritySettingsSection(viewModel)
+            
+            // Other settings sections...
+            
+            // Show message when settings are updated
+            AnimatedVisibility(visible = uiState.showSuccessMessage) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Settings updated successfully")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SecuritySettingsSection(
+    viewModel: SettingsViewModel
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Security",
+                style = MaterialTheme.typography.titleMedium
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Device Authentication")
+                    Text(
+                        "Use your device's security to protect the app",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Switch(
+                    checked = uiState.isDeviceAuthEnabled,
+                    onCheckedChange = { enabled ->
+                        if (enabled) {
+                            // Check if device has security set up
+                            val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                            if (!keyguardManager.isDeviceSecure) {
+                                // Show dialog to set up device security
+                                viewModel.showDeviceSecurityPrompt()
+                            } else {
+                                viewModel.toggleDeviceAuth(true)
+                            }
+                        } else {
+                            viewModel.toggleDeviceAuth(false)
+                        }
+                    }
+                )
+            }
+        }
+    }
+    
+    // Show dialog if device security needs to be set up
+    if (uiState.showDeviceSecurityPrompt) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDeviceSecurityPrompt() },
+            title = { Text("Device Security Required") },
+            text = { Text("To use device authentication, you need to set up a PIN, pattern, or biometric security on your device first.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.dismissDeviceSecurityPrompt()
+                        // Open device security settings
+                        val intent = Intent(Settings.ACTION_SECURITY_SETTINGS)
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Set Up Now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissDeviceSecurityPrompt() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+```
+2. Create SettingsViewModel to handle settings changes:
+```kotlin
+class SettingsViewModel @Inject constructor(
+    private val userRepository: UserRepository,
+    private val deviceAuthService: DeviceAuthService
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+    
+    init {
+        loadSettings()
+    }
+    
+    private fun loadSettings() {
+        viewModelScope.launch {
+            val user = userRepository.getUser()
+            user?.let {
+                _uiState.update { state ->
+                    state.copy(isDeviceAuthEnabled = user.deviceAuthEnabled)
+                }
+            }
+        }
+    }
+    
+    fun toggleDeviceAuth(enabled: Boolean) {
+        viewModelScope.launch {
+            userRepository.updateDeviceAuthSetting(enabled)
+            _uiState.update { it.copy(
+                isDeviceAuthEnabled = enabled,
+                showSuccessMessage = true
+            )}
+            
+            // Hide success message after delay
+            delay(3000)
+            _uiState.update { it.copy(showSuccessMessage = false) }
+        }
+    }
+    
+    fun showDeviceSecurityPrompt() {
+        _uiState.update { it.copy(showDeviceSecurityPrompt = true) }
+    }
+    
+    fun dismissDeviceSecurityPrompt() {
+        _uiState.update { it.copy(showDeviceSecurityPrompt = false) }
+    }
+}
+
+data class SettingsUiState(
+    val isDeviceAuthEnabled: Boolean = false,
+    val showSuccessMessage: Boolean = false,
+    val showDeviceSecurityPrompt: Boolean = false
+)
+```
+3. Add settings navigation to the app's navigation graph
+4. Use Material3 components for modern UI
+5. Implement proper error handling for cases where device security settings change
+
+# Test Strategy:
+1. Write unit tests for SettingsViewModel
+2. Test toggling device authentication on and off
+3. Test device security prompt logic
+4. Create UI tests to verify settings screen rendering and interactions
+5. Test navigation to and from settings screen

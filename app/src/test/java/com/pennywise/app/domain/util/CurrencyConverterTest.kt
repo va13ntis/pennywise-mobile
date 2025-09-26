@@ -55,10 +55,11 @@ class CurrencyConverterTest {
         every { mockSharedPreferencesEditor.putString(any(), any()) } returns mockSharedPreferencesEditor
         every { mockSharedPreferencesEditor.apply() } just Runs
 
-        conversionService = CurrencyConversionService(mockContext)
+        // Create service with mock API injected directly
+        conversionService = CurrencyConversionService(mockContext, mockCurrencyApi)
         
-        // Use reflection to inject the mock API for testing
-        val apiField = conversionService.javaClass.getDeclaredField("currencyApi")
+        // Use reflection to inject the mock API into the private 'api' field
+        val apiField = conversionService.javaClass.getDeclaredField("api")
         apiField.isAccessible = true
         apiField.set(conversionService, mockCurrencyApi)
     }

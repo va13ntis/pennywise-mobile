@@ -10,14 +10,14 @@ import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Date
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 
 /**
  * Instrumented integration tests for database configuration
@@ -28,7 +28,7 @@ class DatabaseConfigTest {
 
     private lateinit var database: PennyWiseDatabase
 
-    @BeforeEach
+    @Before
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
@@ -36,7 +36,7 @@ class DatabaseConfigTest {
         ).allowMainThreadQueries().build()
     }
 
-    @AfterEach
+    @After
     fun tearDown() {
         database.close()
     }

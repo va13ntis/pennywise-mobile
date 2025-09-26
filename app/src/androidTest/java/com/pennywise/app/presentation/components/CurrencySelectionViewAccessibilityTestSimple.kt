@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.platform.app.InstrumentationRegistry
-// UiAutomator imports removed for now - focusing on core accessibility testing
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Currency
 import org.junit.Assert.*
@@ -14,13 +12,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Accessibility tests for the CurrencySelectionView custom component
+ * Simplified accessibility tests for the CurrencySelectionView custom component
  * Tests the custom view's accessibility features including screen reader support,
  * keyboard navigation, and content descriptions
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
-class CurrencySelectionViewAccessibilityTest {
+class CurrencySelectionViewAccessibilityTestSimple {
 
     private lateinit var context: Context
     private lateinit var currencySelectionView: CurrencySelectionView

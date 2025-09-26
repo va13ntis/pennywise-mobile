@@ -16,14 +16,15 @@ object CurrencyTestFixtures {
      */
     fun createTestUser(
         id: Long = 1L,
-        username: String = "testuser",
         defaultCurrency: String = "USD"
     ): User {
         return User(
             id = id,
-            username = username,
-            passwordHash = "hashed_password",
-            defaultCurrency = defaultCurrency
+            defaultCurrency = defaultCurrency,
+            locale = "en",
+            deviceAuthEnabled = false,
+            createdAt = Date(),
+            updatedAt = Date()
         )
     }
     
@@ -42,8 +43,7 @@ object CurrencyTestFixtures {
                 category = "Food",
                 type = TransactionType.EXPENSE,
                 date = baseDate,
-                isRecurring = false,
-                notes = "Test USD transaction"
+                isRecurring = false
             ),
             Transaction(
                 id = 2L,
@@ -54,8 +54,7 @@ object CurrencyTestFixtures {
                 category = "Transport",
                 type = TransactionType.EXPENSE,
                 date = baseDate,
-                isRecurring = false,
-                notes = "Test EUR transaction"
+                isRecurring = false
             ),
             Transaction(
                 id = 3L,
@@ -66,8 +65,7 @@ object CurrencyTestFixtures {
                 category = "Entertainment",
                 type = TransactionType.EXPENSE,
                 date = baseDate,
-                isRecurring = true,
-                notes = "Test JPY transaction"
+                isRecurring = true
             ),
             Transaction(
                 id = 4L,
@@ -78,8 +76,7 @@ object CurrencyTestFixtures {
                 category = "Shopping",
                 type = TransactionType.EXPENSE,
                 date = baseDate,
-                isRecurring = false,
-                notes = "Test GBP transaction"
+                isRecurring = false
             )
         )
     }

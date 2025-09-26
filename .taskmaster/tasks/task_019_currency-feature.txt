@@ -1,0 +1,115 @@
+# Task ID: 19
+# Title: Implement Device Authentication Service
+# Status: done
+# Dependencies: 18
+# Priority: high
+# Description: Create a service to handle device authentication using Android's BiometricPrompt and DeviceCredentialManager APIs.
+# Details:
+✅ **Completed Implementation:**
+
+1. DeviceAuthService class with biometric and device credential support:
+```kotlin
+class DeviceAuthService @Inject constructor(
+    private val context: Context,
+    private val userRepository: UserRepository
+) {
+    suspend fun isDeviceAuthEnabled(): Boolean {
+        return userRepository.getUser()?.deviceAuthEnabled ?: false
+    }
+    
+    fun launchDeviceAuth(
+        activity: FragmentActivity,
+        onSuccess: () -> Unit,
+        onFailure: () -> Unit
+    ) {
+        val executor = ContextCompat.getMainExecutor(context)
+        val biometricPrompt = BiometricPrompt(activity, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    onSuccess()
+                }
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    onFailure()
+                }
+                override fun onAuthenticationFailed() {
+                    onFailure()
+                }
+            })
+            
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Authenticate to access PennyWise")
+            .setSubtitle("Confirm your identity to continue")
+            .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
+            .build()
+            
+        biometricPrompt.authenticate(promptInfo)
+    }
+    
+    fun isDeviceSecure(): Boolean {
+        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        return keyguardManager.isDeviceSecure
+    }
+}
+```
+
+2. BiometricPrompt integration with BiometricManager
+3. DataStore preferences for device auth settings
+4. Support for both biometric (fingerprint/face) and device credentials (PIN/pattern/password)
+5. Proper error handling and callback management
+6. Integration with AuthViewModel and navigation flow
+7. AndroidX Biometric library for secure authentication
+8. Proper lifecycle management with FragmentActivity integration
+9. Added necessary permissions in AndroidManifest.xml:
+```xml
+<uses-permission android:name="android.permission.USE_BIOMETRIC" />
+```
+
+# Test Strategy:
+✅ **Completed Testing:**
+
+1. Created unit tests with mocked BiometricPrompt
+2. Tested authentication success and failure scenarios
+3. Tested device security status detection
+4. Created UI tests to verify authentication flow
+5. Tested on devices with and without biometric capabilities
+6. Verified proper integration with AuthViewModel and navigation flow
+7. Confirmed DataStore persistence for device auth preferences
+8. Validated error handling for authentication failures
+
+# Subtasks:
+## 1. Create DeviceAuthService class [completed]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 2. Implement BiometricPrompt integration [completed]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 3. Add DataStore preferences for device auth settings [completed]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 4. Implement proper error handling [completed]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 5. Add necessary permissions in AndroidManifest.xml [completed]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 6. Integrate with AuthViewModel and navigation flow [completed]
+### Dependencies: None
+### Description: 
+### Details:
+
+
