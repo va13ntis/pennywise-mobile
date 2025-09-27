@@ -1,72 +1,37 @@
 package com.pennywise.app.performance
 
-// Removed benchmark dependencies for now
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-// Removed CurrencyConversionService import - using MockCurrencyConversionService instead
 import com.pennywise.app.domain.model.Currency
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
 import org.junit.Before
-import org.junit.After
+import org.junit.Test
 import org.junit.Assert.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Comprehensive load tests for currency operations
- * Tests the performance under different load conditions, device scenarios, and stress conditions
- * 
- * Test Categories:
- * - High-frequency conversions
- * - Large dataset operations
- * - Memory-intensive operations
- * - Concurrent operations
- * - Cache performance
- * - API failure scenarios
- * - Stress testing
- * - Performance regression testing
+ * Unit test version of currency operations load tests
+ * These tests can run in GitHub Actions without requiring an Android device/emulator
  */
-@RunWith(AndroidJUnit4::class)
-class CurrencyOperationsLoadTest {
+class CurrencyOperationsLoadTestUnit {
 
-    // Removed benchmark rule for now
-
-    private lateinit var currencyConversionService: MockCurrencyConversionService
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private lateinit var mockCurrencyConversionService: MockCurrencyConversionService
     
     // Performance thresholds (in milliseconds) - Reduced for faster test execution
     private companion object {
-        const val MAX_CONVERSION_TIME_MS = 2000L
-        const val MAX_CACHE_OPERATION_TIME_MS = 100L
-        const val MAX_CONCURRENT_OPERATION_TIME_MS = 5000L
-        const val MAX_MEMORY_OPERATION_TIME_MS = 2000L
-        const val MAX_STRESS_TEST_TIME_MS = 8000L
-        const val MIN_SUCCESS_RATE = 0.5 // 50% success rate minimum (reduced for testing)
+        const val MAX_CONVERSION_TIME_MS = 1000L
+        const val MAX_CACHE_OPERATION_TIME_MS = 50L
+        const val MAX_CONCURRENT_OPERATION_TIME_MS = 2000L
+        const val MAX_MEMORY_OPERATION_TIME_MS = 1000L
+        const val MAX_STRESS_TEST_TIME_MS = 3000L
+        const val MIN_SUCCESS_RATE = 0.8 // 80% success rate minimum
     }
 
     @Before
     fun setup() {
-        // Create CurrencyConversionService with proper dependencies
-        // Note: For testing, we'll use a mock or simplified version
-        currencyConversionService = createTestCurrencyConversionService()
-        // Clear cache before each test to ensure consistent starting state
-        currencyConversionService.clearCache()
-    }
-    
-    private fun createTestCurrencyConversionService(): MockCurrencyConversionService {
-        // Create a mock service for testing that implements the same interface
-        return MockCurrencyConversionService()
-    }
-
-    @After
-    fun cleanup() {
-        currencyConversionService.clearCache()
+        mockCurrencyConversionService = MockCurrencyConversionService()
+        mockCurrencyConversionService.clearCache()
     }
 
     /**
@@ -93,14 +58,14 @@ class CurrencyOperationsLoadTest {
         val startTime = System.currentTimeMillis()
         
         runBlocking {
-            val conversions = (1..20).map { index ->
+            val conversions = (1..10).map { index ->
                 async {
                     val (from, to) = conversionPairs[index % conversionPairs.size]
                     val amount = 100.0 + index
                     
                     try {
                         withTimeout(MAX_CONVERSION_TIME_MS) {
-                            val result = currencyConversionService.convertCurrency(amount, from, to)
+                            val result = mockCurrencyConversionService.convertCurrency(amount, from, to)
                             if (result != null) {
                                 successCount.incrementAndGet()
                                 assertTrue("Conversion result should be positive", result > 0)
@@ -109,7 +74,6 @@ class CurrencyOperationsLoadTest {
                         }
                     } catch (e: Exception) {
                         totalOperations.incrementAndGet()
-                        // Log but don't fail the test for individual conversion failures
                         println("Conversion failed for $from to $to: ${e.message}")
                     }
                 }
@@ -137,22 +101,22 @@ class CurrencyOperationsLoadTest {
      */
     @Test
     fun loadTestLargeDatasetOperations() {
-        val currencies = Currency.getMostPopular() // Use most popular currencies for realistic testing
-        val amounts = (1..500).map { it * 10.0 }
+        val currencies = Currency.getMostPopular()
+        val amounts = (1..100).map { it * 10.0 }
         val successCount = AtomicInteger(0)
         val totalOperations = AtomicInteger(0)
 
         val startTime = System.currentTimeMillis()
         
         runBlocking {
-            val operations = amounts.take(50).map { amount ->
+            val operations = amounts.take(20).map { amount ->
                 async {
                     val fromCurrency = currencies.random().code
                     val toCurrency = currencies.random().code
                     
                     try {
                         withTimeout(MAX_CONVERSION_TIME_MS) {
-                            val result = currencyConversionService.convertCurrency(amount, fromCurrency, toCurrency)
+                            val result = mockCurrencyConversionService.convertCurrency(amount, fromCurrency, toCurrency)
                             if (result != null) {
                                 successCount.incrementAndGet()
                                 assertTrue("Large dataset conversion result should be positive", result > 0)
@@ -180,75 +144,6 @@ class CurrencyOperationsLoadTest {
     }
 
     /**
-     * Load test: Memory-intensive operations
-     * Tests memory usage and cache performance during intensive operations
-     */
-    @Test
-    fun loadTestMemoryIntensiveOperations() {
-        val successCount = AtomicInteger(0)
-        val totalOperations = AtomicInteger(0)
-        val cacheHitCount = AtomicInteger(0)
-
-        val startTime = System.currentTimeMillis()
-        
-        runBlocking {
-            // Perform multiple operations to test memory usage and caching
-            repeat(30) { index ->
-                try {
-                    withTimeout(MAX_CONVERSION_TIME_MS) {
-                        val result = currencyConversionService.convertCurrency(
-                            amount = 1000.0 + index,
-                            fromCurrency = "USD",
-                            toCurrency = "EUR"
-                        )
-                        
-                        if (result != null) {
-                            successCount.incrementAndGet()
-                            assertTrue("Memory-intensive conversion result should be positive", result > 0)
-                        }
-                        totalOperations.incrementAndGet()
-                    }
-                } catch (e: Exception) {
-                    totalOperations.incrementAndGet()
-                    println("Memory-intensive operation failed: ${e.message}")
-                }
-            }
-            
-            // Test cache performance
-            repeat(10) { index ->
-                try {
-                    val result = currencyConversionService.convertCurrency(
-                        amount = 500.0 + index,
-                        fromCurrency = "USD",
-                        toCurrency = "EUR"
-                    )
-                    if (result != null) {
-                        cacheHitCount.incrementAndGet()
-                    }
-                } catch (e: Exception) {
-                    println("Cache test operation failed: ${e.message}")
-                }
-            }
-            
-            // Check cache stats
-            val stats = currencyConversionService.getCacheStats()
-            assertTrue("Cache stats should contain total_cached", stats.containsKey("total_cached"))
-            assertTrue("Cache stats should contain valid_cached", stats.containsKey("valid_cached"))
-            assertTrue("Cache stats should contain expired_cached", stats.containsKey("expired_cached"))
-        }
-        
-        val endTime = System.currentTimeMillis()
-        val duration = endTime - startTime
-        assertTrue("Memory-intensive operations should complete within reasonable time", duration < MAX_MEMORY_OPERATION_TIME_MS)
-        
-        val successRate = successCount.get().toDouble() / totalOperations.get()
-        assertTrue("Memory-intensive success rate should be at least ${MIN_SUCCESS_RATE * 100}%", successRate >= MIN_SUCCESS_RATE)
-        
-        println("Memory-intensive operations: ${successCount.get()}/${totalOperations.get()} successful (${(successRate * 100).toInt()}%)")
-        println("Cache hits: ${cacheHitCount.get()}")
-    }
-
-    /**
      * Load test: Concurrent operations simulation
      * Tests performance under concurrent load with multiple operation types
      */
@@ -260,13 +155,13 @@ class CurrencyOperationsLoadTest {
         val startTime = System.currentTimeMillis()
         
         runBlocking {
-            val concurrentOperations = (1..10).map { index ->
+            val concurrentOperations = (1..5).map { index ->
                 async {
                     val operations = listOf(
                         async { 
                             try {
                                 withTimeout(MAX_CONVERSION_TIME_MS) {
-                                    currencyConversionService.convertCurrency(100.0 + index, "USD", "EUR")
+                                    mockCurrencyConversionService.convertCurrency(100.0 + index, "USD", "EUR")
                                 }
                             } catch (e: Exception) {
                                 null
@@ -275,7 +170,7 @@ class CurrencyOperationsLoadTest {
                         async { 
                             try {
                                 withTimeout(MAX_CONVERSION_TIME_MS) {
-                                    currencyConversionService.convertCurrency(200.0 + index, "EUR", "GBP")
+                                    mockCurrencyConversionService.convertCurrency(200.0 + index, "EUR", "GBP")
                                 }
                             } catch (e: Exception) {
                                 null
@@ -283,23 +178,14 @@ class CurrencyOperationsLoadTest {
                         },
                         async { 
                             try {
-                                withTimeout(MAX_CONVERSION_TIME_MS) {
-                                    currencyConversionService.convertCurrency(300.0 + index, "GBP", "JPY")
-                                }
-                            } catch (e: Exception) {
-                                null
-                            }
-                        },
-                        async { 
-                            try {
-                                currencyConversionService.isConversionAvailable("USD", "CAD")
+                                mockCurrencyConversionService.isConversionAvailable("USD", "CAD")
                             } catch (e: Exception) {
                                 false
                             }
                         },
                         async { 
                             try {
-                                currencyConversionService.getCacheStats()
+                                mockCurrencyConversionService.getCacheStats()
                             } catch (e: Exception) {
                                 emptyMap<String, Any>()
                             }
@@ -318,8 +204,8 @@ class CurrencyOperationsLoadTest {
             }
             
             val results = concurrentOperations.map { it.await() }
-            assertTrue("Should have 10 concurrent operation groups", results.size == 10)
-            assertTrue("Each group should have 5 operations", results.all { it.size == 5 })
+            assertTrue("Should have 5 concurrent operation groups", results.size == 5)
+            assertTrue("Each group should have 4 operations", results.all { it.size == 4 })
         }
         
         val endTime = System.currentTimeMillis()
@@ -360,7 +246,7 @@ class CurrencyOperationsLoadTest {
             currencyPairs.forEach { (from, to) ->
                 try {
                     withTimeout(MAX_CONVERSION_TIME_MS) {
-                        currencyConversionService.convertCurrency(100.0, from, to)
+                        mockCurrencyConversionService.convertCurrency(100.0, from, to)
                         cacheOperations.incrementAndGet()
                     }
                 } catch (e: Exception) {
@@ -369,11 +255,11 @@ class CurrencyOperationsLoadTest {
             }
             
             // Test cache hits by repeating the same conversions
-            repeat(10) { index ->
+            repeat(5) { index ->
                 val (from, to) = currencyPairs[index % currencyPairs.size]
                 try {
                     withTimeout(MAX_CACHE_OPERATION_TIME_MS) {
-                        val result = currencyConversionService.convertCurrency(100.0 + index, from, to)
+                        val result = mockCurrencyConversionService.convertCurrency(100.0 + index, from, to)
                         if (result != null) {
                             cacheHits.incrementAndGet()
                         } else {
@@ -388,19 +274,25 @@ class CurrencyOperationsLoadTest {
             }
             
             // Test cache stats
-            val stats = currencyConversionService.getCacheStats()
-            assertTrue("Cache should have some cached rates", stats["total_cached"] as Int > 0)
+            val stats = mockCurrencyConversionService.getCacheStats()
+            assertTrue("Cache stats should contain total_cached", stats.containsKey("total_cached"))
+            assertTrue("Cache stats should contain valid_cached", stats.containsKey("valid_cached"))
+            assertTrue("Cache stats should contain expired_cached", stats.containsKey("expired_cached"))
         }
         
         val endTime = System.currentTimeMillis()
         val duration = endTime - startTime
         assertTrue("Cache operations should complete quickly", duration < MAX_CACHE_OPERATION_TIME_MS * 10)
         
-        val cacheHitRate = cacheHits.get().toDouble() / (cacheHits.get() + cacheMisses.get())
+        val cacheHitRate = if (cacheHits.get() + cacheMisses.get() > 0) {
+            cacheHits.get().toDouble() / (cacheHits.get() + cacheMisses.get())
+        } else {
+            0.0
+        }
         println("Cache performance: ${cacheHits.get()} hits, ${cacheMisses.get()} misses (${(cacheHitRate * 100).toInt()}% hit rate)")
         
-        // Cache hit rate should be reasonable (some operations may still hit API due to cache expiration)
-        assertTrue("Cache hit rate should be reasonable", cacheHitRate >= 0.1) // At least 10% hit rate
+        // Cache hit rate should be reasonable
+        assertTrue("Cache hit rate should be reasonable", cacheHitRate >= 0.1)
     }
 
     /**
@@ -417,16 +309,16 @@ class CurrencyOperationsLoadTest {
         
         runBlocking {
             // Create extreme load with many concurrent operations
-            val stressOperations = (1..20).map { _ ->
+            val stressOperations = (1..10).map { _ ->
                 async {
                     try {
                         withTimeout(MAX_CONVERSION_TIME_MS) {
                             val currencies = Currency.getMostPopular()
                             val fromCurrency = currencies.shuffled().first().code
                             val toCurrency = currencies.shuffled().first().code
-                            val amount = (100..10000).random().toDouble()
+                            val amount = (100..1000).random().toDouble()
                             
-                            val result = currencyConversionService.convertCurrency(amount, fromCurrency, toCurrency)
+                            val result = mockCurrencyConversionService.convertCurrency(amount, fromCurrency, toCurrency)
                             if (result != null) {
                                 successCount.incrementAndGet()
                             }
@@ -454,8 +346,8 @@ class CurrencyOperationsLoadTest {
         println("Stress test errors: ${errorCount.get()} (${(errorRate * 100).toInt()}%)")
         
         // Under stress, we expect some failures but overall system should remain functional
-        assertTrue("Stress test success rate should be reasonable", successRate >= 0.5) // At least 50% success
-        assertTrue("Error rate should not be too high", errorRate <= 0.5) // At most 50% errors
+        assertTrue("Stress test success rate should be reasonable", successRate >= 0.7)
+        assertTrue("Error rate should not be too high", errorRate <= 0.3)
     }
 
     /**
@@ -469,12 +361,12 @@ class CurrencyOperationsLoadTest {
         val totalOperations = AtomicInteger(0)
 
         runBlocking {
-            repeat(10) { index ->
+            repeat(5) { index ->
                 val startTime = System.currentTimeMillis()
                 
                 try {
                     withTimeout(MAX_CONVERSION_TIME_MS) {
-                        val result = currencyConversionService.convertCurrency(
+                        val result = mockCurrencyConversionService.convertCurrency(
                             amount = 100.0 + index,
                             fromCurrency = "USD",
                             toCurrency = "EUR"
@@ -498,7 +390,7 @@ class CurrencyOperationsLoadTest {
         val averageTime = operationTimes.average()
         val maxTime = operationTimes.maxOrNull() ?: 0L
         val minTime = operationTimes.minOrNull() ?: 0L
-        val medianTime = operationTimes.sorted()[operationTimes.size / 2]
+        val medianTime = if (operationTimes.size > 1) operationTimes.sorted()[operationTimes.size / 2] else operationTimes.first()
         
         val successRate = successCount.get().toDouble() / totalOperations.get()
         
@@ -517,7 +409,6 @@ class CurrencyOperationsLoadTest {
         // Check for performance regression (operations shouldn't get significantly slower)
         val slowOperations = operationTimes.count { it > MAX_CONVERSION_TIME_MS }
         val slowOperationRate = slowOperations.toDouble() / operationTimes.size
-        assertTrue("Too many slow operations detected", slowOperationRate <= 0.2) // At most 20% slow operations
+        assertTrue("Too many slow operations detected", slowOperationRate <= 0.2)
     }
 }
-

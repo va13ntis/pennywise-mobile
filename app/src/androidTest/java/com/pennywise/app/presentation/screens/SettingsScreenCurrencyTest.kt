@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     
     @Test
-    fun `settings screen should display currency conversion section`() {
+    fun settingsScreenShouldDisplayCurrencyConversionSection() {
         // Given
         setupComposeContent { }
         
@@ -31,7 +31,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should display currency conversion toggle`() {
+    fun settingsScreenShouldDisplayCurrencyConversionToggle() {
         // Given
         setupComposeContent { }
         
@@ -44,7 +44,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should toggle currency conversion on and off`() {
+    fun settingsScreenShouldToggleCurrencyConversionOnAndOff() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -65,7 +65,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should show original currency selection when conversion is enabled`() {
+    fun settingsScreenShouldShowOriginalCurrencySelectionWhenConversionIsEnabled() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -79,7 +79,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should hide original currency selection when conversion is disabled`() {
+    fun settingsScreenShouldHideOriginalCurrencySelectionWhenConversionIsDisabled() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -93,7 +93,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should display all supported original currencies`() {
+    fun settingsScreenShouldDisplayAllSupportedOriginalCurrencies() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -117,7 +117,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should allow selection of USD as original currency`() {
+    fun settingsScreenShouldAllowSelectionOfUSDAsOriginalCurrency() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -132,7 +132,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should allow selection of EUR as original currency`() {
+    fun settingsScreenShouldAllowSelectionOfEURAsOriginalCurrency() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -147,7 +147,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should allow selection of GBP as original currency`() {
+    fun settingsScreenShouldAllowSelectionOfGBPAsOriginalCurrency() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -162,7 +162,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should allow selection of JPY as original currency`() {
+    fun settingsScreenShouldAllowSelectionOfJPYAsOriginalCurrency() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -177,7 +177,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should show radio button selection for original currency`() {
+    fun settingsScreenShouldShowRadioButtonSelectionForOriginalCurrency() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -195,7 +195,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should default to USD when currency conversion is enabled`() {
+    fun settingsScreenShouldDefaultToUSDWhenCurrencyConversionIsEnabled() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -209,7 +209,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should persist currency conversion settings`() {
+    fun settingsScreenShouldPersistCurrencyConversionSettings() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -229,7 +229,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should show currency conversion toggle in correct section`() {
+    fun settingsScreenShouldShowCurrencyConversionToggleInCorrectSection() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -243,7 +243,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should handle currency conversion toggle state correctly`() {
+    fun settingsScreenShouldHandleCurrencyConversionToggleStateCorrectly() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -269,7 +269,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should display currency names correctly`() {
+    fun settingsScreenShouldDisplayCurrencyNamesCorrectly() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -286,7 +286,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should handle currency selection with proper validation`() {
+    fun settingsScreenShouldHandleCurrencySelectionWithProperValidation() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -301,7 +301,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should show currency conversion help text`() {
+    fun settingsScreenShouldShowCurrencyConversionHelpText() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -317,7 +317,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should handle currency conversion toggle accessibility`() {
+    fun settingsScreenShouldHandleCurrencyConversionToggleAccessibility() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -331,7 +331,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should show currency conversion status`() {
+    fun settingsScreenShouldShowCurrencyConversionStatus() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -352,7 +352,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should handle currency conversion with multiple selections`() {
+    fun settingsScreenShouldHandleCurrencyConversionWithMultipleSelections() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -369,7 +369,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should show currency conversion toggle with proper styling`() {
+    fun settingsScreenShouldShowCurrencyConversionToggleWithProperStyling() {
         // Given
         setupComposeContent { }
         navigateToSettings()
@@ -383,7 +383,7 @@ class SettingsScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `settings screen should handle currency conversion toggle with proper colors`() {
+    fun settingsScreenShouldHandleCurrencyConversionToggleWithProperColors() {
         // Given
         setupComposeContent { }
         navigateToSettings()

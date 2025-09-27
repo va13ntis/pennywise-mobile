@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 class CurrencySearchTest : BaseCurrencyUiTest() {
     
     @Test
-    fun `currency search should find currency by code`() {
+    fun currencySearchShouldFindCurrencyByCode() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -33,7 +33,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find currency by symbol`() {
+    fun currencySearchShouldFindCurrencyBySymbol() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -47,7 +47,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find currency by display name`() {
+    fun currencySearchShouldFindCurrencyByDisplayName() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -61,7 +61,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find EUR currency by code`() {
+    fun currencySearchShouldFindEURCurrencyByCode() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -75,7 +75,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find EUR currency by symbol`() {
+    fun currencySearchShouldFindEURCurrencyBySymbol() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -89,7 +89,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find EUR currency by display name`() {
+    fun currencySearchShouldFindEURCurrencyByDisplayName() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -103,7 +103,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find JPY currency by code`() {
+    fun currencySearchShouldFindJPYCurrencyByCode() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -117,7 +117,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find JPY currency by symbol`() {
+    fun currencySearchShouldFindJPYCurrencyBySymbol() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -131,7 +131,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find JPY currency by display name`() {
+    fun currencySearchShouldFindJPYCurrencyByDisplayName() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -145,7 +145,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find GBP currency by code`() {
+    fun currencySearchShouldFindGBPCurrencyByCode() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -159,7 +159,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find GBP currency by symbol`() {
+    fun currencySearchShouldFindGBPCurrencyBySymbol() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -173,7 +173,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find GBP currency by display name`() {
+    fun currencySearchShouldFindGBPCurrencyByDisplayName() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -187,7 +187,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should be case insensitive`() {
+    fun currencySearchShouldBeCaseInsensitive() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -201,7 +201,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should be case insensitive for EUR`() {
+    fun currencySearchShouldBeCaseInsensitiveForEUR() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -215,7 +215,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find partial matches`() {
+    fun currencySearchShouldFindPartialMatches() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -229,7 +229,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find partial matches for Euro`() {
+    fun currencySearchShouldFindPartialMatchesForEuro() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -243,7 +243,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find partial matches for Japanese`() {
+    fun currencySearchShouldFindPartialMatchesForJapanese() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -257,7 +257,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find partial matches for British`() {
+    fun currencySearchShouldFindPartialMatchesForBritish() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -271,7 +271,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should show no results for invalid search`() {
+    fun currencySearchShouldShowNoResultsForInvalidSearch() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -285,7 +285,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should show no results for empty search`() {
+    fun currencySearchShouldShowNoResultsForEmptySearch() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -300,7 +300,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should show no results for numeric search`() {
+    fun currencySearchShouldShowNoResultsForNumericSearch() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -314,7 +314,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should clear results when search is cleared`() {
+    fun currencySearchShouldClearResultsWhenSearchIsCleared() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -333,7 +333,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should update results as user types`() {
+    fun currencySearchShouldUpdateResultsAsUserTypes() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -359,7 +359,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should handle special characters in search`() {
+    fun currencySearchShouldHandleSpecialCharactersInSearch() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -373,7 +373,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should handle multiple currency symbols in search`() {
+    fun currencySearchShouldHandleMultipleCurrencySymbolsInSearch() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -387,7 +387,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find CAD currency`() {
+    fun currencySearchShouldFindCADCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -401,7 +401,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find AUD currency`() {
+    fun currencySearchShouldFindAUDCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -415,7 +415,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find CHF currency`() {
+    fun currencySearchShouldFindCHFCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -429,7 +429,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find CNY currency`() {
+    fun currencySearchShouldFindCNYCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -443,7 +443,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find INR currency`() {
+    fun currencySearchShouldFindINRCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -457,7 +457,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find KRW currency`() {
+    fun currencySearchShouldFindKRWCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -471,7 +471,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find KRW currency by symbol`() {
+    fun currencySearchShouldFindKRWCurrencyBySymbol() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -485,7 +485,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should find KRW currency by display name`() {
+    fun currencySearchShouldFindKRWCurrencyByDisplayName() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -499,7 +499,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should handle search with spaces`() {
+    fun currencySearchShouldHandleSearchWithSpaces() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -513,7 +513,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should handle search with extra spaces`() {
+    fun currencySearchShouldHandleSearchWithExtraSpaces() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -527,7 +527,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should show search results section header`() {
+    fun currencySearchShouldShowSearchResultsSectionHeader() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -541,7 +541,7 @@ class CurrencySearchTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency search should maintain search state when dropdown is reopened`() {
+    fun currencySearchShouldMaintainSearchStateWhenDropdownIsReopened() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()

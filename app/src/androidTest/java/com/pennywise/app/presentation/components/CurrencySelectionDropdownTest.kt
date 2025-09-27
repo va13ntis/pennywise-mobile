@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     
     @Test
-    fun `currency dropdown should display current currency correctly`() {
+    fun currencyDropdownShouldDisplayCurrentCurrencyCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -42,7 +42,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should open dialog when clicked`() {
+    fun currencyDropdownShouldOpenDialogWhenClicked() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -66,7 +66,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should display all currencies in dialog`() {
+    fun currencyDropdownShouldDisplayAllCurrenciesInDialog() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -96,7 +96,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should allow currency selection`() {
+    fun currencyDropdownShouldAllowCurrencySelection() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -124,7 +124,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should close dialog after selection`() {
+    fun currencyDropdownShouldCloseDialogAfterSelection() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -150,7 +150,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should show radio button selection correctly`() {
+    fun currencyDropdownShouldShowRadioButtonSelectionCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -180,7 +180,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle JPY currency correctly`() {
+    fun currencyDropdownShouldHandleJPYCurrencyCorrectly() {
         // Given
         val currentCurrency = "JPY"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -206,7 +206,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle GBP currency correctly`() {
+    fun currencyDropdownShouldHandleGBPCurrencyCorrectly() {
         // Given
         val currentCurrency = "GBP"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -232,7 +232,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should display currencies in popularity order`() {
+    fun currencyDropdownShouldDisplayCurrenciesInPopularityOrder() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -265,7 +265,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle cancel button correctly`() {
+    fun currencyDropdownShouldHandleCancelButtonCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -295,7 +295,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle dialog dismissal correctly`() {
+    fun currencyDropdownShouldHandleDialogDismissalCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -322,7 +322,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should display currency with correct formatting`() {
+    fun currencyDropdownShouldDisplayCurrencyWithCorrectFormatting() {
         // Given
         val currentCurrency = "EUR"
         var selectedCurrency by mutableStateOf(currentCurrency)
@@ -349,7 +349,7 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle all supported currencies`() {
+    fun currencyDropdownShouldHandleAllSupportedCurrencies() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)

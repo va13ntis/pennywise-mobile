@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     
     @Test
-    fun `add expense screen should display currency selection dropdown`() {
+    fun addExpenseScreenShouldDisplayCurrencySelectionDropdown() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -28,7 +28,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should allow currency selection`() {
+    fun addExpenseScreenShouldAllowCurrencySelection() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -43,7 +43,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should update currency symbol in amount field when currency changes`() {
+    fun addExpenseScreenShouldUpdateCurrencySymbolInAmountFieldWhenCurrencyChanges() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -57,7 +57,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should format amount correctly for USD currency`() {
+    fun addExpenseScreenShouldFormatAmountCorrectlyForUSDCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -72,7 +72,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should format amount correctly for JPY currency`() {
+    fun addExpenseScreenShouldFormatAmountCorrectlyForJPYCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -87,7 +87,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should prevent decimal input for JPY currency`() {
+    fun addExpenseScreenShouldPreventDecimalInputForJPYCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -102,7 +102,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should prevent decimal input for KRW currency`() {
+    fun addExpenseScreenShouldPreventDecimalInputForKRWCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -117,7 +117,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should allow decimal input for USD currency`() {
+    fun addExpenseScreenShouldAllowDecimalInputForUSDCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -131,7 +131,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should allow decimal input for EUR currency`() {
+    fun addExpenseScreenShouldAllowDecimalInputForEURCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -145,7 +145,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should validate amount field when currency changes`() {
+    fun addExpenseScreenShouldValidateAmountFieldWhenCurrencyChanges() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -161,7 +161,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should show currency-specific validation messages`() {
+    fun addExpenseScreenShouldShowCurrencySpecificValidationMessages() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -178,7 +178,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should enable save button when valid currency and amount are entered`() {
+    fun addExpenseScreenShouldEnableSaveButtonWhenValidCurrencyAndAmountAreEntered() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -193,7 +193,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should disable save button when no currency is selected`() {
+    fun addExpenseScreenShouldDisableSaveButtonWhenNoCurrencyIsSelected() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -207,7 +207,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should disable save button when invalid amount is entered`() {
+    fun addExpenseScreenShouldDisableSaveButtonWhenInvalidAmountIsEntered() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -222,7 +222,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should show error message for invalid amount`() {
+    fun addExpenseScreenShouldShowErrorMessageForInvalidAmount() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -236,7 +236,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should show error message for negative amount`() {
+    fun addExpenseScreenShouldShowErrorMessageForNegativeAmount() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -250,7 +250,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should show error message for zero amount`() {
+    fun addExpenseScreenShouldShowErrorMessageForZeroAmount() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -264,7 +264,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should handle currency search functionality`() {
+    fun addExpenseScreenShouldHandleCurrencySearchFunctionality() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -279,7 +279,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should handle currency search by symbol`() {
+    fun addExpenseScreenShouldHandleCurrencySearchBySymbol() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -293,7 +293,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should handle currency search by display name`() {
+    fun addExpenseScreenShouldHandleCurrencySearchByDisplayName() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -307,7 +307,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should show no results for invalid currency search`() {
+    fun addExpenseScreenShouldShowNoResultsForInvalidCurrencySearch() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -321,7 +321,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should group currencies by popularity`() {
+    fun addExpenseScreenShouldGroupCurrenciesByPopularity() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -338,7 +338,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should save expense with correct currency`() {
+    fun addExpenseScreenShouldSaveExpenseWithCorrectCurrency() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -355,7 +355,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should handle currency change confirmation`() {
+    fun addExpenseScreenShouldHandleCurrencyChangeConfirmation() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -371,7 +371,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should display currency information in supporting text`() {
+    fun addExpenseScreenShouldDisplayCurrencyInformationInSupportingText() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()
@@ -386,7 +386,7 @@ class AddExpenseScreenCurrencyTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `add expense screen should display currency information for JPY`() {
+    fun addExpenseScreenShouldDisplayCurrencyInformationForJPY() {
         // Given
         setupComposeContent { }
         navigateToAddExpense()

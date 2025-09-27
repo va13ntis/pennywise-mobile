@@ -473,7 +473,7 @@ class DatabaseModuleTest {
                     createdAt = Date(),
                     updatedAt = Date()
                 )
-                transactionDao.insertTransaction(transaction1)
+                runBlocking { transactionDao.insertTransaction(transaction1) }
 
                 val transaction2 = TransactionEntity(
                     id = 2,
@@ -486,7 +486,7 @@ class DatabaseModuleTest {
                     createdAt = Date(),
                     updatedAt = Date()
                 )
-                transactionDao.insertTransaction(transaction2)
+                runBlocking { transactionDao.insertTransaction(transaction2) }
 
                 // Force an error to test rollback
                 throw RuntimeException("Test rollback")
@@ -530,7 +530,7 @@ class DatabaseModuleTest {
         // Verify data persists after operations
         val retrievedTransaction = transactionDao.getTransactionById(1)
         assertNotNull(retrievedTransaction)
-        assertEquals(100.0, retrievedTransaction?.amount, 0.01)
+        assertEquals(100.0, retrievedTransaction?.amount ?: 0.0, 0.01)
     }
 
     @Test
