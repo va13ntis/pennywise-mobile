@@ -82,26 +82,24 @@ class CurrencySortingService @Inject constructor(
      * @return Flow of sorted currencies list that updates when usage patterns change
      */
     fun getSortedCurrencies(userId: Long): Flow<List<Currency>> {
-        return currencyUsageRepository.getUserCurrenciesSortedByUsage(userId)
-            .onStart {
-                // Optional: Emit cached data immediately if available
-                if (isCacheValid(userId)) {
-                    sortedCurrenciesCache[userId]?.let { cachedCurrencies ->
-                        // Note: We can't emit from onStart in a regular Flow, but this is where
-                        // we could log or perform other startup operations
+        return try {
+            currencyUsageRepository.getUserCurrenciesSortedByUsage(userId)
+                .onStart {
+                    // Optional: Emit cached data immediately if available
+                    if (isCacheValid(userId)) {
+                        sortedCurrenciesCache[userId]?.let { _ ->
+                            // Note: We can't emit from onStart in a regular Flow, but this is where
+                            // we could log or perform other startup operations
+                        }
                     }
                 }
-            }
-            .map { userCurrencyUsage ->
-                // Get user's default currency - for now we'll use a fallback approach
-                // In a production app, you might want to add a Flow-based method to UserRepository
-                val defaultCurrency = getDefaultCurrencyForUser(userId)
-                
+                .map { userCurrencyUsage ->
                 // Create a set of used currencies
                 val usedCurrencyCodes = userCurrencyUsage.map { it.currency }.toSet()
                 
-                // Ensure default currency is included
-                val allUsedCodes = usedCurrencyCodes + defaultCurrency
+                // Note: We can't call suspend function from Flow.map, so we'll only use actual usage data
+                // In a production app, you might want to use combine() to get both usage and user data
+                val allUsedCodes = usedCurrencyCodes
                 
                 // Get all currencies
                 val allCurrencies = Currency.values().toList()
@@ -142,6 +140,11 @@ class CurrencySortingService @Inject constructor(
                     println("Flow completed with exception for user $userId: ${cause.message}")
                 }
             }
+        } catch (e: Exception) {
+            // Handle exceptions thrown during Flow creation
+            println("Error creating Flow for user $userId: ${e.message}")
+            flowOf(sortedCurrenciesCache[userId] ?: emptyList())
+        }
     }
     
     /**
@@ -150,51 +153,60 @@ class CurrencySortingService @Inject constructor(
      * @return List of sorted currencies
      */
     suspend fun getSortedCurrenciesSuspend(userId: Long): List<Currency> {
-        // Check cache first
-        if (isCacheValid(userId)) {
-            sortedCurrenciesCache[userId]?.let { return it }
-        }
-        
-        // Cache miss or expired - fetch from repository
-        val userCurrencyUsage = currencyUsageRepository.getUserCurrenciesSortedByUsage(userId).first()
-        
-        // Get user's default currency
-        val user = userRepository.getUserById(userId)
-        val defaultCurrency = user?.defaultCurrency ?: "USD"
-        
-        // Create a set of used currencies
-        val usedCurrencyCodes = userCurrencyUsage.map { it.currency }.toSet()
-        
-        // Ensure default currency is included
-        val allUsedCodes = usedCurrencyCodes + defaultCurrency
-        
-        // Get all currencies
-        val allCurrencies = Currency.values().toList()
-        
-        // Sort currencies: first by usage (if used), then by default enum popularity
-        val sortedCurrencies = allCurrencies.sortedWith(compareBy(
-            // First sort by whether it's in the used set (used currencies first)
-            { !(it.code in allUsedCodes) },
-            // Then sort used currencies by their usage order
-            { currency -> 
-                if (currency.code in allUsedCodes) {
-                    userCurrencyUsage.indexOfFirst { it.currency == currency.code }
-                } else {
-                    Int.MAX_VALUE // Unused currencies go to the end
+        return try {
+            // Check cache first
+            if (isCacheValid(userId)) {
+                sortedCurrenciesCache[userId]?.let { return it }
+            }
+            
+            // Cache miss or expired - fetch from repository
+            val userCurrencyUsage = currencyUsageRepository.getUserCurrenciesSortedByUsage(userId).first()
+            
+            // Get user's default currency (if any)
+            val defaultCurrency = getDefaultCurrencyForUser(userId)
+            
+            // Get all currencies
+            val allCurrencies = Currency.values().toList()
+            
+            // Sort currencies with proper priority: used currencies by usage count, then default currency, then by popularity
+            val sortedCurrencies = allCurrencies.sortedWith(compareBy(
+                // First sort by whether it's actually used (has usage count > 0)
+                { currency -> 
+                    val usage = userCurrencyUsage.find { it.currency == currency.code }
+                    if (usage != null && usage.usageCount > 0) 0 else 1
+                },
+                // Then sort used currencies by usage count (descending - highest usage first)
+                { currency -> 
+                    val usage = userCurrencyUsage.find { it.currency == currency.code }
+                    if (usage != null && usage.usageCount > 0) {
+                        -usage.usageCount // Negative for descending order
+                    } else {
+                        Int.MAX_VALUE // Unused currencies go to the end
+                    }
+                },
+                // Then sort by whether it's the user's default currency (default currency gets priority among unused)
+                { currency -> 
+                    if (currency.code == defaultCurrency) 0 else 1
+                },
+                // Finally sort by popularity for currencies in the same category
+                { currency -> 
+                    currency.popularity
                 }
-            },
-            // Finally sort by the default popularity for currencies not in the used set
-            { it.popularity }
-        ))
-        
-        // Update cache
-        cacheMutex.withLock {
-            sortedCurrenciesCache[userId] = sortedCurrencies
-            currencyUsageCache[userId] = userCurrencyUsage
-            cacheTimestamps[userId] = System.currentTimeMillis()
+            ))
+            
+            // Update cache
+            cacheMutex.withLock {
+                sortedCurrenciesCache[userId] = sortedCurrencies
+                currencyUsageCache[userId] = userCurrencyUsage
+                cacheTimestamps[userId] = System.currentTimeMillis()
+            }
+            
+            sortedCurrencies
+        } catch (e: Exception) {
+            // Handle errors gracefully - return empty list or cached data if available
+            println("Error getting sorted currencies for user $userId: ${e.message}")
+            sortedCurrenciesCache[userId] ?: emptyList()
         }
-        
-        return sortedCurrencies
     }
     
     /**
@@ -229,11 +241,16 @@ class CurrencySortingService @Inject constructor(
      * @param currencyCode The currency code that was used
      */
     suspend fun trackCurrencyUsage(userId: Long, currencyCode: String) {
-        // Increment usage in repository
-        currencyUsageRepository.incrementCurrencyUsage(userId, currencyCode)
-        
-        // Invalidate cache for this user since usage pattern changed
-        invalidateCache(userId)
+        try {
+            // Increment usage in repository
+            currencyUsageRepository.incrementCurrencyUsage(userId, currencyCode)
+            
+            // Invalidate cache for this user since usage pattern changed
+            invalidateCache(userId)
+        } catch (e: Exception) {
+            // Log error but don't fail the operation
+            println("Error tracking currency usage for user $userId, currency $currencyCode: ${e.message}")
+        }
     }
     
     /**
@@ -252,23 +269,17 @@ class CurrencySortingService @Inject constructor(
     /**
      * Get default currency for a user with fallback
      * @param userId The user ID
-     * @return Default currency code
+     * @return Default currency code or null if no default is set
      */
-    private fun getDefaultCurrencyForUser(userId: Long): String {
-        // Try to get from cache first
-        val cachedUsage = currencyUsageCache[userId]
-        if (cachedUsage != null && isCacheValid(userId)) {
-            // If we have cached data, we can make a reasonable assumption
-            // In a real implementation, you might want to store user preferences in a Flow
-            return "USD" // Default fallback
+    private suspend fun getDefaultCurrencyForUser(userId: Long): String? {
+        // Try to get user's actual default currency from repository
+        return try {
+            val user = userRepository.getUserById(userId)
+            user?.defaultCurrency
+        } catch (e: Exception) {
+            // If we can't get user data, return null (no default currency)
+            null
         }
-        
-        // For now, return a default currency
-        // In a production app, you might want to:
-        // 1. Add a Flow-based method to UserRepository to get user data reactively
-        // 2. Store user preferences in a separate reactive data source
-        // 3. Use a combination of flows to get both usage and user data
-        return "USD"
     }
     
     /**
@@ -306,13 +317,13 @@ class CurrencySortingService @Inject constructor(
             currencyUsageRepository.getUserCurrenciesSortedByUsage(userId),
             // For now, we'll use a static flow for user data since UserRepository doesn't have Flow methods
             // In a production app, you'd want to add Flow-based methods to UserRepository
-            flowOf("USD") // This represents the user's default currency
+            flowOf(null as String?) // This represents the user's default currency (null if no default)
         ) { userCurrencyUsage, defaultCurrency ->
             // Create a set of used currencies
             val usedCurrencyCodes = userCurrencyUsage.map { it.currency }.toSet()
             
-            // Ensure default currency is included
-            val allUsedCodes = usedCurrencyCodes + defaultCurrency
+            // Include default currency if it exists
+            val allUsedCodes = usedCurrencyCodes + if (defaultCurrency != null) setOf(defaultCurrency) else emptySet()
             
             // Get all currencies
             val allCurrencies = Currency.values().toList()

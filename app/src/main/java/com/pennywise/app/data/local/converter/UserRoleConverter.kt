@@ -14,6 +14,12 @@ class UserRoleConverter {
     
     @TypeConverter
     fun toUserRole(roleString: String?): UserRole? {
-        return roleString?.let { UserRole.valueOf(it) }
+        return roleString?.let { 
+            try {
+                UserRole.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+        }
     }
 }

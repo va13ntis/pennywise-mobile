@@ -15,6 +15,7 @@ import com.pennywise.app.data.local.entity.UserEntity
 import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.async
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,10 +70,11 @@ class DatabasePerformanceTest {
         runBlocking {
             // Create test user
             val testUser = UserEntity(
-                username = "testuser",
-                passwordHash = "hashedpassword",
-                email = "test@example.com",
-                createdAt = Date()
+                defaultCurrency = "USD",
+                locale = "en",
+                deviceAuthEnabled = false,
+                createdAt = Date(),
+                updatedAt = Date()
             )
             userDao.insertUser(testUser)
             
@@ -83,7 +85,9 @@ class DatabasePerformanceTest {
                     userId = 1L,
                     currency = currency,
                     usageCount = (100 - index * 10),
-                    lastUsed = Date()
+                    lastUsed = Date(),
+                    createdAt = Date(),
+                    updatedAt = Date()
                 )
                 currencyUsageDao.insertCurrencyUsage(currencyUsage)
             }
@@ -270,7 +274,8 @@ class DatabasePerformanceTest {
     fun benchmarkCurrencyUsageTracking() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                currencyUsageDao.incrementCurrencyUsage(1L, "USD")
+                val now = Date()
+                currencyUsageDao.incrementCurrencyUsage(1L, "USD", now, now)
                 val usage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
                 assert(usage.isNotEmpty())
             }
@@ -324,10 +329,10 @@ class DatabasePerformanceTest {
      * This tests the performance of querying user by username
      */
     @Test
-    fun benchmarkUserQueryByUsername() {
+    fun benchmarkUserQueryBySingleUser() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val user = userDao.getUserByUsername("testuser")
+                val user = userDao.getSingleUser()
                 assert(user != null)
             }
         }
@@ -432,7 +437,8 @@ class DatabasePerformanceTest {
                 )
                 
                 val id = transactionDao.insertTransaction(transaction)
-                currencyUsageDao.incrementCurrencyUsage(1L, "USD")
+                val now = Date()
+                currencyUsageDao.incrementCurrencyUsage(1L, "USD", now, now)
                 val balance = transactionDao.getBalance(1L)
                 
                 assert(id > 0)

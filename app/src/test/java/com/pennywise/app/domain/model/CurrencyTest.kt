@@ -314,7 +314,7 @@ class CurrencyTest {
         @DisplayName("Should handle NaN amounts gracefully")
         fun `should handle NaN amounts gracefully`() {
             val result = Currency.formatAmount(Double.NaN, Currency.USD)
-            assertEquals("$NaN", result)
+            assertEquals("\$NaN", result)
         }
 
         @Test
@@ -323,8 +323,8 @@ class CurrencyTest {
             val positiveInfinity = Currency.formatAmount(Double.POSITIVE_INFINITY, Currency.USD)
             val negativeInfinity = Currency.formatAmount(Double.NEGATIVE_INFINITY, Currency.USD)
             
-            assertEquals("$Infinity", positiveInfinity)
-            assertEquals("$-Infinity", negativeInfinity)
+            assertEquals("$∞", positiveInfinity)
+            assertEquals("$-∞", negativeInfinity)
         }
 
         @Test

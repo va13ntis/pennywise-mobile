@@ -5,12 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.testutils.BaseCurrencyUiTest
 import com.pennywise.app.testutils.CurrencyTestFixtures
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -21,17 +19,14 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     
-    @get:Rule
-    val composeTestRule = createComposeRule()
-    
     @Test
-    fun `currency dropdown should display current currency correctly`() {
+    fun currencyDropdownShouldDisplayCurrentCurrencyCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
         // When
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -47,12 +42,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should open dialog when clicked`() {
+    fun currencyDropdownShouldOpenDialogWhenClicked() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -71,13 +66,13 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should display all currencies in dialog`() {
+    fun currencyDropdownShouldDisplayAllCurrenciesInDialog() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         val allCurrencies = CurrencyTestFixtures.getAllCurrencies()
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -101,12 +96,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should allow currency selection`() {
+    fun currencyDropdownShouldAllowCurrencySelection() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -129,12 +124,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should close dialog after selection`() {
+    fun currencyDropdownShouldCloseDialogAfterSelection() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -155,12 +150,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should show radio button selection correctly`() {
+    fun currencyDropdownShouldShowRadioButtonSelectionCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -185,12 +180,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle JPY currency correctly`() {
+    fun currencyDropdownShouldHandleJPYCurrencyCorrectly() {
         // Given
         val currentCurrency = "JPY"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -211,12 +206,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle GBP currency correctly`() {
+    fun currencyDropdownShouldHandleGBPCurrencyCorrectly() {
         // Given
         val currentCurrency = "GBP"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -237,13 +232,13 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should display currencies in popularity order`() {
+    fun currencyDropdownShouldDisplayCurrenciesInPopularityOrder() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         val popularCurrencies = CurrencyTestFixtures.getPopularCurrencies()
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -270,12 +265,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle cancel button correctly`() {
+    fun currencyDropdownShouldHandleCancelButtonCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -300,12 +295,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle dialog dismissal correctly`() {
+    fun currencyDropdownShouldHandleDialogDismissalCorrectly() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -327,12 +322,12 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should display currency with correct formatting`() {
+    fun currencyDropdownShouldDisplayCurrencyWithCorrectFormatting() {
         // Given
         val currentCurrency = "EUR"
         var selectedCurrency by mutableStateOf(currentCurrency)
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,
@@ -354,13 +349,13 @@ class CurrencySelectionDropdownTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `currency dropdown should handle all supported currencies`() {
+    fun currencyDropdownShouldHandleAllSupportedCurrencies() {
         // Given
         val currentCurrency = "USD"
         var selectedCurrency by mutableStateOf(currentCurrency)
         val testCurrencies = listOf("USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "INR")
         
-        composeTestRule.setContent {
+        setupComposeContent {
             MaterialTheme {
                 CurrencySelectionDropdown(
                     currentCurrency = selectedCurrency,

@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 class CurrencyValidationTest : BaseCurrencyUiTest() {
     
     @Test
-    fun `should show error message when no currency is selected`() {
+    fun shouldShowErrorMessageWhenNoCurrencyIsSelected() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -32,7 +32,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount is empty`() {
+    fun shouldShowErrorMessageWhenAmountIsEmpty() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -46,7 +46,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount is zero`() {
+    fun shouldShowErrorMessageWhenAmountIsZero() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -60,7 +60,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount is negative`() {
+    fun shouldShowErrorMessageWhenAmountIsNegative() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -74,7 +74,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount is non-numeric`() {
+    fun shouldShowErrorMessageWhenAmountIsNonNumeric() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -88,7 +88,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has too many decimal places for USD`() {
+    fun shouldShowErrorMessageWhenAmountHasTooManyDecimalPlacesForUSD() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -103,7 +103,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal places for JPY`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPlacesForJPY() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -120,7 +120,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal places for KRW`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPlacesForKRW() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -137,7 +137,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when merchant is empty`() {
+    fun shouldShowErrorMessageWhenMerchantIsEmpty() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -152,7 +152,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when merchant is blank`() {
+    fun shouldShowErrorMessageWhenMerchantIsBlank() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -167,7 +167,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when category is not selected`() {
+    fun shouldShowErrorMessageWhenCategoryIsNotSelected() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -183,7 +183,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount is too large`() {
+    fun shouldShowErrorMessageWhenAmountIsTooLarge() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -198,7 +198,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount is very small`() {
+    fun shouldShowErrorMessageWhenAmountIsVerySmall() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -213,7 +213,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has multiple decimal points`() {
+    fun shouldShowErrorMessageWhenAmountHasMultipleDecimalPoints() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -228,7 +228,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has leading zeros`() {
+    fun shouldShowErrorMessageWhenAmountHasLeadingZeros() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -243,7 +243,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has trailing zeros`() {
+    fun shouldShowErrorMessageWhenAmountHasTrailingZeros() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -258,7 +258,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has spaces`() {
+    fun shouldShowErrorMessageWhenAmountHasSpaces() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -273,7 +273,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has commas`() {
+    fun shouldShowErrorMessageWhenAmountHasCommas() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -288,7 +288,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has currency symbol`() {
+    fun shouldShowErrorMessageWhenAmountHasCurrencySymbol() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -303,7 +303,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has plus sign`() {
+    fun shouldShowErrorMessageWhenAmountHasPlusSign() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -318,7 +318,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has minus sign`() {
+    fun shouldShowErrorMessageWhenAmountHasMinusSign() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -333,7 +333,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has scientific notation`() {
+    fun shouldShowErrorMessageWhenAmountHasScientificNotation() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -348,7 +348,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has special characters`() {
+    fun shouldShowErrorMessageWhenAmountHasSpecialCharacters() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -363,7 +363,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has letters mixed with numbers`() {
+    fun shouldShowErrorMessageWhenAmountHasLettersMixedWithNumbers() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -378,7 +378,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has only decimal point`() {
+    fun shouldShowErrorMessageWhenAmountHasOnlyDecimalPoint() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -393,7 +393,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has only decimal point and zero`() {
+    fun shouldShowErrorMessageWhenAmountHasOnlyDecimalPointAndZero() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -408,7 +408,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has only zero and decimal point`() {
+    fun shouldShowErrorMessageWhenAmountHasOnlyZeroAndDecimalPoint() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -423,7 +423,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has multiple decimal points`() {
+    fun shouldShowErrorMessageWhenAmountHasMultipleDecimalPointsSecondTest() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -438,7 +438,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point at the beginning`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointAtTheBeginning() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -453,7 +453,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point at the end`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointAtTheEnd() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -468,7 +468,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point in the middle`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointInTheMiddle() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -483,7 +483,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with no digits after`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithNoDigitsAfter() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -498,7 +498,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with no digits before`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithNoDigitsBefore() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -513,7 +513,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with no digits`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithNoDigits() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -528,7 +528,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with only zeros`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithOnlyZeros() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -543,7 +543,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with only zeros after`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithOnlyZerosAfter() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -558,7 +558,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with only zeros before`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithOnlyZerosBefore() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -573,7 +573,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with only zeros before and after`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithOnlyZerosBeforeAndAfter() {
         // Given
         setupComposeContent()
         navigateToAddExpense()
@@ -588,7 +588,7 @@ class CurrencyValidationTest : BaseCurrencyUiTest() {
     }
     
     @Test
-    fun `should show error message when amount has decimal point with only zeros before and after and in between`() {
+    fun shouldShowErrorMessageWhenAmountHasDecimalPointWithOnlyZerosBeforeAndAfterAndInBetween() {
         // Given
         setupComposeContent()
         navigateToAddExpense()

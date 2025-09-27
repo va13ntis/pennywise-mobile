@@ -5,9 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.UiObject
-import androidx.test.uiautomator.UiSelector
+// UiAutomator imports removed for now - focusing on core accessibility testing
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Currency
 import org.junit.Assert.*
@@ -25,13 +23,11 @@ import org.junit.runner.RunWith
 class CurrencySelectionViewAccessibilityTest {
 
     private lateinit var context: Context
-    private lateinit var device: UiDevice
     private lateinit var currencySelectionView: CurrencySelectionView
 
     @Before
     fun setup() {
         context = ApplicationProvider.getApplicationContext()
-        device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         
         // Create the CurrencySelectionView
         currencySelectionView = CurrencySelectionView(context)
@@ -122,12 +118,6 @@ class CurrencySelectionViewAccessibilityTest {
     fun currencySelectionView_currencySelectionAnnouncement() {
         // Given - CurrencySelectionView is created
         var announcementMade = false
-        
-        // Mock the announceForAccessibility method
-        val originalMethod = currencySelectionView.javaClass.getDeclaredMethod(
-            "announceForAccessibility", CharSequence::class.java
-        )
-        originalMethod.isAccessible = true
         
         // When - Select a currency
         currencySelectionView.setOnCurrencySelectedListener { currency ->
@@ -244,6 +234,7 @@ class CurrencySelectionViewAccessibilityTest {
         val testCurrency = Currency.GBP
         
         // When - Currency is selected
+        currencySelectionView.setSelectedCurrency(testCurrency.code)
         
         // Then - Verify accessibility announcement is made
         // This tests the announceCurrencySelection method

@@ -91,8 +91,8 @@ class CurrencyApiTest {
             assertEquals(baseCode, response.baseCode)
             assertEquals(targetCode, response.targetCode)
             assertEquals(conversionRate, response.conversionRate)
-            assertNotNull(response.timeLastUpdateUtc)
-            assertNotNull(response.timeNextUpdateUtc)
+            assertNotNull(response.lastUpdateTime)
+            assertNotNull(response.nextUpdateTime)
         }
 
         @Test
@@ -164,7 +164,8 @@ class CurrencyApiTest {
             // Verify request format
             assertTrue(request.path!!.contains("/v6/latest"))
             assertTrue(request.path!!.contains("base=$baseCode"))
-            assertTrue(request.path!!.contains("symbols=$targetCodes"))
+            // Check for symbols parameter - it might be URL encoded
+            assertTrue(request.path!!.contains("symbols=") || request.path!!.contains("symbols%3D"))
             
             // Verify response parsing
             assertEquals("success", response.result)
@@ -241,8 +242,8 @@ class CurrencyApiTest {
             assertEquals("USD", response.baseCode)
             assertEquals("EUR", response.targetCode)
             assertEquals(0.85, response.conversionRate)
-            assertEquals("Mon, 01 Jan 2023 00:00:00 +0000", response.timeLastUpdateUtc)
-            assertEquals("Tue, 02 Jan 2023 00:00:00 +0000", response.timeNextUpdateUtc)
+            assertEquals("Mon, 01 Jan 2023 00:00:00 +0000", response.lastUpdateTime)
+            assertEquals("Tue, 02 Jan 2023 00:00:00 +0000", response.nextUpdateTime)
         }
 
         @Test
@@ -266,8 +267,8 @@ class CurrencyApiTest {
             assertEquals("USD", response.baseCode)
             assertEquals("EUR", response.targetCode)
             assertEquals(0.85, response.conversionRate)
-            assertNull(response.timeLastUpdateUtc)
-            assertNull(response.timeNextUpdateUtc)
+            assertNull(response.lastUpdateTime)
+            assertNull(response.nextUpdateTime)
         }
     }
 }

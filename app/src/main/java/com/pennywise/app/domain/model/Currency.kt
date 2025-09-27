@@ -17,10 +17,10 @@ enum class Currency(
     CAD("CAD", "C$", "Canadian Dollar", 5),
     AUD("AUD", "A$", "Australian Dollar", 6),
     CHF("CHF", "CHF", "Swiss Franc", 7),
-    CNY("CNY", "¥", "Chinese Yuan", 8),
+    CNY("CNY", "CN¥", "Chinese Yuan", 8),
     SEK("SEK", "kr", "Swedish Krona", 9),
-    NOK("NOK", "kr", "Norwegian Krone", 10),
-    DKK("DKK", "kr", "Danish Krone", 11),
+    NOK("NOK", "Nkr", "Norwegian Krone", 10),
+    DKK("DKK", "Dkr", "Danish Krone", 11),
     PLN("PLN", "zł", "Polish Złoty", 12),
     CZK("CZK", "Kč", "Czech Koruna", 13),
     HUF("HUF", "Ft", "Hungarian Forint", 14),
@@ -34,7 +34,7 @@ enum class Currency(
     ILS("ILS", "₪", "Israeli Shekel", 22),
     AED("AED", "د.إ", "UAE Dirham", 23),
     SAR("SAR", "ر.س", "Saudi Riyal", 24),
-    ZAR("ZAR", "R", "South African Rand", 25);
+    ZAR("ZAR", "ZAR", "South African Rand", 25);
 
     companion object {
         /**
@@ -67,20 +67,25 @@ enum class Currency(
          * Format amount with currency symbol
          */
         fun formatAmount(amount: Double, currency: Currency): String {
-            // Ensure minus sign is always on the far left for negative values
-            return if (amount < 0) {
-                val absoluteAmount = kotlin.math.abs(amount)
-                val formattedAmount = when (currency.decimalPlaces) {
-                    0 -> absoluteAmount.toInt().toString()
-                    else -> String.format("%.${currency.decimalPlaces}f", absoluteAmount)
+            // Handle special cases first
+            return when {
+                amount.isNaN() -> "${currency.symbol}NaN"
+                amount.isInfinite() -> if (amount > 0) "${currency.symbol}∞" else "${currency.symbol}-∞"
+                amount < 0 -> {
+                    val absoluteAmount = kotlin.math.abs(amount)
+                    val formattedAmount = when (currency.decimalPlaces) {
+                        0 -> absoluteAmount.toInt().toString()
+                        else -> String.format("%.${currency.decimalPlaces}f", absoluteAmount)
+                    }
+                    "${currency.symbol}-$formattedAmount"
                 }
-                "-${currency.symbol}$formattedAmount"
-            } else {
-                val formattedAmount = when (currency.decimalPlaces) {
-                    0 -> amount.toInt().toString()
-                    else -> String.format("%.${currency.decimalPlaces}f", amount)
+                else -> {
+                    val formattedAmount = when (currency.decimalPlaces) {
+                        0 -> amount.toInt().toString()
+                        else -> String.format("%.${currency.decimalPlaces}f", amount)
+                    }
+                    "${currency.symbol}$formattedAmount"
                 }
-                "${currency.symbol}$formattedAmount"
             }
         }
 

@@ -21,7 +21,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class CurrencyConversionService @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val currencyApi: CurrencyApi? = null
 ) {
     
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences(
@@ -40,7 +41,7 @@ class CurrencyConversionService @Inject constructor(
         .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
     
-    private val currencyApi: CurrencyApi = retrofit.create(CurrencyApi::class.java)
+    private val api: CurrencyApi = currencyApi ?: retrofit.create(CurrencyApi::class.java)
     
     companion object {
         private const val CACHE_KEY_PREFIX = "exchange_rate_"
@@ -61,8 +62,8 @@ class CurrencyConversionService @Inject constructor(
         toCurrency: String
     ): Double? = withContext(Dispatchers.IO) {
         try {
-            // If currencies are the same, no conversion needed
-            if (fromCurrency == toCurrency) {
+            // If currencies are the same, no conversion needed (case insensitive)
+            if (fromCurrency.uppercase() == toCurrency.uppercase()) {
                 return@withContext amount
             }
             
@@ -101,7 +102,7 @@ class CurrencyConversionService @Inject constructor(
         toCurrency: String
     ): CachedExchangeRate? {
         return try {
-            val response = currencyApi.getExchangeRate(fromCurrency, toCurrency)
+            val response = api.getExchangeRate(fromCurrency, toCurrency)
             CachedExchangeRate(
                 baseCode = response.baseCode,
                 targetCode = response.targetCode,
@@ -154,7 +155,7 @@ class CurrencyConversionService @Inject constructor(
     fun clearCache() {
         val editor = sharedPreferences.edit()
         val allKeys = sharedPreferences.all.keys
-        allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) }
+        allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) || it.startsWith(CACHE_TIMESTAMP_PREFIX) }
             .forEach { editor.remove(it) }
         editor.apply()
     }
@@ -166,24 +167,33 @@ class CurrencyConversionService @Inject constructor(
         val allKeys = sharedPreferences.all.keys
         val cachedRates = allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) }
         
-        val validRates = cachedRates.count { key ->
+        var validRates = 0
+        var expiredRates = 0
+        
+        cachedRates.forEach { key ->
             val json = sharedPreferences.getString(key, null)
             if (json != null) {
                 try {
                     val rate = gson.fromJson(json, CachedExchangeRate::class.java)
-                    !rate.isExpired()
+                    if (!rate.isExpired()) {
+                        validRates++
+                    } else {
+                        expiredRates++
+                    }
                 } catch (e: Exception) {
-                    false
+                    // Malformed JSON entries count as expired
+                    expiredRates++
                 }
             } else {
-                false
+                // Null entries count as expired
+                expiredRates++
             }
         }
         
         return mapOf(
             "total_cached" to cachedRates.size,
             "valid_cached" to validRates,
-            "expired_cached" to (cachedRates.size - validRates)
+            "expired_cached" to expiredRates
         )
     }
     

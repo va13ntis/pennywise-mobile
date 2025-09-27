@@ -15,7 +15,7 @@ import java.util.*
  * Tests various currency formatting scenarios including RTL support, decimal precision, and edge cases
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [34], application = android.app.Application::class)
 class CurrencyFormatterTest {
     
     private lateinit var context: Context
@@ -192,9 +192,6 @@ class CurrencyFormatterTest {
         // Should contain the currency symbol and amount
         assertTrue("Hebrew result should contain ₪ symbol", hebrewResult.contains("₪"))
         assertTrue("Hebrew result should contain amount", hebrewResult.contains("100"))
-        
-        // Should contain RTL markers if needed
-        // Note: The actual RTL marker behavior depends on the system's text direction handling
     }
     
     @Test

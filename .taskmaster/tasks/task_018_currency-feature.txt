@@ -1,0 +1,45 @@
+# Task ID: 18
+# Title: Modify User Entity and Database Schema
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Update the User entity to remove username/password fields and add device authentication flag to support single-user model.
+# Details:
+1. Remove username, password, and any related authentication fields from User entity
+2. Add boolean field 'deviceAuthEnabled' to track if device authentication is set up
+3. Update Room database schema with migration path:
+```kotlin
+@Entity(tableName = "users")
+data class User(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val currency: String,
+    val language: String,
+    val defaultPaymentMethod: String,
+    val deviceAuthEnabled: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)
+```
+4. Create database migration using Room's Migration class:
+```kotlin
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Create new table with updated schema
+        database.execSQL("CREATE TABLE IF NOT EXISTS users_new (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, currency TEXT NOT NULL, language TEXT NOT NULL, defaultPaymentMethod TEXT NOT NULL, deviceAuthEnabled INTEGER NOT NULL DEFAULT 0, createdAt INTEGER NOT NULL DEFAULT 0)")
+        // Copy data from old table
+        database.execSQL("INSERT INTO users_new (id, currency, language, defaultPaymentMethod, createdAt) SELECT id, currency, language, defaultPaymentMethod, createdAt FROM users")
+        // Remove old table
+        database.execSQL("DROP TABLE users")
+        // Rename new table to match old table name
+        database.execSQL("ALTER TABLE users_new RENAME TO users")
+    }
+}
+```
+5. Update DAO to support single user operations with methods like `getUser()`, `hasUser()`, and `updateUser()`
+6. Use Room version 2.5.0 or newer for best migration support
+
+# Test Strategy:
+1. Write unit tests for User entity with new schema
+2. Test database migration using Room's MigrationTestHelper
+3. Verify data integrity after migration
+4. Test DAO methods for single user operations
+5. Create integration tests to ensure database operations work with updated schema

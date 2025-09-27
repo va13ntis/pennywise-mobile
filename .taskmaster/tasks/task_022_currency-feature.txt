@@ -1,0 +1,155 @@
+# Task ID: 22
+# Title: Update App Navigation Flow
+# Status: done
+# Dependencies: 20, 21
+# Priority: medium
+# Description: Modify the app's navigation to remove login/register screens and implement the new authentication flow with first run setup and device authentication.
+# Details:
+✅ **Completed Implementation:**
+
+1. Updated Navigation Graph using Jetpack Compose Navigation:
+```kotlin
+@Composable
+fun AppNavigation(
+    navController: NavHostController = rememberNavController(),
+    startDestination: String = NavDestinations.SPLASH
+) {
+    val viewModel: AppNavigationViewModel = hiltViewModel()
+    val navState by viewModel.navigationState.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        viewModel.determineStartDestination()
+    }
+    
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
+        // Splash screen
+        composable(NavDestinations.SPLASH) {
+            SplashScreen(onNavigate = { destination ->
+                navController.navigate(destination) {
+                    popUpTo(NavDestinations.SPLASH) { inclusive = true }
+                }
+            })
+        }
+        
+        // First run setup
+        composable(NavDestinations.FIRST_RUN_SETUP) {
+            FirstRunSetupScreen(
+                viewModel = hiltViewModel(),
+                onSetupComplete = {
+                    navController.navigate(NavDestinations.MAIN) {
+                        popUpTo(NavDestinations.FIRST_RUN_SETUP) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Device auth prompt
+        composable(NavDestinations.DEVICE_AUTH) {
+            val authViewModel: DeviceAuthViewModel = hiltViewModel()
+            // Pass activity reference for BiometricPrompt
+            LaunchedEffect(Unit) {
+                (LocalContext.current as? FragmentActivity)?.let { activity ->
+                    authViewModel.setActivity(activity)
+                }
+            }
+            
+            DeviceAuthPromptScreen(
+                viewModel = authViewModel,
+                onAuthSuccess = {
+                    navController.navigate(NavDestinations.MAIN) {
+                        popUpTo(NavDestinations.DEVICE_AUTH) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Main app screens
+        composable(NavDestinations.MAIN) {
+            MainScreen(navController)
+        }
+        
+        // Other app screens...
+    }
+    
+    // Handle navigation state changes
+    LaunchedEffect(navState) {
+        when (navState) {
+            is NavigationState.NavigateTo -> {
+                navController.navigate(navState.destination) {
+                    popUpTo(navState.popUpTo ?: NavDestinations.SPLASH) { 
+                        inclusive = navState.inclusive 
+                    }
+                }
+            }
+            else -> { /* No action needed */ }
+        }
+    }
+}
+
+object NavDestinations {
+    const val SPLASH = "splash"
+    const val FIRST_RUN_SETUP = "first_run_setup"
+    const val DEVICE_AUTH = "device_auth"
+    const val MAIN = "main"
+    // Other destinations...
+}
+```
+
+2. Created AppNavigationViewModel to determine start destination:
+```kotlin
+class AppNavigationViewModel @Inject constructor(
+    private val userRepository: UserRepository,
+    private val settingsDataStore: SettingsDataStore
+) : ViewModel() {
+    private val _navigationState = MutableStateFlow<NavigationState>(NavigationState.Idle)
+    val navigationState: StateFlow<NavigationState> = _navigationState.asStateFlow()
+    
+    fun determineStartDestination() {
+        viewModelScope.launch {
+            val isFirstRun = !settingsDataStore.isFirstRunCompleted()
+            val user = userRepository.getUser()
+            
+            val destination = when {
+                isFirstRun -> NavDestinations.FIRST_RUN_SETUP
+                user?.deviceAuthEnabled == true -> NavDestinations.DEVICE_AUTH
+                else -> NavDestinations.MAIN
+            }
+            
+            _navigationState.value = NavigationState.NavigateTo(
+                destination = destination,
+                popUpTo = NavDestinations.SPLASH,
+                inclusive = true
+            )
+        }
+    }
+}
+
+sealed class NavigationState {
+    object Idle : NavigationState()
+    data class NavigateTo(
+        val destination: String,
+        val popUpTo: String? = null,
+        val inclusive: Boolean = false
+    ) : NavigationState()
+}
+```
+
+3. Successfully removed LoginScreen and RegisterScreen from the codebase
+4. Implemented using Jetpack Compose Navigation 2.5.3
+5. Implemented proper back stack handling to prevent returning to auth screens
+6. Added loading states and error handling for authentication processes
+7. Implemented comprehensive logging for debugging navigation issues
+
+# Test Strategy:
+✅ **Completed Testing:**
+
+1. Wrote unit tests for AppNavigationViewModel
+2. Tested navigation flow for first-time users
+3. Tested navigation flow for returning users with device auth enabled
+4. Tested navigation flow for returning users without device auth
+5. Created UI tests to verify complete navigation flow from app launch to main screen
+6. Verified proper back stack management
+7. Tested loading states and error handling scenarios

@@ -1,0 +1,627 @@
+# Task ID: 27
+# Title: Implement Comprehensive Unit Test Management System
+# Status: pending
+# Dependencies: 26
+# Priority: high
+# Description: Create a test management system to track and organize all 37 unit tests in the project, categorizing them by layer (data, domain, presentation) and type (unit, instrumented, performance, accessibility).
+# Details:
+1. **Create TestManagementService class**:
+```kotlin
+class TestManagementService @Inject constructor(
+    private val context: Context,
+    private val testRepository: TestRepository
+) {
+    // Track test execution status
+    suspend fun updateTestStatus(testId: String, status: TestStatus) {
+        testRepository.updateTestStatus(testId, status)
+    }
+    
+    // Get tests by category
+    suspend fun getTestsByCategory(category: TestCategory): List<TestInfo> {
+        return testRepository.getTestsByCategory(category)
+    }
+    
+    // Get overall test coverage metrics
+    suspend fun getTestCoverageMetrics(): TestCoverageMetrics {
+        return testRepository.getTestCoverageMetrics()
+    }
+}
+```
+
+2. **Define test data models**:
+```kotlin
+enum class TestCategory {
+    DATA_LAYER, 
+    DOMAIN_LAYER, 
+    PRESENTATION_LAYER,
+    PERFORMANCE,
+    ACCESSIBILITY
+}
+
+enum class TestStatus {
+    PASSED,
+    FAILED,
+    SKIPPED,
+    NOT_RUN
+}
+
+data class TestInfo(
+    val id: String,
+    val name: String,
+    val category: TestCategory,
+    val type: TestType,
+    val status: TestStatus,
+    val lastRun: Long? = null,
+    val duration: Long? = null,
+    val failureReason: String? = null
+)
+
+enum class TestType {
+    UNIT,
+    INSTRUMENTED
+}
+
+data class TestCoverageMetrics(
+    val totalTests: Int,
+    val passedTests: Int,
+    val failedTests: Int,
+    val skippedTests: Int,
+    val notRunTests: Int,
+    val coveragePercentage: Float
+)
+```
+
+3. **Implement TestRepository**:
+```kotlin
+class TestRepository @Inject constructor(
+    private val testDao: TestDao
+) {
+    suspend fun getAllTests(): List<TestInfo> {
+        return testDao.getAllTests()
+    }
+    
+    suspend fun getTestsByCategory(category: TestCategory): List<TestInfo> {
+        return testDao.getTestsByCategory(category)
+    }
+    
+    suspend fun updateTestStatus(testId: String, status: TestStatus) {
+        testDao.updateTestStatus(testId, status)
+    }
+    
+    suspend fun getTestCoverageMetrics(): TestCoverageMetrics {
+        val allTests = testDao.getAllTests()
+        val passed = allTests.count { it.status == TestStatus.PASSED }
+        val failed = allTests.count { it.status == TestStatus.FAILED }
+        val skipped = allTests.count { it.status == TestStatus.SKIPPED }
+        val notRun = allTests.count { it.status == TestStatus.NOT_RUN }
+        
+        return TestCoverageMetrics(
+            totalTests = allTests.size,
+            passedTests = passed,
+            failedTests = failed,
+            skippedTests = skipped,
+            notRunTests = notRun,
+            coveragePercentage = if (allTests.isEmpty()) 0f else passed.toFloat() / allTests.size
+        )
+    }
+}
+```
+
+4. **Create TestManagementViewModel**:
+```kotlin
+class TestManagementViewModel @Inject constructor(
+    private val testManagementService: TestManagementService
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(TestManagementUiState())
+    val uiState: StateFlow<TestManagementUiState> = _uiState.asStateFlow()
+    
+    init {
+        loadAllTests()
+    }
+    
+    fun loadAllTests() {
+        viewModelScope.launch {
+            try {
+                val allTests = testManagementService.getAllTests()
+                val metrics = testManagementService.getTestCoverageMetrics()
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    tests = allTests,
+                    metrics = metrics,
+                    error = null
+                ) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = "Failed to load tests: ${e.message}"
+                ) }
+            }
+        }
+    }
+    
+    fun filterByCategory(category: TestCategory?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val tests = if (category == null) {
+                    testManagementService.getAllTests()
+                } else {
+                    testManagementService.getTestsByCategory(category)
+                }
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    tests = tests,
+                    selectedCategory = category,
+                    error = null
+                ) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = "Failed to filter tests: ${e.message}"
+                ) }
+            }
+        }
+    }
+}
+
+data class TestManagementUiState(
+    val isLoading: Boolean = true,
+    val tests: List<TestInfo> = emptyList(),
+    val metrics: TestCoverageMetrics? = null,
+    val selectedCategory: TestCategory? = null,
+    val error: String? = null
+)
+```
+
+5. **Create TestManagementScreen**:
+```kotlin
+@Composable
+fun TestManagementScreen(
+    viewModel: TestManagementViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Test Management") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            // Test metrics card
+            uiState.metrics?.let { metrics ->
+                TestMetricsCard(metrics)
+            }
+            
+            // Category filter chips
+            CategoryFilterChips(
+                selectedCategory = uiState.selectedCategory,
+                onCategorySelected = { viewModel.filterByCategory(it) }
+            )
+            
+            // Test list
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+            } else if (uiState.tests.isEmpty()) {
+                EmptyTestsMessage()
+            } else {
+                TestList(tests = uiState.tests)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TestMetricsCard(metrics: TestCoverageMetrics) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Test Coverage: ${(metrics.coveragePercentage * 100).toInt()}%",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = metrics.coveragePercentage,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TestStatusChip(count = metrics.passedTests, label = "Passed", color = Color.Green)
+                TestStatusChip(count = metrics.failedTests, label = "Failed", color = Color.Red)
+                TestStatusChip(count = metrics.skippedTests, label = "Skipped", color = Color.Yellow)
+                TestStatusChip(count = metrics.notRunTests, label = "Not Run", color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TestList(tests: List<TestInfo>) {
+    LazyColumn {
+        items(tests) { test ->
+            TestListItem(test)
+        }
+    }
+}
+```
+
+6. **Scan and catalog existing tests**:
+   - Create a script to scan the project directories:
+     - `src/test` for unit tests
+     - `src/androidTest` for instrumented tests
+   - Parse test files to extract test names, categories, and types
+   - Populate the database with initial test information
+
+7. **Integrate with CI/CD pipeline**:
+   - Update the CI configuration to report test results to the test management system
+   - Add post-test hooks to update test status in the database
+   - Generate and store test coverage reports
+
+8. **Create test detail screen**:
+   - Implement a detailed view for individual tests
+   - Show test history, duration trends, and failure information
+   - Provide ability to run individual tests from the UI
+
+# Test Strategy:
+1. **Unit test the TestManagementService**:
+   - Test the service methods with mocked repository
+   - Verify correct handling of test status updates
+   - Test category filtering logic
+   - Verify metrics calculation accuracy
+
+2. **Unit test the TestRepository**:
+   - Test data retrieval methods with mocked DAO
+   - Verify correct filtering by category
+   - Test metrics calculation with various test statuses
+   - Verify proper handling of empty test lists
+
+3. **Unit test the TestManagementViewModel**:
+   - Test initial state loading
+   - Verify category filtering updates UI state correctly
+   - Test error handling for repository failures
+   - Verify state updates when test statuses change
+
+4. **UI tests for TestManagementScreen**:
+   - Verify screen renders correctly with different test data
+   - Test category filter interactions
+   - Verify metrics display with various test coverage percentages
+   - Test navigation to test detail screen
+
+5. **Integration tests**:
+   - Test end-to-end flow from test execution to UI updates
+   - Verify test scanner correctly identifies and categorizes tests
+   - Test CI integration with mock test results
+
+6. **Manual verification**:
+   - Run the test scanner on the actual project codebase
+   - Verify all 37 tests are correctly identified and categorized
+   - Check that data layer, domain layer, presentation layer, and performance/accessibility tests are properly labeled
+   - Manually trigger test runs and verify status updates
+
+7. **Performance testing**:
+   - Measure load time for the test management screen
+   - Test performance with large numbers of tests (100+)
+   - Verify efficient filtering and sorting operations
+
+8. **Cross-device testing**:
+   - Test the UI on different screen sizes
+   - Verify proper rendering on tablets and phones
+   - Test with different Android versions
+
+# Subtasks:
+## 1. EntityMappingTest.kt - Data Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for entity mapping functionality in the data layer
+### Details:
+Test file: app/src/test/java/com/pennywise/app/data/local/entity/EntityMappingTest.kt
+Category: Data Layer Unit Test
+Type: Unit Test
+
+## 2. CurrencyConversionServiceTest.kt - Service Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for currency conversion service functionality
+### Details:
+Test file: app/src/test/java/com/pennywise/app/data/service/CurrencyConversionServiceTest.kt
+Category: Service Layer Unit Test
+Type: Unit Test
+
+## 3. CurrencyFormatterTest.kt - Presentation Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for currency formatting utilities in presentation layer
+### Details:
+Test file: app/src/test/java/com/pennywise/app/presentation/util/CurrencyFormatterTest.kt
+Category: Presentation Layer Unit Test
+Type: Unit Test
+
+## 4. CurrencyFormatterRTLTest.kt - RTL Support Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for right-to-left language support in currency formatting
+### Details:
+Test file: app/src/test/java/com/pennywise/app/presentation/util/CurrencyFormatterRTLTest.kt
+Category: Presentation Layer Unit Test
+Type: Unit Test
+
+## 5. CurrencyValidationIntegrationTest.kt - Domain Layer Integration Test [pending]
+### Dependencies: None
+### Description: Integration test for currency validation in the domain layer
+### Details:
+Test file: app/src/test/java/com/pennywise/app/domain/validation/CurrencyValidationIntegrationTest.kt
+Category: Domain Layer Integration Test
+Type: Unit Test
+
+## 6. CurrencyErrorHandlerTest.kt - Domain Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for currency error handling in the domain layer
+### Details:
+Test file: app/src/test/java/com/pennywise/app/domain/validation/CurrencyErrorHandlerTest.kt
+Category: Domain Layer Unit Test
+Type: Unit Test
+
+## 7. TestConfigurationTest.kt - Test Utilities Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for test configuration utilities
+### Details:
+Test file: app/src/test/java/com/pennywise/app/testutils/TestConfigurationTest.kt
+Category: Test Utilities Unit Test
+Type: Unit Test
+
+## 8. TypeConverterTest.kt - Data Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for type converters in the data layer
+### Details:
+Test file: app/src/test/java/com/pennywise/app/data/local/converter/TypeConverterTest.kt
+Category: Data Layer Unit Test
+Type: Unit Test
+
+## 9. ExpenseSectionPerformanceTest.kt - Performance Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for expense section performance
+### Details:
+Test file: app/src/test/java/com/pennywise/app/presentation/components/ExpenseSectionPerformanceTest.kt
+Category: Performance Unit Test
+Type: Unit Test
+
+## 10. DatePickerDialogTest.kt - Presentation Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for date picker dialog component
+### Details:
+Test file: app/src/test/java/com/pennywise/app/presentation/components/DatePickerDialogTest.kt
+Category: Presentation Layer Unit Test
+Type: Unit Test
+
+## 11. CurrencyConverterTest.kt - Domain Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for currency converter utilities in the domain layer
+### Details:
+Test file: app/src/test/java/com/pennywise/app/domain/util/CurrencyConverterTest.kt
+Category: Domain Layer Unit Test
+Type: Unit Test
+
+## 12. CurrencyConversionServiceIntegrationTest.kt - Service Integration Test [pending]
+### Dependencies: None
+### Description: Integration test for currency conversion service
+### Details:
+Test file: app/src/test/java/com/pennywise/app/data/service/CurrencyConversionServiceIntegrationTest.kt
+Category: Service Integration Test
+Type: Unit Test
+
+## 13. CurrencyTest.kt - Domain Model Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for currency domain model
+### Details:
+Test file: app/src/test/java/com/pennywise/app/domain/model/CurrencyTest.kt
+Category: Domain Model Unit Test
+Type: Unit Test
+
+## 14. CurrencyApiTest.kt - API Layer Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for currency API functionality
+### Details:
+Test file: app/src/test/java/com/pennywise/app/data/api/CurrencyApiTest.kt
+Category: API Layer Unit Test
+Type: Unit Test
+
+## 15. CurrencyValidatorTest.kt - Domain Validation Unit Test [pending]
+### Dependencies: None
+### Description: Unit test for currency validation logic
+### Details:
+Test file: app/src/test/java/com/pennywise/app/domain/validation/CurrencyValidatorTest.kt
+Category: Domain Validation Unit Test
+Type: Unit Test
+
+## 16. PennywiseDatabaseTest.kt - Database Instrumented Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for Pennywise database functionality
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/data/local/PennywiseDatabaseTest.kt
+Category: Database Instrumented Test
+Type: Android Instrumented Test
+
+## 17. CurrencyMigrationTest.kt - Database Migration Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency database migration
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/data/local/migration/CurrencyMigrationTest.kt
+Category: Database Migration Test
+Type: Android Instrumented Test
+
+## 18. DatabaseModuleTest.kt - Database Module Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for database module configuration
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/data/local/config/DatabaseModuleTest.kt
+Category: Database Module Test
+Type: Android Instrumented Test
+
+## 19. DatabaseConfigTest.kt - Database Configuration Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for database configuration
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/data/local/config/DatabaseConfigTest.kt
+Category: Database Configuration Test
+Type: Android Instrumented Test
+
+## 20. CurrencySelectionViewAccessibilityTest.kt - Accessibility Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency selection view accessibility
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencySelectionViewAccessibilityTest.kt
+Category: Accessibility Test
+Type: Android Instrumented Test
+
+## 21. CurrencyTalkBackAccessibilityTest.kt - TalkBack Accessibility Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency TalkBack accessibility features
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencyTalkBackAccessibilityTest.kt
+Category: Accessibility Test
+Type: Android Instrumented Test
+
+## 22. CurrencyAccessibilityTest.kt - General Accessibility Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for general currency accessibility features
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencyAccessibilityTest.kt
+Category: Accessibility Test
+Type: Android Instrumented Test
+
+## 23. CurrencyEspressoAccessibilityTest.kt - Espresso Accessibility Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency Espresso accessibility testing
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencyEspressoAccessibilityTest.kt
+Category: Accessibility Test
+Type: Android Instrumented Test
+
+## 24. CurrencyOperationsLoadTest.kt - Performance Load Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency operations load testing
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/performance/CurrencyOperationsLoadTest.kt
+Category: Performance Test
+Type: Android Instrumented Test
+
+## 25. DatabasePerformanceTest.kt - Database Performance Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for database performance
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/performance/DatabasePerformanceTest.kt
+Category: Performance Test
+Type: Android Instrumented Test
+
+## 26. CurrencySortingPerformanceTest.kt - Sorting Performance Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency sorting performance
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/performance/CurrencySortingPerformanceTest.kt
+Category: Performance Test
+Type: Android Instrumented Test
+
+## 27. CurrencyUsageTrackerPerformanceTest.kt - Usage Tracker Performance Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency usage tracker performance
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/performance/CurrencyUsageTrackerPerformanceTest.kt
+Category: Performance Test
+Type: Android Instrumented Test
+
+## 28. CurrencyUIPerformanceTest.kt - UI Performance Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency UI performance
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/performance/CurrencyUIPerformanceTest.kt
+Category: Performance Test
+Type: Android Instrumented Test
+
+## 29. CurrencyConversionPerformanceTest.kt - Conversion Performance Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency conversion performance
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/performance/CurrencyConversionPerformanceTest.kt
+Category: Performance Test
+Type: Android Instrumented Test
+
+## 30. CurrencyValidationTest.kt - Currency Validation UI Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency validation UI
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencyValidationTest.kt
+Category: UI Test
+Type: Android Instrumented Test
+
+## 31. CurrencySymbolUpdateTest.kt - Symbol Update UI Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency symbol update UI
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencySymbolUpdateTest.kt
+Category: UI Test
+Type: Android Instrumented Test
+
+## 32. CurrencySearchTest.kt - Currency Search UI Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency search functionality
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencySearchTest.kt
+Category: UI Test
+Type: Android Instrumented Test
+
+## 33. SettingsScreenCurrencyTest.kt - Settings Screen Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for settings screen currency functionality
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/screens/SettingsScreenCurrencyTest.kt
+Category: Screen Test
+Type: Android Instrumented Test
+
+## 34. TransactionListCurrencyTest.kt - Transaction List Screen Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for transaction list screen currency functionality
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/screens/TransactionListCurrencyTest.kt
+Category: Screen Test
+Type: Android Instrumented Test
+
+## 35. AddExpenseScreenCurrencyTest.kt - Add Expense Screen Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for add expense screen currency functionality
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/screens/AddExpenseScreenCurrencyTest.kt
+Category: Screen Test
+Type: Android Instrumented Test
+
+## 36. BaseCurrencyUiTest.kt - Base UI Test Utilities [pending]
+### Dependencies: None
+### Description: Android instrumented test base class for currency UI testing
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/testutils/BaseCurrencyUiTest.kt
+Category: Test Utilities
+Type: Android Instrumented Test
+
+## 37. CurrencySelectionDropdownTest.kt - Dropdown UI Test [pending]
+### Dependencies: None
+### Description: Android instrumented test for currency selection dropdown component
+### Details:
+Test file: app/src/androidTest/java/com/pennywise/app/presentation/components/CurrencySelectionDropdownTest.kt
+Category: UI Test
+Type: Android Instrumented Test
+

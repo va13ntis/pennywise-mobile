@@ -193,7 +193,7 @@ object CurrencyListHelpers {
         val lowercaseQuery = query.lowercase()
         return currencies.filter { currency ->
             currency.code.lowercase().contains(lowercaseQuery) ||
-            currency.name.lowercase().contains(lowercaseQuery) ||
+            currency.displayName.lowercase().contains(lowercaseQuery) ||
             currency.symbol.lowercase().contains(lowercaseQuery)
         }
     }
@@ -226,9 +226,9 @@ object CurrencyListHelpers {
     ): List<String> {
         return currencies.map { currency ->
             if (showSymbol) {
-                "${currency.symbol} ${currency.code} - ${currency.name}"
+                "${currency.symbol} ${currency.code} - ${currency.displayName}"
             } else {
-                "${currency.code} - ${currency.name}"
+                "${currency.code} - ${currency.displayName}"
             }
         }
     }

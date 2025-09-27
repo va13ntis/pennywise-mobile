@@ -1,0 +1,117 @@
+# Task ID: 23
+# Title: Create Splash Screen with Navigation Logic
+# Status: done
+# Dependencies: 18, 22
+# Priority: medium
+# Description: Implement a splash screen that determines the appropriate navigation path based on user existence and authentication settings.
+# Details:
+1. Create SplashScreen using Jetpack Compose:
+```kotlin
+@Composable
+fun SplashScreen(
+    viewModel: SplashViewModel = hiltViewModel(),
+    onNavigate: (String) -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    
+    // Trigger navigation determination on launch
+    LaunchedEffect(Unit) {
+        viewModel.determineNavigation()
+    }
+    
+    // Observe navigation destination
+    LaunchedEffect(uiState.navigationDestination) {
+        uiState.navigationDestination?.let { destination ->
+            onNavigate(destination)
+        }
+    }
+    
+    // Splash screen UI
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.primary),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.app_logo),
+                contentDescription = "PennyWise Logo",
+                modifier = Modifier.size(150.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+        }
+    }
+}
+```
+2. Create SplashViewModel to handle navigation logic:
+```kotlin
+class SplashViewModel @Inject constructor(
+    private val userRepository: UserRepository,
+    private val settingsDataStore: SettingsDataStore
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(SplashUiState())
+    val uiState: StateFlow<SplashUiState> = _uiState.asStateFlow()
+    
+    fun determineNavigation() {
+        viewModelScope.launch {
+            // Add a small delay for splash screen visibility
+            delay(1000)
+            
+            val isFirstRun = !settingsDataStore.isFirstRunCompleted()
+            val user = userRepository.getUser()
+            
+            val destination = when {
+                isFirstRun -> NavDestinations.FIRST_RUN_SETUP
+                user?.deviceAuthEnabled == true -> NavDestinations.DEVICE_AUTH
+                else -> NavDestinations.MAIN
+            }
+            
+            _uiState.update { it.copy(navigationDestination = destination) }
+        }
+    }
+}
+
+data class SplashUiState(
+    val navigationDestination: String? = null
+)
+```
+3. Configure splash screen theme using Android 12's SplashScreen API for devices that support it:
+```xml
+<!-- themes.xml -->
+<style name="Theme.PennyWise.Splash" parent="Theme.SplashScreen">
+    <item name="windowSplashScreenBackground">@color/primary</item>
+    <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+    <item name="windowSplashScreenAnimationDuration">300</item>
+    <item name="postSplashScreenTheme">@style/Theme.PennyWise</item>
+</style>
+```
+4. Install splash screen in MainActivity:
+```kotlin
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply splash screen for Android 12+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            installSplashScreen()
+        }
+        super.onCreate(savedInstanceState)
+        
+        setContent {
+            PennyWiseTheme {
+                AppNavigation()
+            }
+        }
+    }
+}
+```
+5. Use androidx.core:core-splashscreen:1.0.1 for splash screen compatibility
+
+# Test Strategy:
+1. Write unit tests for SplashViewModel
+2. Test navigation determination for different user states
+3. Verify correct destination selection based on app state
+4. Create UI tests to verify splash screen rendering
+5. Test splash screen on different Android versions to ensure compatibility
