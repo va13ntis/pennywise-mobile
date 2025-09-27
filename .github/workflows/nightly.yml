@@ -108,7 +108,7 @@ jobs:
       continue-on-error: false
       
     - name: Generate currency-specific coverage
-      run: ./gradlew jacocoCurrencyCoverageReport --stacktrace
+      run: ./gradlew :app:jacocoTestReport --stacktrace
       continue-on-error: false
       
     - name: Upload comprehensive test results
