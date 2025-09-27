@@ -46,19 +46,13 @@ unit-tests:
   runs-on: ubuntu-latest
   steps:
     - Run unit tests
-    - Run load tests (unit test versions)
+    - Run load tests (unit test versions) - includes LoadTests as unit tests
     - Upload test results
 ```
 
-### Instrumentation Tests Job (Slow - ~10-15 minutes):
-```yaml
-instrumentation-tests:
-  runs-on: macos-latest
-  steps:
-    - Setup Android SDK
-    - Run instrumentation tests
-    - Upload test results
-```
+### Instrumentation Tests Job: **REMOVED**
+- **Reason**: LoadTests are now unit tests, no need for slow instrumentation tests
+- **Benefit**: Faster CI/CD pipeline, more reliable builds
 
 ## Test Coverage
 
