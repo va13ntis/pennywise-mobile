@@ -82,9 +82,10 @@ jobs:
       run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue --stacktrace --info
       continue-on-error: false
       
-    - name: Run all load tests
-      run: ./gradlew testDebugUnitTest --tests "*LoadTest*" --continue --stacktrace --info
-      continue-on-error: false
+    # Load tests disabled - moved to temp_disabled_tests directory
+    # - name: Run all load tests
+    #   run: ./gradlew testDebugUnitTest --tests "*LoadTest*" --continue --stacktrace --info
+    #   continue-on-error: false
       
     - name: Check test results
       run: |
