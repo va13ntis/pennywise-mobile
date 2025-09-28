@@ -41,7 +41,7 @@ class HomeViewModel @Inject constructor(
     private val authManager: AuthManager
 ) : ViewModel() {
     
-    private val _userId = MutableStateFlow<Long?>(null)
+    // Remove _userId - we'll use authManager.currentUser directly
     private val _currentMonth = MutableStateFlow(YearMonth.now())
     private val _selectedPaymentMethod = MutableStateFlow<com.pennywise.app.domain.model.PaymentMethod?>(null)
     
@@ -87,6 +87,7 @@ class HomeViewModel @Inject constructor(
     val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = _transactions.map { transactions ->
         transactions
             .filter { it.type == TransactionType.EXPENSE }
+            .sortedByDescending { it.date }
             .groupBy { transaction ->
                 val calendar = Calendar.getInstance().apply {
                     time = transaction.date
@@ -141,6 +142,11 @@ class HomeViewModel @Inject constructor(
     // Job management for proper coroutine lifecycle
     private var monthlyTransactionsJob: Job? = null
     private var recurringTransactionsJob: Job? = null
+    
+    init {
+        // Start observing transactions immediately when ViewModel is created
+        startObservingTransactions()
+    }
     
     /**
      * Flow of the current currency preference - uses user's default currency
@@ -265,26 +271,7 @@ class HomeViewModel @Inject constructor(
         println("🔍 HomeViewModel: Filtered to ${filtered.size} split payment installments for $currentMonth")
         return filtered
     }
-    
-    /**
-     * Set the current user ID and load their data
-     */
-    fun setUserId(userId: Long) {
-        println("🔄 HomeViewModel: Setting user ID to $userId")
-        
-        // Only start observing if the user ID has changed
-        if (_userId.value != userId) {
-            // Cancel existing jobs to prevent multiple coroutines
-            monthlyTransactionsJob?.cancel()
-            recurringTransactionsJob?.cancel()
-            
-            _userId.value = userId
-            startObservingTransactions()
-        } else {
-            println("🔄 HomeViewModel: User ID $userId is already set, skipping observation restart")
-        }
-    }
-    
+
     /**
      * Navigate to a different month (positive for next, negative for previous)
      */
@@ -314,7 +301,7 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Start observing transactions reactively based on user and month changes
+     * Start observing transactions reactively based on authenticated user and month changes
      */
     private fun startObservingTransactions() {
         println("🔄 HomeViewModel: Starting to observe transactions")
@@ -322,15 +309,15 @@ class HomeViewModel @Inject constructor(
         // Observe monthly transactions - this will automatically update when month changes
         monthlyTransactionsJob = viewModelScope.launch {
             try {
-                combine(_userId.asStateFlow(), _currentMonth.asStateFlow()) { userId, month ->
-                    Pair(userId, month)
-                }.collect { (userId, month) ->
-                    if (userId != null) {
-                        println("🔄 HomeViewModel: Loading monthly transactions for user $userId, month: $month")
+                combine(authManager.currentUser, _currentMonth.asStateFlow()) { user, month ->
+                    Pair(user, month)
+                }.collect { (user, month) ->
+                    if (user != null) {
+                        println("🔄 HomeViewModel: Loading monthly transactions for user ${user.id}, month: $month")
                         _isLoading.value = true
                         
                         try {
-                            val transactions = transactionRepository.getTransactionsByMonth(userId, month).first()
+                            val transactions = transactionRepository.getTransactionsByMonth(user.id, month).first()
                             println("✅ HomeViewModel: Loaded ${transactions.size} monthly transactions for $month")
                             
                             // Log detailed transaction information
@@ -374,11 +361,11 @@ class HomeViewModel @Inject constructor(
         // Observe recurring transactions continuously
         recurringTransactionsJob = viewModelScope.launch {
             try {
-                _userId.asStateFlow().collect { userId ->
-                    if (userId != null) {
-                        println("🔄 HomeViewModel: Starting to observe recurring transactions for user $userId")
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        println("🔄 HomeViewModel: Starting to observe recurring transactions for user ${user.id}")
                         try {
-                            transactionRepository.getRecurringTransactionsByUser(userId).collect { transactions ->
+                            transactionRepository.getRecurringTransactionsByUser(user.id).collect { transactions ->
                                 println("✅ HomeViewModel: Updated recurring transactions: ${transactions.size} transactions")
                                 _allRecurringTransactions.value = transactions
                             }
@@ -404,11 +391,11 @@ class HomeViewModel @Inject constructor(
         // Observe split payment installments continuously
         viewModelScope.launch {
             try {
-                _userId.asStateFlow().collect { userId ->
-                    if (userId != null) {
-                        println("🔄 HomeViewModel: Starting to observe split payment installments for user $userId")
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        println("🔄 HomeViewModel: Starting to observe split payment installments for user ${user.id}")
                         try {
-                            splitPaymentInstallmentRepository.getInstallmentsByUser(userId).collect { installments ->
+                            splitPaymentInstallmentRepository.getInstallmentsByUser(user.id).collect { installments ->
                                 println("✅ HomeViewModel: Updated split payment installments: ${installments.size} installments")
                                 _splitPaymentInstallments.value = installments
                             }
@@ -450,9 +437,9 @@ class HomeViewModel @Inject constructor(
      * Refresh all data - useful for manual refresh after adding new expenses
      */
     fun refreshData() {
-        val userId = _userId.value
-        if (userId != null) {
-            println("🔄 HomeViewModel: Manual refresh requested for user $userId")
+        val user = authManager.currentUser.value
+        if (user != null) {
+            println("🔄 HomeViewModel: Manual refresh requested for user ${user.id}")
             // The continuous observations will automatically pick up any new data
             // This method is mainly for debugging or future use
         }

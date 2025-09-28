@@ -41,7 +41,7 @@ class BankCardViewModel @Inject constructor(
     private fun loadBankCards() {
         viewModelScope.launch {
             try {
-                val currentUser = authManager.getCurrentUser()
+                val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
                     bankCardRepository.getBankCardsByUserId(currentUser.id).collect { cards ->
                         _bankCards.value = cards
@@ -65,7 +65,7 @@ class BankCardViewModel @Inject constructor(
             try {
                 _uiState.value = BankCardUiState.Loading
                 
-                val currentUser = authManager.getCurrentUser()
+                val currentUser = authManager.currentUser.value
                 if (currentUser == null) {
                     _uiState.value = BankCardUiState.Error("User not authenticated")
                     return@launch

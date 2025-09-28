@@ -107,14 +107,6 @@ class AuthManager @Inject constructor(
         }
     }
     
-    /**
-     * Get the current authenticated user
-     */
-    fun getCurrentUser(): User? {
-        val user = _currentUser.value
-        println("🔄 AuthManager: getCurrentUser() called, returning user (ID: ${user?.id})")
-        return user
-    }
     
     /**
      * Update the current user object (useful when user data changes)

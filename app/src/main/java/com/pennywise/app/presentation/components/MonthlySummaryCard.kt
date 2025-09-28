@@ -197,7 +197,8 @@ fun MonthlySummaryCard(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Music Player Style Navigation Controls (at top)
+            // Music Player Style Navigation Controls (at top) - RTL aware
+            val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -217,7 +218,7 @@ fun MonthlySummaryCard(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardDoubleArrowLeft,
+                        imageVector = if (isRtl) Icons.Default.KeyboardDoubleArrowRight else Icons.Default.KeyboardDoubleArrowLeft,
                         contentDescription = stringResource(R.string.beginning_of_year),
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp)
@@ -238,7 +239,7 @@ fun MonthlySummaryCard(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowLeft,
+                        imageVector = if (isRtl) Icons.Default.KeyboardArrowRight else Icons.Default.KeyboardArrowLeft,
                         contentDescription = stringResource(R.string.previous_month),
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp)
@@ -295,7 +296,7 @@ fun MonthlySummaryCard(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
+                        imageVector = if (isRtl) Icons.Default.KeyboardArrowLeft else Icons.Default.KeyboardArrowRight,
                         contentDescription = stringResource(R.string.next_month),
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp)
@@ -316,7 +317,7 @@ fun MonthlySummaryCard(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardDoubleArrowRight,
+                        imageVector = if (isRtl) Icons.Default.KeyboardDoubleArrowLeft else Icons.Default.KeyboardDoubleArrowRight,
                         contentDescription = stringResource(R.string.end_of_year),
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp)

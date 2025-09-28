@@ -134,7 +134,7 @@ class AddExpenseViewModel @Inject constructor(
             
             // Track currency usage for sorting
             viewModelScope.launch {
-                val currentUser = authManager.getCurrentUser()
+                val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
                     currencySortingService.trackCurrencyUsage(currentUser.id, currency.code)
                 }
@@ -151,7 +151,7 @@ class AddExpenseViewModel @Inject constructor(
             
             // Track currency usage even if validation failed
             viewModelScope.launch {
-                val currentUser = authManager.getCurrentUser()
+                val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
                     currencySortingService.trackCurrencyUsage(currentUser.id, currency.code)
                 }

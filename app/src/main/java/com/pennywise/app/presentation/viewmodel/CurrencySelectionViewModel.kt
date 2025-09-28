@@ -169,7 +169,7 @@ class CurrencySelectionViewModel @Inject constructor(
      */
     fun trackCurrencyUsage(currency: Currency) {
         viewModelScope.launch {
-            val currentUser = authManager.getCurrentUser()
+            val currentUser = authManager.currentUser.value
             if (currentUser != null) {
                 currencySortingService.trackCurrencyUsage(currentUser.id, currency.code)
             }
@@ -211,7 +211,7 @@ class CurrencySelectionViewModel @Inject constructor(
      * Refresh currencies data
      */
     fun refreshCurrencies() {
-        val currentUser = authManager.getCurrentUser()
+        val currentUser = authManager.currentUser.value
         if (currentUser != null) {
             loadCurrenciesForUser(currentUser.id)
         }

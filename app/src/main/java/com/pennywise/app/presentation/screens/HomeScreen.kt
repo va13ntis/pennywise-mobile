@@ -222,7 +222,7 @@ fun HomeScreen(
 
 
 /**
- * Month navigation component with previous/next/current buttons
+ * Month navigation component with previous/next/current buttons - RTL aware
  */
 @Composable
 fun MonthNavigation(
@@ -232,29 +232,29 @@ fun MonthNavigation(
     onCurrentMonth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top row with navigation arrows and current month button
+        // Top row with navigation arrows and current month button - RTL aware
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Previous/Next button (position depends on RTL)
             IconButton(
-                onClick = onPreviousMonth,
+                onClick = if (isRtl) onNextMonth else onPreviousMonth,
                 modifier = Modifier.padding(4.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ChevronLeft,
-                    contentDescription = stringResource(R.string.previous_month),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.graphicsLayer(
-                        scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
-                    )
+                    imageVector = if (isRtl) Icons.Default.ChevronRight else Icons.Default.ChevronLeft,
+                    contentDescription = if (isRtl) stringResource(R.string.next_month) else stringResource(R.string.previous_month),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             
@@ -282,17 +282,15 @@ fun MonthNavigation(
                 }
             }
             
+            // Next/Previous button (position depends on RTL)
             IconButton(
-                onClick = onNextMonth,
+                onClick = if (isRtl) onPreviousMonth else onNextMonth,
                 modifier = Modifier.padding(4.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = stringResource(R.string.next_month),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.graphicsLayer(
-                        scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
-                    )
+                    imageVector = if (isRtl) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                    contentDescription = if (isRtl) stringResource(R.string.previous_month) else stringResource(R.string.next_month),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }

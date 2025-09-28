@@ -121,10 +121,6 @@ class AuthViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Get the current authenticated user
-     */
-    fun getCurrentUser(): User? = authManager.getCurrentUser()
     
     /**
      * Check if user is currently authenticated
@@ -141,7 +137,7 @@ class AuthViewModel @Inject constructor(
         
         // Save to persistent storage (async)
         viewModelScope.launch {
-            val user = authManager.getCurrentUser()
+            val user = authManager.currentUser.value
             if (user != null) {
                 authManager.saveAuthenticatedUser(user)
                 println("✅ AuthViewModel: User authentication persisted to storage")

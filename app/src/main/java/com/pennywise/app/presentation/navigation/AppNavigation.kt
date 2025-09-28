@@ -167,17 +167,9 @@ fun AppNavigation() {
             
             println("🖼️ Screen: HomeScreen composing")
             val homeViewModel = hiltViewModel<HomeViewModel>()
-            val mainCurrentUser = authViewModel.getCurrentUser()
             
-            // Set the user ID for the HomeViewModel
-            LaunchedEffect(mainCurrentUser) {
-                mainCurrentUser?.let { user ->
-                    println("🔄 AppNavigation: Setting user ID ${user.id} for HomeViewModel")
-                    homeViewModel.setUserId(user.id)
-                } ?: run {
-                    println("❌ AppNavigation: No current user found!")
-                }
-            }
+            // HomeViewModel now automatically observes the authenticated user
+            // No need to manually set user ID anymore
             
             HomeScreen(
                 onAddExpense = {
