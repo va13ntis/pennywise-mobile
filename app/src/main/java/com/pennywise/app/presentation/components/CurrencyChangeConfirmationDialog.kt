@@ -17,12 +17,7 @@ fun CurrencyChangeConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val currentCurrencyObj = Currency.fromCode(currentCurrency)
     val newCurrencyObj = Currency.fromCode(newCurrency)
-    
-    val currentDisplay = currentCurrencyObj?.let { 
-        "${it.code} - ${it.symbol} - ${it.displayName}" 
-    } ?: currentCurrency
     
     val newDisplay = newCurrencyObj?.let { 
         "${it.code} - ${it.symbol} - ${it.displayName}" 

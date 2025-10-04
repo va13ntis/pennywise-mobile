@@ -32,6 +32,7 @@ import java.util.Calendar
  * - Complex queries
  * - Large dataset operations
  * - Concurrent operations
+ * 
  */
 @RunWith(AndroidJUnit4::class)
 class DatabasePerformanceTest {
@@ -80,14 +81,14 @@ class DatabasePerformanceTest {
             
             // Create test currency usage data
             val currencies = listOf("USD", "EUR", "GBP", "JPY", "CAD")
+            val now = Date()
             currencies.forEachIndexed { index, currency ->
                 val currencyUsage = CurrencyUsageEntity(
-                    userId = 1L,
                     currency = currency,
                     usageCount = (100 - index * 10),
-                    lastUsed = Date(),
-                    createdAt = Date(),
-                    updatedAt = Date()
+                    lastUsed = now,
+                    createdAt = now,
+                    updatedAt = now
                 )
                 currencyUsageDao.insertCurrencyUsage(currencyUsage)
             }
@@ -99,7 +100,6 @@ class DatabasePerformanceTest {
                 calendar.add(Calendar.DAY_OF_MONTH, -index)
                 
                 val transaction = TransactionEntity(
-                    userId = 1L,
                     amount = (100.0 + index * 10),
                     description = "Test transaction $index",
                     category = "Test Category",
@@ -124,7 +124,6 @@ class DatabasePerformanceTest {
         benchmarkRule.measureRepeated {
             runBlocking {
                 val transaction = TransactionEntity(
-                    userId = 1L,
                     amount = 100.0,
                     description = "Benchmark transaction",
                     category = "Benchmark",
@@ -151,7 +150,6 @@ class DatabasePerformanceTest {
             runBlocking {
                 val transactions = (1..10).map { index ->
                     TransactionEntity(
-                        userId = 1L,
                         amount = 100.0 + index,
                         description = "Batch transaction $index",
                         category = "Batch",
@@ -173,14 +171,14 @@ class DatabasePerformanceTest {
     }
 
     /**
-     * Benchmark: Transaction query by user
-     * This tests the performance of querying transactions by user
+     * Benchmark: Transaction query (all transactions)
+     * This tests the performance of querying all transactions
      */
     @Test
-    fun benchmarkTransactionQueryByUser() {
+    fun benchmarkAllTransactionsQuery() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val transactions = transactionDao.getTransactionsByUser(1L).first()
+                val transactions = transactionDao.getAllTransactions().first()
                 assert(transactions.isNotEmpty())
             }
         }
@@ -199,7 +197,7 @@ class DatabasePerformanceTest {
 
         benchmarkRule.measureRepeated {
             runBlocking {
-                val transactions = transactionDao.getTransactionsByDateRange(1L, startDate, endDate).first()
+                val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
                 assert(transactions.isNotEmpty())
             }
         }
@@ -213,7 +211,7 @@ class DatabasePerformanceTest {
     fun benchmarkTransactionQueryByCategory() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val transactions = transactionDao.getTransactionsByCategory(1L, "Test Category").first()
+                val transactions = transactionDao.getTransactionsByCategory("Test Category").first()
                 assert(transactions.isNotEmpty())
             }
         }
@@ -227,7 +225,7 @@ class DatabasePerformanceTest {
     fun benchmarkTransactionQueryByType() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val transactions = transactionDao.getTransactionsByType(1L, TransactionType.EXPENSE).first()
+                val transactions = transactionDao.getTransactionsByType(TransactionType.EXPENSE).first()
                 assert(transactions.isNotEmpty())
             }
         }
@@ -246,22 +244,8 @@ class DatabasePerformanceTest {
 
         benchmarkRule.measureRepeated {
             runBlocking {
-                val total = transactionDao.getTotalByTypeAndDateRange(1L, TransactionType.EXPENSE, startDate, endDate)
+                val total = transactionDao.getTotalByTypeAndDateRange(TransactionType.EXPENSE, startDate, endDate)
                 assert(total >= 0.0)
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Balance calculation
-     * This tests the performance of calculating user balance
-     */
-    @Test
-    fun benchmarkBalanceCalculation() {
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                val balance = transactionDao.getBalance(1L)
-                assert(balance is Double)
             }
         }
     }
@@ -275,22 +259,22 @@ class DatabasePerformanceTest {
         benchmarkRule.measureRepeated {
             runBlocking {
                 val now = Date()
-                currencyUsageDao.incrementCurrencyUsage(1L, "USD", now, now)
-                val usage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
+                currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
+                val usage = currencyUsageDao.getAllCurrencyUsage().first()
                 assert(usage.isNotEmpty())
             }
         }
     }
 
     /**
-     * Benchmark: Currency usage query by user
-     * This tests the performance of querying currency usage by user
+     * Benchmark: All currency usage query
+     * This tests the performance of querying all currency usage
      */
     @Test
-    fun benchmarkCurrencyUsageQueryByUser() {
+    fun benchmarkAllCurrencyUsageQuery() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val usage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
+                val usage = currencyUsageDao.getAllCurrencyUsage().first()
                 assert(usage.isNotEmpty())
             }
         }
@@ -304,7 +288,7 @@ class DatabasePerformanceTest {
     fun benchmarkTopCurrenciesQuery() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val topCurrencies = currencyUsageDao.getTopCurrenciesByUser(1L, 5).first()
+                val topCurrencies = currencyUsageDao.getTopCurrencies(5).first()
                 assert(topCurrencies.size <= 5)
             }
         }
@@ -318,39 +302,24 @@ class DatabasePerformanceTest {
     fun benchmarkUserQueryById() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val user = userDao.getUserById(1L)
+                val user = userDao.getUser()
                 assert(user != null)
             }
         }
     }
 
     /**
-     * Benchmark: User query by username
-     * This tests the performance of querying user by username
-     */
-    @Test
-    fun benchmarkUserQueryBySingleUser() {
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                val user = userDao.getSingleUser()
-                assert(user != null)
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Complex query with joins
+     * Benchmark: Complex query with multiple operations
      * This tests the performance of complex queries involving multiple tables
      */
     @Test
-    fun benchmarkComplexQueryWithJoins() {
+    fun benchmarkComplexMultipleOperations() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                // This would be a complex query that joins multiple tables
-                // For now, we'll simulate with multiple queries
-                val user = userDao.getUserById(1L)
-                val transactions = transactionDao.getTransactionsByUser(1L).first()
-                val currencyUsage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
+                // This simulates a complex query with multiple operations
+                val user = userDao.getUser()
+                val transactions = transactionDao.getAllTransactions().first()
+                val currencyUsage = currencyUsageDao.getAllCurrencyUsage().first()
                 
                 assert(user != null)
                 assert(transactions.isNotEmpty())
@@ -368,11 +337,11 @@ class DatabasePerformanceTest {
         benchmarkRule.measureRepeated {
             runBlocking {
                 val operations = listOf(
-                    async { transactionDao.getTransactionsByUser(1L).first() },
-                    async { currencyUsageDao.getCurrencyUsageByUser(1L).first() },
-                    async { userDao.getUserById(1L) },
-                    async { transactionDao.getBalance(1L) },
-                    async { currencyUsageDao.getTopCurrenciesByUser(1L, 3).first() }
+                    async { transactionDao.getAllTransactions().first() },
+                    async { currencyUsageDao.getAllCurrencyUsage().first() },
+                    async { userDao.getUser() },
+                    async { transactionDao.getTransactionCount() },
+                    async { currencyUsageDao.getTopCurrencies(3).first() }
                 )
                 
                 val results = operations.map { it.await() }
@@ -389,18 +358,18 @@ class DatabasePerformanceTest {
     fun benchmarkLargeDatasetQueryPerformance() {
         // Create additional test data
         runBlocking {
+            val now = Date()
             repeat(1000) { index ->
                 val transaction = TransactionEntity(
-                    userId = 1L,
                     amount = 50.0 + index,
                     description = "Large dataset transaction $index",
                     category = "Large Dataset",
                     type = TransactionType.EXPENSE,
-                    date = Date(),
+                    date = now,
                     currency = "USD",
                     isRecurring = false,
-                    createdAt = Date(),
-                    updatedAt = Date()
+                    createdAt = now,
+                    updatedAt = now
                 )
                 transactionDao.insertTransaction(transaction)
             }
@@ -408,7 +377,7 @@ class DatabasePerformanceTest {
 
         benchmarkRule.measureRepeated {
             runBlocking {
-                val transactions = transactionDao.getTransactionsByUser(1L).first()
+                val transactions = transactionDao.getAllTransactions().first()
                 assert(transactions.size >= 1000)
             }
         }
@@ -422,27 +391,26 @@ class DatabasePerformanceTest {
     fun benchmarkDatabaseTransactionPerformance() {
         benchmarkRule.measureRepeated {
             runBlocking {
+                val now = Date()
                 // Simulate a database transaction by performing multiple operations
                 val transaction = TransactionEntity(
-                    userId = 1L,
                     amount = 200.0,
                     description = "Transaction test",
                     category = "Transaction",
                     type = TransactionType.EXPENSE,
-                    date = Date(),
+                    date = now,
                     currency = "USD",
                     isRecurring = false,
-                    createdAt = Date(),
-                    updatedAt = Date()
+                    createdAt = now,
+                    updatedAt = now
                 )
                 
                 val id = transactionDao.insertTransaction(transaction)
-                val now = Date()
-                currencyUsageDao.incrementCurrencyUsage(1L, "USD", now, now)
-                val balance = transactionDao.getBalance(1L)
+                currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
+                val transactionCount = transactionDao.getTransactionCount()
                 
                 assert(id > 0)
-                assert(balance is Double)
+                assert(transactionCount > 0)
             }
         }
     }

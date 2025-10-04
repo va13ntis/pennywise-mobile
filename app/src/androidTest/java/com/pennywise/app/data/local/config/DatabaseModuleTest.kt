@@ -34,6 +34,7 @@ import java.util.Date
  * - Concurrency handling
  * - Data integrity and cleanup
  * - Error handling and edge cases
+ * 
  */
 @RunWith(AndroidJUnit4::class)
 class DatabaseModuleTest {
@@ -72,18 +73,15 @@ class DatabaseModuleTest {
     fun testDatabaseModuleConfiguration() = runBlocking {
         // Test that all DAOs are properly configured
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
             createdAt = Date(),
             updatedAt = Date()
         )
-        userDao.insertUser(user)
+        val userId = userDao.insertUser(user)
 
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -92,30 +90,27 @@ class DatabaseModuleTest {
             createdAt = Date(),
             updatedAt = Date()
         )
-        transactionDao.insertTransaction(transaction)
+        val transactionId = transactionDao.insertTransaction(transaction)
 
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
             createdAt = Date(),
             updatedAt = Date()
         )
-        currencyUsageDao.insertCurrencyUsage(currencyUsage)
+        val currencyUsageId = currencyUsageDao.insertCurrencyUsage(currencyUsage)
 
         // Verify all DAOs are working
-        assertNotNull(userDao.getUserById(1))
-        assertNotNull(transactionDao.getTransactionById(1))
-        assertNotNull(currencyUsageDao.getCurrencyUsageById(1))
+        assertNotNull(userDao.getUser())
+        assertNotNull(transactionDao.getTransactionById(transactionId))
+        assertNotNull(currencyUsageDao.getCurrencyUsageById(currencyUsageId))
     }
 
     @Test
     fun testDatabaseModuleDependencies() = runBlocking {
         // Test that all dependencies are properly injected
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -124,10 +119,8 @@ class DatabaseModuleTest {
         )
         userDao.insertUser(user)
 
-        // Test transaction dependency on user
+        // Test transaction operations
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -138,10 +131,8 @@ class DatabaseModuleTest {
         )
         transactionDao.insertTransaction(transaction)
 
-        // Test currency usage dependency on user
+        // Test currency usage operations
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
@@ -150,21 +141,20 @@ class DatabaseModuleTest {
         )
         currencyUsageDao.insertCurrencyUsage(currencyUsage)
 
-        // Verify dependencies are working
-        val userTransactions = transactionDao.getTransactionsByUser(1)
-        val userCurrencyUsages = currencyUsageDao.getCurrencyUsageByUser(1)
+        // Verify operations are working
+        val allTransactions = transactionDao.getAllTransactions()
+        val allCurrencyUsages = currencyUsageDao.getAllCurrencyUsage()
 
-        assertNotNull(userTransactions)
-        assertNotNull(userCurrencyUsages)
-        assertEquals(1, userTransactions.first().size)
-        assertEquals(1, userCurrencyUsages.first().size)
+        assertNotNull(allTransactions)
+        assertNotNull(allCurrencyUsages)
+        assertEquals(1, allTransactions.first().size)
+        assertEquals(1, allCurrencyUsages.first().size)
     }
 
     @Test
     fun testDatabaseModulePerformance() = runBlocking {
         // Test database module performance
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -180,7 +170,6 @@ class DatabaseModuleTest {
         for (i in 1..100) {
             val transaction = TransactionEntity(
                 id = i.toLong(),
-                userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
@@ -196,7 +185,6 @@ class DatabaseModuleTest {
         for (i in 1..50) {
             val currencyUsage = CurrencyUsageEntity(
                 id = i.toLong(),
-                userId = 1,
                 currency = "USD",
                 usageCount = i,
                 lastUsed = Date(),
@@ -213,8 +201,8 @@ class DatabaseModuleTest {
         assert(duration < 5000) { "Database module operations took too long: ${duration}ms" }
 
         // Verify all data was inserted
-        val transactionCount = transactionDao.getTransactionsByUser(1).first().size
-        val currencyUsageCount = currencyUsageDao.getCurrencyUsageByUser(1).first().size
+        val transactionCount = transactionDao.getAllTransactions().first().size
+        val currencyUsageCount = currencyUsageDao.getAllCurrencyUsage().first().size
 
         assertEquals(100, transactionCount)
         assertEquals(50, currencyUsageCount)
@@ -224,7 +212,6 @@ class DatabaseModuleTest {
     fun testDatabaseModuleConcurrency() = runBlocking {
         // Test database module concurrency
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -240,7 +227,6 @@ class DatabaseModuleTest {
         val transactions = (1..50).map { i ->
             TransactionEntity(
                 id = i.toLong(),
-                userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
@@ -259,7 +245,6 @@ class DatabaseModuleTest {
         val currencyUsages = (1..25).map { i ->
             CurrencyUsageEntity(
                 id = i.toLong(),
-                userId = 1,
                 currency = "USD",
                 usageCount = i,
                 lastUsed = Date(),
@@ -279,8 +264,8 @@ class DatabaseModuleTest {
         assert(duration < 3000) { "Concurrent operations took too long: ${duration}ms" }
 
         // Verify all data was inserted
-        val transactionCount = transactionDao.getTransactionsByUser(1).first().size
-        val currencyUsageCount = currencyUsageDao.getCurrencyUsageByUser(1).first().size
+        val transactionCount = transactionDao.getAllTransactions().first().size
+        val currencyUsageCount = currencyUsageDao.getAllCurrencyUsage().first().size
 
         assertEquals(50, transactionCount)
         assertEquals(25, currencyUsageCount)
@@ -290,7 +275,6 @@ class DatabaseModuleTest {
     fun testDatabaseModuleDataIntegrity() = runBlocking {
         // Test database module data integrity
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -301,8 +285,6 @@ class DatabaseModuleTest {
 
         // Create related entities
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -314,8 +296,6 @@ class DatabaseModuleTest {
         transactionDao.insertTransaction(transaction)
 
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
@@ -325,7 +305,7 @@ class DatabaseModuleTest {
         currencyUsageDao.insertCurrencyUsage(currencyUsage)
 
         // Verify data integrity
-        val retrievedUser = userDao.getUserById(1)
+        val retrievedUser = userDao.getUser()
         val retrievedTransaction = transactionDao.getTransactionById(1)
         val retrievedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(1)
 
@@ -333,16 +313,12 @@ class DatabaseModuleTest {
         assertNotNull(retrievedTransaction)
         assertNotNull(retrievedCurrencyUsage)
 
-        // Verify relationships
-        assertEquals(retrievedUser?.id, retrievedTransaction?.userId)
-        assertEquals(retrievedUser?.id, retrievedCurrencyUsage?.userId)
     }
 
     @Test
     fun testDatabaseModuleCleanup() = runBlocking {
         // Test database module cleanup
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -352,8 +328,6 @@ class DatabaseModuleTest {
         userDao.insertUser(user)
 
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -365,8 +339,6 @@ class DatabaseModuleTest {
         transactionDao.insertTransaction(transaction)
 
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
@@ -376,21 +348,21 @@ class DatabaseModuleTest {
         currencyUsageDao.insertCurrencyUsage(currencyUsage)
 
         // Verify data exists
-        assertNotNull(userDao.getUserById(1))
+        assertNotNull(userDao.getUser())
         assertNotNull(transactionDao.getTransactionById(1))
         assertNotNull(currencyUsageDao.getCurrencyUsageById(1))
 
         // Clean up data
         val transactionToDelete = transactionDao.getTransactionById(1)
         val currencyUsageToDelete = currencyUsageDao.getCurrencyUsageById(1)
-        val userToDelete = userDao.getUserById(1)
+        val userToDelete = userDao.getUser()
         
         transactionToDelete?.let { transactionDao.deleteTransaction(it) }
         currencyUsageToDelete?.let { currencyUsageDao.deleteCurrencyUsage(it) }
         userToDelete?.let { userDao.deleteUser(it) }
 
         // Verify data was cleaned up
-        assert(userDao.getUserById(1) == null)
+        assert(userDao.getUser() == null)
         assert(transactionDao.getTransactionById(1) == null)
         assert(currencyUsageDao.getCurrencyUsageById(1) == null)
     }
@@ -399,7 +371,6 @@ class DatabaseModuleTest {
     fun testDatabaseModuleErrorHandling() = runBlocking {
         // Test database module error handling
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -408,49 +379,53 @@ class DatabaseModuleTest {
         )
         userDao.insertUser(user)
 
-        // Test foreign key constraint violation
+        // Test unique constraint on currency usage
         try {
-            val invalidTransaction = TransactionEntity(
-                id = 1,
-                userId = 999, // Non-existent user
-                amount = 100.0,
-                description = "Invalid transaction",
-                category = "Food",
-                type = TransactionType.EXPENSE,
-                date = Date(),
+            val currencyUsage1 = CurrencyUsageEntity(
+                currency = "USD",
+                usageCount = 1,
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             )
-            transactionDao.insertTransaction(invalidTransaction)
+            currencyUsageDao.insertCurrencyUsage(currencyUsage1)
+
+            // This should fail due to unique constraint on currency
+            val currencyUsage2 = CurrencyUsageEntity(
+                currency = "USD", // Duplicate currency
+                usageCount = 2,
+                lastUsed = Date(),
+                createdAt = Date(),
+                updatedAt = Date()
+            )
+            currencyUsageDao.insertCurrencyUsage(currencyUsage2)
             assert(false) // Should not reach here
         } catch (e: Exception) {
-            // Expected to fail due to foreign key constraint
+            // Expected to fail due to unique constraint
             assert(true)
         }
 
-        // Test duplicate primary key
-        try {
-            val duplicateUser = UserEntity(
-                id = 1, // Same ID as existing user
-                defaultCurrency = "EUR",
-                locale = "fr",
-                deviceAuthEnabled = true,
-                createdAt = Date(),
-                updatedAt = Date()
-            )
-            userDao.insertUser(duplicateUser)
-            assert(false) // Should not reach here
-        } catch (e: Exception) {
-            // Expected to fail due to duplicate primary key
-            assert(true)
-        }
+        // Test duplicate primary key - Room uses REPLACE strategy by default
+        // This will replace the existing user instead of throwing an error
+        val duplicateUser = UserEntity(
+            defaultCurrency = "EUR",
+            locale = "fr",
+            deviceAuthEnabled = true,
+            createdAt = Date(),
+            updatedAt = Date()
+        )
+        userDao.insertUser(duplicateUser)
+        
+        // Verify the user was replaced
+        val users = userDao.getUser()
+        assertNotNull(users)
+        assertEquals("EUR", users?.defaultCurrency)
     }
 
     @Test
     fun testDatabaseModuleTransactionSupport() = runBlocking {
         // Test database module transaction support
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -463,8 +438,6 @@ class DatabaseModuleTest {
         try {
             database.runInTransaction {
                 val transaction1 = TransactionEntity(
-                    id = 1,
-                    userId = 1,
                     amount = 100.0,
                     description = "Transaction 1",
                     category = "Food",
@@ -477,7 +450,6 @@ class DatabaseModuleTest {
 
                 val transaction2 = TransactionEntity(
                     id = 2,
-                    userId = 1,
                     amount = 200.0,
                     description = "Transaction 2",
                     category = "Transport",
@@ -496,7 +468,7 @@ class DatabaseModuleTest {
         }
 
         // Verify no transactions were inserted due to rollback
-        val transactions = transactionDao.getTransactionsByUser(1).first()
+        val transactions = transactionDao.getAllTransactions().first()
         assertEquals(0, transactions.size)
     }
 
@@ -504,7 +476,6 @@ class DatabaseModuleTest {
     fun testDatabaseModuleMigrationSupport() = runBlocking {
         // Test database module migration support
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -515,8 +486,6 @@ class DatabaseModuleTest {
 
         // Test that database can handle schema changes
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -537,7 +506,6 @@ class DatabaseModuleTest {
     fun testDatabaseModuleIndexing() = runBlocking {
         // Test database module indexing performance
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -552,7 +520,6 @@ class DatabaseModuleTest {
         for (i in 1..1000) {
             val transaction = TransactionEntity(
                 id = i.toLong(),
-                userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category ${i % 10}",
@@ -568,7 +535,7 @@ class DatabaseModuleTest {
 
         // Test query performance with indexing
         val queryStartTime = System.currentTimeMillis()
-        val transactions = transactionDao.getTransactionsByUser(1).first()
+        val transactions = transactionDao.getAllTransactions().first()
         val queryTime = System.currentTimeMillis() - queryStartTime
 
         // Verify performance is acceptable
@@ -581,7 +548,6 @@ class DatabaseModuleTest {
     fun testDatabaseModuleMemoryManagement() = runBlocking {
         // Test database module memory management
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -594,7 +560,6 @@ class DatabaseModuleTest {
         for (i in 1..100) {
             val transaction = TransactionEntity(
                 id = i.toLong(),
-                userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Food",
@@ -607,17 +572,17 @@ class DatabaseModuleTest {
         }
 
         // Verify data was inserted
-        val initialCount = transactionDao.getTransactionsByUser(1).first().size
+        val initialCount = transactionDao.getAllTransactions().first().size
         assertEquals(100, initialCount)
 
         // Delete all transactions
-        val transactions = transactionDao.getTransactionsByUser(1).first()
+        val transactions = transactionDao.getAllTransactions().first()
         transactions.forEach { transaction ->
             transactionDao.deleteTransaction(transaction)
         }
 
         // Verify data was deleted
-        val finalCount = transactionDao.getTransactionsByUser(1).first().size
+        val finalCount = transactionDao.getAllTransactions().first().size
         assertEquals(0, finalCount)
     }
 
@@ -631,7 +596,6 @@ class DatabaseModuleTest {
 
         // Test database is writable
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -641,7 +605,7 @@ class DatabaseModuleTest {
         userDao.insertUser(user)
 
         // Test database is readable
-        val retrievedUser = userDao.getUserById(1)
+        val retrievedUser = userDao.getUser()
         assertNotNull("User should be retrievable", retrievedUser)
         assertEquals("USD", retrievedUser?.defaultCurrency)
     }

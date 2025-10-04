@@ -70,7 +70,7 @@ class AuthViewModel @Inject constructor(
                 deviceAuthService.isDeviceAuthEnabled,
                 _isAuthenticated
             ) { user, deviceAuthEnabled, isAuthenticated ->
-                println("🔍 AuthViewModel DEBUG: user=${user?.id}, deviceAuthEnabled=$deviceAuthEnabled, isAuthenticated=$isAuthenticated, shouldRequireDeviceAuth=${user != null && deviceAuthEnabled && !isAuthenticated}")
+                println("🔍 AuthViewModel DEBUG: userExists=${user != null}, deviceAuthEnabled=$deviceAuthEnabled, isAuthenticated=$isAuthenticated, shouldRequireDeviceAuth=${user != null && deviceAuthEnabled && !isAuthenticated}")
             }.collect { }
         }
     }

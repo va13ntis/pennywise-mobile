@@ -22,7 +22,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -209,7 +209,7 @@ fun RecurringExpensesSection(
                 )
             ) {
                 Column {
-                    Divider(
+                    HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant,
                         thickness = 0.5.dp,
                         modifier = Modifier.padding(horizontal = 20.dp)
@@ -224,7 +224,7 @@ fun RecurringExpensesSection(
                         
                         // Add divider between items (except for the last one)
                         if (index < transactions.size - 1 || splitPaymentInstallments.isNotEmpty()) {
-                            Divider(
+                            HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                                 thickness = 0.5.dp,
                                 modifier = Modifier.padding(horizontal = 20.dp)
@@ -241,7 +241,7 @@ fun RecurringExpensesSection(
                         
                         // Add divider between items (except for the last one)
                         if (index < splitPaymentInstallments.size - 1) {
-                            Divider(
+                            HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                                 thickness = 0.5.dp,
                                 modifier = Modifier.padding(horizontal = 20.dp)

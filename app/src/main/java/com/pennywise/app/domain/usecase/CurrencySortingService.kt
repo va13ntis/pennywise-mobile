@@ -21,18 +21,18 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /**
- * Service for sorting currencies by popularity based on user usage patterns
+ * Service for sorting currencies by popularity based on usage patterns
  */
 class CurrencySortingService @Inject constructor(
     private val currencyUsageRepository: CurrencyUsageRepository,
     private val userRepository: UserRepository
 ) {
     
-    // Cache for sorted currencies by user ID
-    private val sortedCurrenciesCache = ConcurrentHashMap<Long, List<Currency>>()
+    // Cache for sorted currencies
+    private var sortedCurrenciesCache: List<Currency>? = null
     
-    // Cache for currency usage data by user ID
-    private val currencyUsageCache = ConcurrentHashMap<Long, List<com.pennywise.app.domain.model.CurrencyUsage>>()
+    // Cache for currency usage data
+    private var currencyUsageCache: List<com.pennywise.app.domain.model.CurrencyUsage>? = null
     
     // Mutex for thread-safe cache operations
     private val cacheMutex = Mutex()
@@ -40,54 +40,42 @@ class CurrencySortingService @Inject constructor(
     // Cache expiration time (5 minutes)
     private val cacheExpirationTime = 5 * 60 * 1000L
     
-    // Cache timestamps
-    private val cacheTimestamps = ConcurrentHashMap<Long, Long>()
+    // Cache timestamp
+    private var cacheTimestamp: Long? = null
     
     // Coroutine scope for background operations
     private val backgroundScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     /**
-     * Check if cache is valid for a user
+     * Check if cache is valid
      */
-    private fun isCacheValid(userId: Long): Boolean {
-        val timestamp = cacheTimestamps[userId] ?: return false
+    private fun isCacheValid(): Boolean {
+        val timestamp = cacheTimestamp ?: return false
         return System.currentTimeMillis() - timestamp < cacheExpirationTime
     }
     
     /**
-     * Invalidate cache for a specific user
+     * Invalidate cache
      */
-    suspend fun invalidateCache(userId: Long) {
+    suspend fun invalidateCache() {
         cacheMutex.withLock {
-            sortedCurrenciesCache.remove(userId)
-            currencyUsageCache.remove(userId)
-            cacheTimestamps.remove(userId)
+            sortedCurrenciesCache = null
+            currencyUsageCache = null
+            cacheTimestamp = null
         }
     }
     
     /**
-     * Invalidate cache for all users
-     */
-    suspend fun invalidateAllCache() {
-        cacheMutex.withLock {
-            sortedCurrenciesCache.clear()
-            currencyUsageCache.clear()
-            cacheTimestamps.clear()
-        }
-    }
-    
-    /**
-     * Get currencies sorted by user usage patterns with reactive updates
-     * @param userId The user ID to get sorted currencies for
+     * Get currencies sorted by usage patterns with reactive updates
      * @return Flow of sorted currencies list that updates when usage patterns change
      */
-    fun getSortedCurrencies(userId: Long): Flow<List<Currency>> {
+    fun getSortedCurrencies(): Flow<List<Currency>> {
         return try {
-            currencyUsageRepository.getUserCurrenciesSortedByUsage(userId)
+            currencyUsageRepository.getCurrenciesSortedByUsage()
                 .onStart {
                     // Optional: Emit cached data immediately if available
-                    if (isCacheValid(userId)) {
-                        sortedCurrenciesCache[userId]?.let { _ ->
+                    if (isCacheValid()) {
+                        sortedCurrenciesCache?.let { _ ->
                             // Note: We can't emit from onStart in a regular Flow, but this is where
                             // we could log or perform other startup operations
                         }
@@ -97,20 +85,16 @@ class CurrencySortingService @Inject constructor(
                 // Create a set of used currencies
                 val usedCurrencyCodes = userCurrencyUsage.map { it.currency }.toSet()
                 
-                // Note: We can't call suspend function from Flow.map, so we'll only use actual usage data
-                // In a production app, you might want to use combine() to get both usage and user data
-                val allUsedCodes = usedCurrencyCodes
-                
                 // Get all currencies
                 val allCurrencies = Currency.values().toList()
                 
                 // Sort currencies: first by usage (if used), then by default enum popularity
                 val sortedCurrencies = allCurrencies.sortedWith(compareBy(
                     // First sort by whether it's in the used set (used currencies first)
-                    { !(it.code in allUsedCodes) },
+                    { !(it.code in usedCurrencyCodes) },
                     // Then sort used currencies by their usage order
                     { currency -> 
-                        if (currency.code in allUsedCodes) {
+                        if (currency.code in usedCurrencyCodes) {
                             userCurrencyUsage.indexOfFirst { it.currency == currency.code }
                         } else {
                             Int.MAX_VALUE // Unused currencies go to the end
@@ -122,48 +106,46 @@ class CurrencySortingService @Inject constructor(
                 
                 // Update cache asynchronously (non-blocking)
                 backgroundScope.launch {
-                    updateCacheAsync(userId, sortedCurrencies, userCurrencyUsage)
+                    updateCacheAsync(sortedCurrencies, userCurrencyUsage)
                 }
                 
                 sortedCurrencies
             }
             .catch { exception ->
                 // Handle errors gracefully - emit empty list or cached data if available
-                val cachedCurrencies = sortedCurrenciesCache[userId] ?: emptyList()
-                // Log the error (in a real app, you'd use proper logging)
-                println("Error in getSortedCurrencies for user $userId: ${exception.message}")
+                val cachedCurrencies = sortedCurrenciesCache ?: emptyList()
+                println("Error in getSortedCurrencies: ${exception.message}")
                 emit(cachedCurrencies)
             }
             .onCompletion { cause ->
                 // Optional: Log completion or perform cleanup
                 if (cause != null) {
-                    println("Flow completed with exception for user $userId: ${cause.message}")
+                    println("Flow completed with exception: ${cause.message}")
                 }
             }
         } catch (e: Exception) {
             // Handle exceptions thrown during Flow creation
-            println("Error creating Flow for user $userId: ${e.message}")
-            flowOf(sortedCurrenciesCache[userId] ?: emptyList())
+            println("Error creating Flow: ${e.message}")
+            flowOf(sortedCurrenciesCache ?: emptyList())
         }
     }
     
     /**
-     * Get currencies sorted by user usage patterns (suspend version with caching)
-     * @param userId The user ID to get sorted currencies for
+     * Get currencies sorted by usage patterns (suspend version with caching)
      * @return List of sorted currencies
      */
-    suspend fun getSortedCurrenciesSuspend(userId: Long): List<Currency> {
+    suspend fun getSortedCurrenciesSuspend(): List<Currency> {
         return try {
             // Check cache first
-            if (isCacheValid(userId)) {
-                sortedCurrenciesCache[userId]?.let { return it }
+            if (isCacheValid()) {
+                sortedCurrenciesCache?.let { return it }
             }
             
             // Cache miss or expired - fetch from repository
-            val userCurrencyUsage = currencyUsageRepository.getUserCurrenciesSortedByUsage(userId).first()
+            val userCurrencyUsage = currencyUsageRepository.getCurrenciesSortedByUsage().first()
             
             // Get user's default currency (if any)
-            val defaultCurrency = getDefaultCurrencyForUser(userId)
+            val defaultCurrency = getDefaultCurrency()
             
             // Get all currencies
             val allCurrencies = Currency.values().toList()
@@ -196,38 +178,36 @@ class CurrencySortingService @Inject constructor(
             
             // Update cache
             cacheMutex.withLock {
-                sortedCurrenciesCache[userId] = sortedCurrencies
-                currencyUsageCache[userId] = userCurrencyUsage
-                cacheTimestamps[userId] = System.currentTimeMillis()
+                sortedCurrenciesCache = sortedCurrencies
+                currencyUsageCache = userCurrencyUsage
+                cacheTimestamp = System.currentTimeMillis()
             }
             
             sortedCurrencies
         } catch (e: Exception) {
             // Handle errors gracefully - return empty list or cached data if available
-            println("Error getting sorted currencies for user $userId: ${e.message}")
-            sortedCurrenciesCache[userId] ?: emptyList()
+            println("Error getting sorted currencies: ${e.message}")
+            sortedCurrenciesCache ?: emptyList()
         }
     }
     
     /**
-     * Get top N currencies for a user based on usage
-     * @param userId The user ID
+     * Get top N currencies based on usage
      * @param limit Maximum number of currencies to return
      * @return Flow of top currencies list
      */
-    fun getTopCurrencies(userId: Long, limit: Int = 10): Flow<List<Currency>> {
-        return getSortedCurrencies(userId).map { sortedCurrencies ->
+    fun getTopCurrencies(limit: Int = 10): Flow<List<Currency>> {
+        return getSortedCurrencies().map { sortedCurrencies ->
             sortedCurrencies.take(limit)
         }
     }
     
     /**
-     * Get currencies that the user has actually used
-     * @param userId The user ID
+     * Get currencies that have actually been used
      * @return Flow of used currencies list
      */
-    fun getUsedCurrencies(userId: Long): Flow<List<Currency>> {
-        return currencyUsageRepository.getUserCurrenciesSortedByUsage(userId).map { userCurrencyUsage ->
+    fun getUsedCurrencies(): Flow<List<Currency>> {
+        return currencyUsageRepository.getCurrenciesSortedByUsage().map { userCurrencyUsage ->
             userCurrencyUsage.mapNotNull { usage ->
                 Currency.fromCode(usage.currency)
             }
@@ -236,85 +216,30 @@ class CurrencySortingService @Inject constructor(
     
     /**
      * Track currency usage and invalidate cache when usage changes
-     * This method should be called whenever a user uses a currency
-     * @param userId The user ID
+     * This method should be called whenever a currency is used
      * @param currencyCode The currency code that was used
      */
-    suspend fun trackCurrencyUsage(userId: Long, currencyCode: String) {
+    suspend fun trackCurrencyUsage(currencyCode: String) {
         try {
             // Increment usage in repository
-            currencyUsageRepository.incrementCurrencyUsage(userId, currencyCode)
+            currencyUsageRepository.incrementCurrencyUsage(currencyCode)
             
-            // Invalidate cache for this user since usage pattern changed
-            invalidateCache(userId)
+            // Invalidate cache since usage pattern changed
+            invalidateCache()
         } catch (e: Exception) {
             // Log error but don't fail the operation
-            println("Error tracking currency usage for user $userId, currency $currencyCode: ${e.message}")
+            println("Error tracking currency usage for currency $currencyCode: ${e.message}")
         }
     }
     
     /**
-     * Get cache statistics for debugging/monitoring
-     * @return Map of cache statistics
-     */
-    fun getCacheStats(): Map<String, Any> {
-        return mapOf(
-            "sortedCurrenciesCacheSize" to sortedCurrenciesCache.size,
-            "currencyUsageCacheSize" to currencyUsageCache.size,
-            "cacheTimestampsSize" to cacheTimestamps.size,
-            "cacheExpirationTimeMs" to cacheExpirationTime
-        )
-    }
-    
-    /**
-     * Get default currency for a user with fallback
-     * @param userId The user ID
-     * @return Default currency code or null if no default is set
-     */
-    private suspend fun getDefaultCurrencyForUser(userId: Long): String? {
-        // Try to get user's actual default currency from repository
-        return try {
-            val user = userRepository.getUserById(userId)
-            user?.defaultCurrency
-        } catch (e: Exception) {
-            // If we can't get user data, return null (no default currency)
-            null
-        }
-    }
-    
-    /**
-     * Update cache asynchronously without blocking the Flow
-     * @param userId The user ID
-     * @param sortedCurrencies The sorted currencies to cache
-     * @param userCurrencyUsage The currency usage data to cache
-     */
-    private suspend fun updateCacheAsync(
-        userId: Long, 
-        sortedCurrencies: List<Currency>, 
-        userCurrencyUsage: List<com.pennywise.app.domain.model.CurrencyUsage>
-    ) {
-        // Update cache in a non-blocking way
-        try {
-            cacheMutex.withLock {
-                sortedCurrenciesCache[userId] = sortedCurrencies
-                currencyUsageCache[userId] = userCurrencyUsage
-                cacheTimestamps[userId] = System.currentTimeMillis()
-            }
-        } catch (e: Exception) {
-            // Log error but don't fail the flow
-            println("Error updating cache for user $userId: ${e.message}")
-        }
-    }
-    
-    /**
-     * Get currencies sorted by user usage patterns with enhanced reactive updates
+     * Get currencies sorted by usage patterns with enhanced reactive updates
      * This method provides a more sophisticated Flow that combines multiple data sources
-     * @param userId The user ID to get sorted currencies for
      * @return Flow of sorted currencies list that updates when any underlying data changes
      */
-    fun getSortedCurrenciesReactive(userId: Long): Flow<List<Currency>> {
+    fun getSortedCurrenciesReactive(): Flow<List<Currency>> {
         return combine(
-            currencyUsageRepository.getUserCurrenciesSortedByUsage(userId),
+            currencyUsageRepository.getCurrenciesSortedByUsage(),
             // For now, we'll use a static flow for user data since UserRepository doesn't have Flow methods
             // In a production app, you'd want to add Flow-based methods to UserRepository
             flowOf(null as String?) // This represents the user's default currency (null if no default)
@@ -346,16 +271,66 @@ class CurrencySortingService @Inject constructor(
             
             // Update cache asynchronously
             backgroundScope.launch {
-                updateCacheAsync(userId, sortedCurrencies, userCurrencyUsage)
+                updateCacheAsync(sortedCurrencies, userCurrencyUsage)
             }
             
             sortedCurrencies
         }
         .catch { exception ->
             // Handle errors gracefully - emit cached data if available
-            val cachedCurrencies = sortedCurrenciesCache[userId] ?: emptyList()
-            println("Error in getSortedCurrenciesReactive for user $userId: ${exception.message}")
+            val cachedCurrencies = sortedCurrenciesCache ?: emptyList()
+            println("Error in getSortedCurrenciesReactive: ${exception.message}")
             emit(cachedCurrencies)
+        }
+    }
+    
+    /**
+     * Get cache statistics for debugging/monitoring
+     * @return Map of cache statistics
+     */
+    fun getCacheStats(): Map<String, Any> {
+        return mapOf(
+            "sortedCurrenciesCacheSize" to (if (sortedCurrenciesCache != null) 1 else 0),
+            "currencyUsageCacheSize" to (if (currencyUsageCache != null) 1 else 0),
+            "cacheTimestampSet" to (cacheTimestamp != null),
+            "cacheExpirationTimeMs" to cacheExpirationTime
+        )
+    }
+    
+    /**
+     * Get default currency with fallback
+     * @return Default currency code or null if no default is set
+     */
+    private suspend fun getDefaultCurrency(): String? {
+        // Try to get user's actual default currency from repository
+        return try {
+            val user = userRepository.getUser()
+            user?.defaultCurrency
+        } catch (e: Exception) {
+            // If we can't get user data, return null (no default currency)
+            null
+        }
+    }
+    
+    /**
+     * Update cache asynchronously without blocking the Flow
+     * @param sortedCurrencies The sorted currencies to cache
+     * @param userCurrencyUsage The currency usage data to cache
+     */
+    private suspend fun updateCacheAsync(
+        sortedCurrencies: List<Currency>, 
+        userCurrencyUsage: List<com.pennywise.app.domain.model.CurrencyUsage>
+    ) {
+        // Update cache in a non-blocking way
+        try {
+            cacheMutex.withLock {
+                sortedCurrenciesCache = sortedCurrencies
+                currencyUsageCache = userCurrencyUsage
+                cacheTimestamp = System.currentTimeMillis()
+            }
+        } catch (e: Exception) {
+            // Log error but don't fail the flow
+            println("Error updating cache: ${e.message}")
         }
     }
 }

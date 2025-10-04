@@ -43,6 +43,9 @@ class AddExpenseViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<AddExpenseUiState>(AddExpenseUiState.Idle)
     val uiState: StateFlow<AddExpenseUiState> = _uiState
     
+    private val _needsAuthentication = MutableStateFlow(false)
+    val needsAuthentication: StateFlow<Boolean> = _needsAuthentication
+    
     private val _selectedCurrency = MutableStateFlow<Currency?>(null)
     val selectedCurrency: StateFlow<Currency?> = _selectedCurrency
     
@@ -79,46 +82,51 @@ class AddExpenseViewModel @Inject constructor(
                         )
                     }
                     
-                    // Load sorted currencies for this user
-                    loadSortedCurrencies(currentUser.id)
+                    // Load sorted currencies
+                    loadSortedCurrencies()
                     
-                    // Load bank cards for this user
-                    loadBankCards(currentUser.id)
+                    // Load bank cards
+                    loadBankCards()
                 }
             }
         }
     }
     
     /**
-     * Load sorted currencies for a user
+     * Load sorted currencies
      */
-    private fun loadSortedCurrencies(userId: Long) {
+    private fun loadSortedCurrencies() {
         viewModelScope.launch {
-            currencySortingService.getSortedCurrencies(userId).collect { sortedCurrencies ->
+            currencySortingService.getSortedCurrencies().collect { sortedCurrencies ->
                 _sortedCurrencies.value = sortedCurrencies
             }
         }
         
         viewModelScope.launch {
-            currencySortingService.getTopCurrencies(userId, 10).collect { topCurrencies ->
+            currencySortingService.getTopCurrencies(10).collect { topCurrencies ->
                 _topCurrencies.value = topCurrencies
             }
         }
     }
     
     /**
-     * Load bank cards for a user
+     * Load bank cards
      */
-    private fun loadBankCards(userId: Long) {
+    private fun loadBankCards() {
         viewModelScope.launch {
             try {
-                bankCardRepository.getActiveBankCardsByUserId(userId).collect { cards ->
+                bankCardRepository.getActiveBankCards().collect { cards ->
                     _bankCards.value = cards
+                    _needsAuthentication.value = false
                 }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+                _bankCards.value = emptyList()
             } catch (e: Exception) {
                 // Handle error - could log or show user feedback
                 // For now, just set empty list
                 _bankCards.value = emptyList()
+                _needsAuthentication.value = false
             }
         }
     }
@@ -134,10 +142,7 @@ class AddExpenseViewModel @Inject constructor(
             
             // Track currency usage for sorting
             viewModelScope.launch {
-                val currentUser = authManager.currentUser.value
-                if (currentUser != null) {
-                    currencySortingService.trackCurrencyUsage(currentUser.id, currency.code)
-                }
+                currencySortingService.trackCurrencyUsage(currency.code)
             }
         } else {
             // Log the validation error
@@ -151,10 +156,7 @@ class AddExpenseViewModel @Inject constructor(
             
             // Track currency usage even if validation failed
             viewModelScope.launch {
-                val currentUser = authManager.currentUser.value
-                if (currentUser != null) {
-                    currencySortingService.trackCurrencyUsage(currentUser.id, currency.code)
-                }
+                currencySortingService.trackCurrencyUsage(currency.code)
             }
         }
     }
@@ -162,12 +164,12 @@ class AddExpenseViewModel @Inject constructor(
     /**
      * Save expense to the repository with currency validation
      */
-    fun saveExpense(expenseData: ExpenseFormData, userId: Long) {
+    fun saveExpense(expenseData: ExpenseFormData) {
         viewModelScope.launch {
             _uiState.value = AddExpenseUiState.Loading
             
             try {
-                android.util.Log.d("AddExpenseViewModel", "Saving expense for userId: $userId")
+                android.util.Log.d("AddExpenseViewModel", "Saving expense")
                 android.util.Log.d("AddExpenseViewModel", "Expense data: $expenseData")
                 val currency = _selectedCurrency.value ?: Currency.getDefault()
                 
@@ -205,7 +207,6 @@ class AddExpenseViewModel @Inject constructor(
                 }
                 
                 val transaction = Transaction(
-                    userId = userId,
                     amount = mainTransactionAmount,
                     currency = currency.code,
                     description = expenseData.merchant,
@@ -227,7 +228,6 @@ class AddExpenseViewModel @Inject constructor(
                 if (isSplitPayment) {
                     createSplitPaymentInstallments(
                         parentTransactionId = transactionId,
-                        userId = userId,
                         totalAmount = expenseData.amount,
                         currency = currency.code,
                         description = expenseData.merchant,
@@ -238,11 +238,16 @@ class AddExpenseViewModel @Inject constructor(
                 }
                 
                 _uiState.value = AddExpenseUiState.Success(transactionId)
+                _needsAuthentication.value = false
                 
                 // Play kaching sound to celebrate the successful expense addition
                 soundManager.playKachingSound()
+            } catch (e: SecurityException) {
+                _uiState.value = AddExpenseUiState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = AddExpenseUiState.Error(e.message ?: "Failed to save expense")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -263,7 +268,6 @@ class AddExpenseViewModel @Inject constructor(
      */
     private suspend fun createSplitPaymentInstallments(
         parentTransactionId: Long,
-        userId: Long,
         totalAmount: Double,
         currency: String,
         description: String,
@@ -281,7 +285,6 @@ class AddExpenseViewModel @Inject constructor(
         for (i in 1..installments) {
             val installment = SplitPaymentInstallment(
                 parentTransactionId = parentTransactionId,
-                userId = userId,
                 amount = installmentAmount,
                 currency = currency,
                 description = description,
@@ -315,6 +318,7 @@ class AddExpenseViewModel @Inject constructor(
      */
     fun resetState() {
         _uiState.value = AddExpenseUiState.Idle
+        _needsAuthentication.value = false
     }
 }
 

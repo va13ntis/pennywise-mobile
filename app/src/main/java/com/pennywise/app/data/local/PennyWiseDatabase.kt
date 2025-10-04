@@ -24,14 +24,13 @@ import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.BankCardEntity
 import com.pennywise.app.data.local.entity.SplitPaymentInstallmentEntity
 import com.pennywise.app.data.local.entity.PaymentMethodConfigEntity
-import com.pennywise.app.data.local.migration.DatabaseMigrations
 
 /**
  * Room database for PennyWise app
  */
 @Database(
     entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class, PaymentMethodConfigEntity::class],
-    version = 10,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(
@@ -62,7 +61,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     "pennywise_database"
                 )
-                .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10)
+                .fallbackToDestructiveMigration() // Recreate database from scratch on migration
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

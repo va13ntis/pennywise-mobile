@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
- * Implementation of UserRepository that handles user data operations
- * Simplified for single-user per app
+ * Implementation of UserRepository that handles user data operations.
+ * Note: This repository does NOT require authentication validation because AuthenticationValidator 
+ * depends on UserRepository, which would create a circular dependency.
+ * Authentication is handled at higher levels (ViewModel/UseCase).
  */
 class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao
@@ -20,7 +22,7 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun createUser(defaultCurrency: String, locale: String): Result<Long> {
         return try {
             // Check if user already exists
-            val existingUser = userDao.getSingleUser()
+            val existingUser = userDao.getUser()
             if (existingUser != null) {
                 return Result.failure(Exception("User already exists"))
             }
@@ -40,16 +42,12 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun getUserById(userId: Long): User? {
-        return userDao.getUserById(userId)?.toDomainModel()
+    override suspend fun getUser(): User? {
+        return userDao.getUser()?.toDomainModel()
     }
     
-    override suspend fun getSingleUser(): User? {
-        return userDao.getSingleUser()?.toDomainModel()
-    }
-    
-    override fun getSingleUserFlow(): Flow<User?> {
-        return userDao.getSingleUserFlow().map { it?.toDomainModel() }
+    override fun getUserFlow(): Flow<User?> {
+        return userDao.getUserFlow().map { it?.toDomainModel() }
     }
     
     override suspend fun updateUser(user: User) {
@@ -62,16 +60,16 @@ class UserRepositoryImpl @Inject constructor(
         userDao.deleteUser(userEntity)
     }
     
-    override suspend fun updateUserStatus(userId: Long, status: UserStatus) {
-        userDao.updateUserStatus(userId, status)
+    override suspend fun updateUserStatus(status: UserStatus) {
+        userDao.updateUserStatus(status)
     }
     
-    override suspend fun updateDefaultCurrency(userId: Long, currency: String) {
-        userDao.updateDefaultCurrency(userId, currency, System.currentTimeMillis())
+    override suspend fun updateDefaultCurrency(currency: String) {
+        userDao.updateDefaultCurrency(currency, System.currentTimeMillis())
     }
     
-    override suspend fun updateDeviceAuthEnabled(userId: Long, enabled: Boolean) {
-        userDao.updateDeviceAuthEnabled(userId, enabled, System.currentTimeMillis())
+    override suspend fun updateDeviceAuthEnabled(enabled: Boolean) {
+        userDao.updateDeviceAuthEnabled(enabled, System.currentTimeMillis())
     }
     
     override suspend fun getUserCount(): Int {

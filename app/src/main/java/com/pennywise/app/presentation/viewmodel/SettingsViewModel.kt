@@ -90,6 +90,9 @@ class SettingsViewModel @Inject constructor(
     private val _authMethodUpdateState = MutableStateFlow<AuthMethodUpdateState>(AuthMethodUpdateState.Idle)
     val authMethodUpdateState: StateFlow<AuthMethodUpdateState> = _authMethodUpdateState
     
+    private val _needsAuthentication = MutableStateFlow(false)
+    val needsAuthentication: StateFlow<Boolean> = _needsAuthentication
+    
     // Device authentication capabilities
     val canUseBiometric: Boolean get() = deviceAuthService.canUseBiometric()
     val canUseDeviceCredentials: Boolean get() = deviceAuthService.canUseDeviceCredentials()
@@ -185,48 +188,75 @@ class SettingsViewModel @Inject constructor(
                     if (currentUser != null) {
                         val defaultCurrency = currentUser.defaultCurrency ?: "USD"
                         _defaultCurrencyState.value = DefaultCurrencyState.Success(defaultCurrency)
+                        _needsAuthentication.value = false
                     } else {
                         _defaultCurrencyState.value = DefaultCurrencyState.Error("User not authenticated")
+                        _needsAuthentication.value = true
                     }
                 }
+            } catch (e: SecurityException) {
+                _defaultCurrencyState.value = DefaultCurrencyState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _defaultCurrencyState.value = DefaultCurrencyState.Error("Failed to load default currency: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
     
     private fun loadSortedCurrencies() {
         viewModelScope.launch {
-            authManager.currentUser.collect { user ->
-                if (user != null) {
-                    // Load sorted currencies
-                    currencySortingService.getSortedCurrencies(user.id).collect { sortedCurrencies ->
-                        _sortedCurrencies.value = sortedCurrencies
+            try {
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        // Load sorted currencies
+                        currencySortingService.getSortedCurrencies().collect { sortedCurrencies ->
+                            _sortedCurrencies.value = sortedCurrencies
+                            _needsAuthentication.value = false
+                        }
                     }
                 }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _needsAuthentication.value = false
             }
         }
         
         viewModelScope.launch {
-            authManager.currentUser.collect { user ->
-                if (user != null) {
-                    // Load top currencies
-                    currencySortingService.getTopCurrencies(user.id, 10).collect { topCurrencies ->
-                        _topCurrencies.value = topCurrencies
+            try {
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        // Load top currencies
+                        currencySortingService.getTopCurrencies(10).collect { topCurrencies ->
+                            _topCurrencies.value = topCurrencies
+                            _needsAuthentication.value = false
+                        }
                     }
                 }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _needsAuthentication.value = false
             }
         }
     }
     
     private fun loadPaymentMethodConfigs() {
         viewModelScope.launch {
-            authManager.currentUser.collect { user ->
-                if (user != null) {
-                    paymentMethodConfigRepository.getPaymentMethodConfigsByUser(user.id).collect { configs ->
-                        _paymentMethodConfigs.value = configs
+            try {
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        paymentMethodConfigRepository.getPaymentMethodConfigs().collect { configs ->
+                            _paymentMethodConfigs.value = configs
+                            _needsAuthentication.value = false
+                        }
                     }
                 }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _needsAuthentication.value = false
             }
         }
     }
@@ -238,14 +268,20 @@ class SettingsViewModel @Inject constructor(
                 
                 authManager.currentUser.collect { currentUser ->
                     if (currentUser != null) {
-                        val defaultConfig = paymentMethodConfigRepository.getDefaultPaymentMethodConfig(currentUser.id)
+                        val defaultConfig = paymentMethodConfigRepository.getDefaultPaymentMethodConfig()
                         _defaultPaymentMethodState.value = DefaultPaymentMethodState.Success(defaultConfig)
+                        _needsAuthentication.value = false
                     } else {
                         _defaultPaymentMethodState.value = DefaultPaymentMethodState.Error("User not authenticated")
+                        _needsAuthentication.value = true
                     }
                 }
+            } catch (e: SecurityException) {
+                _defaultPaymentMethodState.value = DefaultPaymentMethodState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _defaultPaymentMethodState.value = DefaultPaymentMethodState.Error("Failed to load default payment method: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -291,23 +327,29 @@ class SettingsViewModel @Inject constructor(
                 val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
                     // Update the user's default currency
-                    userRepository.updateDefaultCurrency(currentUser.id, newCurrency)
+                    userRepository.updateDefaultCurrency(newCurrency)
                     
                     // Update the current user in auth manager
                     val updatedUser = currentUser.copy(defaultCurrency = newCurrency)
                     authManager.updateCurrentUser(updatedUser)
                     
                     // Track currency usage for sorting
-                    currencySortingService.trackCurrencyUsage(currentUser.id, newCurrency)
+                    currencySortingService.trackCurrencyUsage(newCurrency)
                     
                     // Update the default currency state
                     _defaultCurrencyState.value = DefaultCurrencyState.Success(newCurrency)
                     _currencyUpdateState.value = CurrencyUpdateState.Success
+                    _needsAuthentication.value = false
                 } else {
                     _currencyUpdateState.value = CurrencyUpdateState.Error("User not authenticated")
+                    _needsAuthentication.value = true
                 }
+            } catch (e: SecurityException) {
+                _currencyUpdateState.value = CurrencyUpdateState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _currencyUpdateState.value = CurrencyUpdateState.Error("Failed to update default currency: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -326,7 +368,6 @@ class SettingsViewModel @Inject constructor(
                 val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
                     val config = PaymentMethodConfig.createDefault(
-                        userId = currentUser.id,
                         paymentMethod = paymentMethod,
                         alias = alias
                     ).copy(withdrawDay = withdrawDay)
@@ -334,17 +375,23 @@ class SettingsViewModel @Inject constructor(
                     val configId = paymentMethodConfigRepository.insertPaymentMethodConfig(config)
                     
                     // If this is the first payment method, set it as default
-                    val configCount = paymentMethodConfigRepository.getPaymentMethodConfigCount(currentUser.id)
+                    val configCount = paymentMethodConfigRepository.getPaymentMethodConfigCount()
                     if (configCount == 1) {
-                        paymentMethodConfigRepository.setDefaultPaymentMethodConfig(currentUser.id, configId)
+                        paymentMethodConfigRepository.setDefaultPaymentMethodConfig(configId)
                     }
                     
                     _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Payment method added successfully")
+                    _needsAuthentication.value = false
                 } else {
                     _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("User not authenticated")
+                    _needsAuthentication.value = true
                 }
+            } catch (e: SecurityException) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to add payment method: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -358,8 +405,13 @@ class SettingsViewModel @Inject constructor(
                 paymentMethodConfigRepository.updatePaymentMethodConfig(updatedConfig)
                 
                 _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Payment method updated successfully")
+                _needsAuthentication.value = false
+            } catch (e: SecurityException) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to update payment method: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -374,15 +426,21 @@ class SettingsViewModel @Inject constructor(
                     paymentMethodConfigRepository.deletePaymentMethodConfig(configId)
                     
                     // If we deleted the default payment method, set a new default
-                    val remainingConfigs = paymentMethodConfigRepository.getPaymentMethodConfigsByUser(currentUser.id)
+                    val remainingConfigs = paymentMethodConfigRepository.getPaymentMethodConfigs()
                     // Note: This would need to be handled in the UI layer by calling setDefaultPaymentMethodConfig
                     
                     _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Payment method deleted successfully")
+                    _needsAuthentication.value = false
                 } else {
                     _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("User not authenticated")
+                    _needsAuthentication.value = true
                 }
+            } catch (e: SecurityException) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to delete payment method: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -394,20 +452,27 @@ class SettingsViewModel @Inject constructor(
                 
                 val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
-                    paymentMethodConfigRepository.setDefaultPaymentMethodConfig(currentUser.id, configId)
+                    paymentMethodConfigRepository.setDefaultPaymentMethodConfig(configId)
                     
                     _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Default payment method updated successfully")
+                    _needsAuthentication.value = false
                 } else {
                     _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("User not authenticated")
+                    _needsAuthentication.value = true
                 }
+            } catch (e: SecurityException) {
+                _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _paymentMethodUpdateState.value = PaymentMethodUpdateState.Error("Failed to set default payment method: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
     
     fun resetPaymentMethodUpdateState() {
         _paymentMethodUpdateState.value = PaymentMethodUpdateState.Idle
+        _needsAuthentication.value = false
     }
     
     // Developer Options Management

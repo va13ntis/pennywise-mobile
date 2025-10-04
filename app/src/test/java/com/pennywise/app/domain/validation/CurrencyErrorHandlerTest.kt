@@ -122,7 +122,7 @@ class CurrencyErrorHandlerTest {
         val invalidValue = "US"
         val suggestions = listOf("USD", "EUR")
         every { mockContext.getString(R.string.currency_error_unsupported_code, invalidValue) } returns "Custom unsupported message"
-        every { mockContext.getString(R.string.currency_error_with_suggestions, any(), any()) } returns "Custom message with USD, EUR"
+        every { mockContext.getString(R.string.currency_error_with_suggestions) } returns "Custom message with %s, %s"
         
         // When
         val result = currencyErrorHandler.getUserFriendlyErrorMessageWithSuggestions(
@@ -130,7 +130,7 @@ class CurrencyErrorHandlerTest {
         )
         
         // Then
-        assertEquals("Custom message with USD, EUR", result, "Should use context string")
+        assertEquals("Custom message with Custom unsupported message, USD, EUR", result, "Should use context string")
     }
     
     @Test

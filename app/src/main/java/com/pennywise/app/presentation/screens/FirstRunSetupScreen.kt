@@ -41,7 +41,6 @@ fun FirstRunSetupScreen(
     viewModel: FirstRunSetupViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
     
     LaunchedEffect(uiState.isSetupComplete) {
         if (uiState.isSetupComplete) {
@@ -410,15 +409,15 @@ fun FirstRunSetupScreen(
                                 )
                             }
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text(stringResource(R.string.setup_summary_language, uiState.selectedLanguage?.let { com.pennywise.app.presentation.util.LocaleManager().getLanguageDisplayName(it) } ?: stringResource(R.string.not_selected)))
-                            Text(stringResource(R.string.setup_summary_currency, uiState.selectedCurrency ?: stringResource(R.string.not_selected)))
+                            Text(stringResource(R.string.setup_summary_language, uiState.selectedLanguage?.let { com.pennywise.app.presentation.util.LocaleManager().getLanguageDisplayName(it) } ?: stringResource(R.string.no_selection)))
+                            Text(stringResource(R.string.setup_summary_currency, uiState.selectedCurrency ?: stringResource(R.string.no_selection)))
                             Text(stringResource(R.string.setup_summary_payment_method, uiState.selectedPaymentMethod?.let { method ->
                                 when (method) {
                                     PaymentMethod.CASH -> stringResource(R.string.payment_method_cash)
                                     PaymentMethod.CREDIT_CARD -> stringResource(R.string.payment_method_credit_card)
                                     PaymentMethod.CHEQUE -> stringResource(R.string.payment_method_cheque)
                                 }
-                            } ?: stringResource(R.string.not_selected)))
+                            } ?: stringResource(R.string.no_selection)))
                             Spacer(modifier = Modifier.height(20.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

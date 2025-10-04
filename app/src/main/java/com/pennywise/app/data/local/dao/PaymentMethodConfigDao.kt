@@ -12,10 +12,10 @@ import kotlinx.coroutines.flow.Flow
 interface PaymentMethodConfigDao {
     
     /**
-     * Get all payment method configurations for a user
+     * Get all payment method configurations
      */
-    @Query("SELECT * FROM payment_method_configs WHERE userId = :userId AND isActive = 1 ORDER BY isDefault DESC, alias ASC")
-    fun getPaymentMethodConfigsByUser(userId: Long): Flow<List<PaymentMethodConfigEntity>>
+    @Query("SELECT * FROM payment_method_configs WHERE isActive = 1 ORDER BY isDefault DESC, alias ASC")
+    fun getAllPaymentMethodConfigs(): Flow<List<PaymentMethodConfigEntity>>
     
     /**
      * Get payment method configuration by ID
@@ -24,16 +24,16 @@ interface PaymentMethodConfigDao {
     suspend fun getPaymentMethodConfigById(id: Long): PaymentMethodConfigEntity?
     
     /**
-     * Get default payment method configuration for a user
+     * Get default payment method configuration
      */
-    @Query("SELECT * FROM payment_method_configs WHERE userId = :userId AND isDefault = 1 AND isActive = 1 LIMIT 1")
-    suspend fun getDefaultPaymentMethodConfig(userId: Long): PaymentMethodConfigEntity?
+    @Query("SELECT * FROM payment_method_configs WHERE isDefault = 1 AND isActive = 1 LIMIT 1")
+    suspend fun getDefaultPaymentMethodConfig(): PaymentMethodConfigEntity?
     
     /**
      * Get payment method configurations by payment method type
      */
-    @Query("SELECT * FROM payment_method_configs WHERE userId = :userId AND paymentMethod = :paymentMethod AND isActive = 1 ORDER BY alias ASC")
-    fun getPaymentMethodConfigsByType(userId: Long, paymentMethod: PaymentMethod): Flow<List<PaymentMethodConfigEntity>>
+    @Query("SELECT * FROM payment_method_configs WHERE paymentMethod = :paymentMethod AND isActive = 1 ORDER BY alias ASC")
+    fun getPaymentMethodConfigsByType(paymentMethod: PaymentMethod): Flow<List<PaymentMethodConfigEntity>>
     
     /**
      * Insert a new payment method configuration
@@ -55,32 +55,32 @@ interface PaymentMethodConfigDao {
     
     /**
      * Set a payment method configuration as default
-     * This will unset all other default configurations for the user
+     * This will unset all other default configurations
      */
     @Transaction
-    suspend fun setDefaultPaymentMethodConfig(userId: Long, configId: Long) {
-        // First, unset all defaults for this user
-        unsetAllDefaults(userId)
+    suspend fun setDefaultPaymentMethodConfig(configId: Long) {
+        // First, unset all defaults
+        unsetAllDefaults()
         
         // Then set the new default
         setDefault(configId)
     }
     
-    @Query("UPDATE payment_method_configs SET isDefault = 0, updatedAt = :timestamp WHERE userId = :userId")
-    suspend fun unsetAllDefaults(userId: Long, timestamp: Long = System.currentTimeMillis())
+    @Query("UPDATE payment_method_configs SET isDefault = 0, updatedAt = :timestamp")
+    suspend fun unsetAllDefaults(timestamp: Long = System.currentTimeMillis())
     
     @Query("UPDATE payment_method_configs SET isDefault = 1, updatedAt = :timestamp WHERE id = :id")
     suspend fun setDefault(id: Long, timestamp: Long = System.currentTimeMillis())
     
     /**
-     * Check if a user has any payment method configurations
+     * Check if there are any payment method configurations
      */
-    @Query("SELECT COUNT(*) FROM payment_method_configs WHERE userId = :userId AND isActive = 1")
-    suspend fun getPaymentMethodConfigCount(userId: Long): Int
+    @Query("SELECT COUNT(*) FROM payment_method_configs WHERE isActive = 1")
+    suspend fun getPaymentMethodConfigCount(): Int
     
     /**
      * Get payment method configurations that need withdraw day configuration (credit cards)
      */
-    @Query("SELECT * FROM payment_method_configs WHERE userId = :userId AND paymentMethod = 'CREDIT_CARD' AND withdrawDay IS NOT NULL AND isActive = 1")
-    fun getCreditCardConfigs(userId: Long): Flow<List<PaymentMethodConfigEntity>>
+    @Query("SELECT * FROM payment_method_configs WHERE paymentMethod = 'CREDIT_CARD' AND withdrawDay IS NOT NULL AND isActive = 1")
+    fun getCreditCardConfigs(): Flow<List<PaymentMethodConfigEntity>>
 }

@@ -81,6 +81,9 @@ class HomeViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
     
+    private val _needsAuthentication = MutableStateFlow(false)
+    val needsAuthentication: StateFlow<Boolean> = _needsAuthentication.asStateFlow()
+    
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
     
     // Reactive computed values
@@ -313,11 +316,11 @@ class HomeViewModel @Inject constructor(
                     Pair(user, month)
                 }.collect { (user, month) ->
                     if (user != null) {
-                        println("🔄 HomeViewModel: Loading monthly transactions for user ${user.id}, month: $month")
+                        println("🔄 HomeViewModel: Loading monthly transactions for month: $month")
                         _isLoading.value = true
                         
                         try {
-                            val transactions = transactionRepository.getTransactionsByMonth(user.id, month).first()
+                            val transactions = transactionRepository.getTransactionsByMonth(month).first()
                             println("✅ HomeViewModel: Loaded ${transactions.size} monthly transactions for $month")
                             
                             // Log detailed transaction information
@@ -335,24 +338,37 @@ class HomeViewModel @Inject constructor(
                             }
                             
                             _transactions.value = transactions
+                            _error.value = null
+                            _needsAuthentication.value = false
+                        } catch (e: SecurityException) {
+                            println("🔒 HomeViewModel: Authentication required for monthly transactions")
+                            _error.value = "Authentication required"
+                            _needsAuthentication.value = true
                         } catch (e: Exception) {
                             // Don't show cancellation errors to the user
                             if (e !is CancellationException) {
                                 println("❌ HomeViewModel: Failed to load monthly transactions: ${e.message}")
                                 e.printStackTrace()
                                 _error.value = "Failed to load transactions: ${e.message}"
+                                _needsAuthentication.value = false
                             }
                         } finally {
                             _isLoading.value = false
                         }
                     }
                 }
+            } catch (e: SecurityException) {
+                println("🔒 HomeViewModel: Authentication required for monthly transactions observation")
+                _error.value = "Authentication required"
+                _needsAuthentication.value = true
+                _isLoading.value = false
             } catch (e: Exception) {
                 // Don't show cancellation errors to the user
                 if (e !is CancellationException) {
                     println("❌ HomeViewModel: Failed to observe monthly transactions: ${e.message}")
                     e.printStackTrace()
                     _error.value = "Failed to load transactions: ${e.message}"
+                    _needsAuthentication.value = false
                     _isLoading.value = false
                 }
             }
@@ -363,27 +379,39 @@ class HomeViewModel @Inject constructor(
             try {
                 authManager.currentUser.collect { user ->
                     if (user != null) {
-                        println("🔄 HomeViewModel: Starting to observe recurring transactions for user ${user.id}")
+                        println("🔄 HomeViewModel: Starting to observe recurring transactions")
                         try {
-                            transactionRepository.getRecurringTransactionsByUser(user.id).collect { transactions ->
+                            transactionRepository.getRecurringTransactions().collect { transactions ->
                                 println("✅ HomeViewModel: Updated recurring transactions: ${transactions.size} transactions")
                                 _allRecurringTransactions.value = transactions
+                                _error.value = null
+                                _needsAuthentication.value = false
                             }
+                        } catch (e: SecurityException) {
+                            println("🔒 HomeViewModel: Authentication required for recurring transactions")
+                            _error.value = "Authentication required"
+                            _needsAuthentication.value = true
                         } catch (e: Exception) {
                             // Don't show cancellation errors to the user
                             if (e !is CancellationException) {
                                 println("❌ HomeViewModel: Failed to observe recurring transactions: ${e.message}")
                                 _error.value = "Failed to load recurring transactions: ${e.message}"
+                                _needsAuthentication.value = false
                             }
                         }
                     }
                 }
+            } catch (e: SecurityException) {
+                println("🔒 HomeViewModel: Authentication required for recurring transactions observation")
+                _error.value = "Authentication required"
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 // Don't show cancellation errors to the user
                 if (e !is CancellationException) {
                     println("❌ HomeViewModel: Failed to observe recurring transactions: ${e.message}")
                     e.printStackTrace()
                     _error.value = "Failed to load recurring transactions: ${e.message}"
+                    _needsAuthentication.value = false
                 }
             }
         }
@@ -393,27 +421,39 @@ class HomeViewModel @Inject constructor(
             try {
                 authManager.currentUser.collect { user ->
                     if (user != null) {
-                        println("🔄 HomeViewModel: Starting to observe split payment installments for user ${user.id}")
+                        println("🔄 HomeViewModel: Starting to observe split payment installments")
                         try {
-                            splitPaymentInstallmentRepository.getInstallmentsByUser(user.id).collect { installments ->
+                            splitPaymentInstallmentRepository.getInstallments().collect { installments ->
                                 println("✅ HomeViewModel: Updated split payment installments: ${installments.size} installments")
                                 _splitPaymentInstallments.value = installments
+                                _error.value = null
+                                _needsAuthentication.value = false
                             }
+                        } catch (e: SecurityException) {
+                            println("🔒 HomeViewModel: Authentication required for split payment installments")
+                            _error.value = "Authentication required"
+                            _needsAuthentication.value = true
                         } catch (e: Exception) {
                             // Don't show cancellation errors to the user
                             if (e !is CancellationException) {
                                 println("❌ HomeViewModel: Failed to observe split payment installments: ${e.message}")
                                 _error.value = "Failed to load split payment installments: ${e.message}"
+                                _needsAuthentication.value = false
                             }
                         }
                     }
                 }
+            } catch (e: SecurityException) {
+                println("🔒 HomeViewModel: Authentication required for split payment installments observation")
+                _error.value = "Authentication required"
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 // Don't show cancellation errors to the user
                 if (e !is CancellationException) {
                     println("❌ HomeViewModel: Failed to observe split payment installments: ${e.message}")
                     e.printStackTrace()
                     _error.value = "Failed to load split payment installments: ${e.message}"
+                    _needsAuthentication.value = false
                 }
             }
         }
@@ -427,10 +467,11 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Clear any error messages
+     * Clear any error messages and authentication state
      */
     fun clearError() {
         _error.value = null
+        _needsAuthentication.value = false
     }
     
     /**
@@ -439,7 +480,7 @@ class HomeViewModel @Inject constructor(
     fun refreshData() {
         val user = authManager.currentUser.value
         if (user != null) {
-            println("🔄 HomeViewModel: Manual refresh requested for user ${user.id}")
+            println("🔄 HomeViewModel: Manual refresh requested")
             // The continuous observations will automatically pick up any new data
             // This method is mainly for debugging or future use
         }

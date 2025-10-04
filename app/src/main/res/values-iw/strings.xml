@@ -57,7 +57,26 @@
     <string name="amount_required">הסכום נדרש</string>
     <string name="invalid_amount">אנא הכנס סכום תקין</string>
     <string name="payment_type">סוג תשלום</string>
-    <string name="payment_method">שיטת תשלום</string>
+    <!-- Payment Method Configuration -->
+    <string name="payment_method_configuration">הגדרת שיטת תשלום</string>
+    <string name="set_as_default">הגדר כברירת מחדל</string>
+    <string name="add_payment_method">הוסף שיטת תשלום</string>
+    <string name="edit_payment_method">ערוך שיטת תשלום</string>
+    <string name="payment_method_alias">כינוי שיטת תשלום</string>
+    <string name="alias_hint">למשל, ויזה אישית, כרטיס חברה</string>
+    <string name="withdraw_day">יום חיוב</string>
+    <string name="withdraw_day_hint">יום החודש לחיוב כרטיס אשראי (1–31)</string>
+    <string name="withdraw_day_required">יום חיוב נדרש עבור כרטיסי אשראי</string>
+    <string name="invalid_withdraw_day">יום חיוב חייב להיות בין 1 ל-31</string>
+    <string name="no_payment_methods_title">אין שיטות תשלום</string>
+    <string name="no_payment_methods_description">הוסף שיטות תשלום לארגון טוב יותר של ההוצאות שלך ולהגדרת אפשרויות תשלום ברירת מחדל.</string>
+    <string name="payment_method_alias_required">כינוי שיטת תשלום נדרש</string>
+    <string name="credit_card_configuration">הגדרת כרטיס אשראי</string>
+    <string name="manage_payment_methods">נהל שיטות תשלום</string>
+    <string name="current_default_payment_method">שיטת תשלום ברירת מחדל נוכחית</string>
+    <string name="other_payment_methods">שיטות תשלום אחרות</string>
+    <string name="updating">מעדכן…</string>
+    
     <string name="one_time">פעם אחת</string>
     <string name="recurring">קבוע</string>
     <string name="recurring_period">תקופת חזרה</string>
@@ -102,10 +121,6 @@
     <string name="password_too_short">הסיסמה חייבת להיות לפחות 6 תווים</string>
     
     <!-- Biometric Authentication -->
-    <string name="biometric_login_title">התחברות עם ביומטריה</string>
-    <string name="biometric_login_subtitle">השתמש בטביעת האצבע או הפנים שלך להתחברות</string>
-    <string name="biometric_login_use_password">השתמש בסיסמה</string>
-    <string name="login_with_biometric">התחבר עם ביומטריה</string>
     
     <!-- Date Picker -->
     <string name="ok">אישור</string>
@@ -170,14 +185,39 @@
     <string name="default_currency">מטבע ברירת מחדל</string>
     <string name="current_default_currency">מטבע ברירת מחדל נוכחי</string>
     <string name="change_default_currency">שנה מטבע ברירת מחדל</string>
-    <string name="updating_currency">מעדכן מטבע...</string>
+    <string name="updating_currency">מעדכן מטבע…</string>
     <string name="currency_updated_successfully">המטבע עודכן בהצלחה</string>
     <string name="currency_settings">הגדרות מטבע</string>
     <string name="change">שנה</string>
+    
+    <!-- Device Authentication -->
+    <string name="device_auth_title">פתח את PennyWise</string>
+    <string name="device_auth_subtitle">השתמש בטביעת אצבע, פנים או קוד PIN של המכשיר כדי להמשיך</string>
+    <string name="device_auth_cancel">בטל</string>
+    <string name="biometric_auth_subtitle">השתמש בטביעת אצבע או פנים כדי להמשיך</string>
+    <string name="biometric_auth_cancel">בטל</string>
+    <string name="enable_device_auth">הפעל אימות מכשיר</string>
+    <string name="disable_device_auth">כבה אימות מכשיר</string>
+    <string name="skip_device_auth">דלג לעת עתה</string>
+    <string name="setup_device_auth">הגדר אבטחה</string>
+    <string name="continue_setup">המשך הגדרה</string>
     <string name="change_default_currency_confirmation">האם אתה בטוח שברצונך לשנות את מטבע ברירת המחדל שלך ל-%s? זה ישפיע על אופן הצגת הסכומים בכל האפליקציה.</string>
     <string name="default_currency_updated">מטבע ברירת המחדל עודכן בהצלחה</string>
     <string name="default_currency_update_failed">נכשל בעדכון מטבע ברירת המחדל</string>
-    <string name="currency_change_warning" formatted="false">שינוי מ-%s ל-%s עלול להשפיע על נתונים קיימים</string>
+    <string name="currency_change_warning">שינוי מ-%1$s ל-%2$s עלול להשפיע על נתונים קיימים</string>
+    
+    <!-- Currency Error Messages -->
+    <string name="currency_error_empty_code">אנא בחר מטבע</string>
+    <string name="currency_error_invalid_length">קוד המטבע חייב להיות בדיוק %d תווים</string>
+    <string name="currency_error_unsupported_code">המטבע \'%s\' לא נתמך</string>
+    <string name="currency_error_invalid_amount">אנא הכנס סכום תקין</string>
+    <string name="currency_error_with_suggestions">%1$s. התכוונת ל: %2$s?</string>
+    
+    <!-- Currency Recovery Messages -->
+    <string name="currency_recovery_empty_code">אנא בחר מטבע מהרשימה הנפתחת</string>
+    <string name="currency_recovery_invalid_length">אנא הכנס קוד מטבע של 3 אותיות</string>
+    <string name="currency_recovery_unsupported_code">אנא בחר מהמטבעות הנתמכים</string>
+    <string name="currency_recovery_invalid_amount">אנא הכנס מספר חיובי תקין</string>
     
     <!-- Account -->
     <string name="account">חשבון</string>
@@ -260,7 +300,7 @@
     <string name="setup_summary_currency">מטבע: %s</string>
     <string name="setup_summary_payment_method">שיטת תשלום: %s</string>
     <string name="finish_setup">סיום</string>
-    <string name="not_selected">-</string>
+    <string name="no_selection">–</string>
     <string name="next_step">הבא</string>
     <string name="finalizing_setup">מיישם הגדרות…</string>
     
@@ -277,6 +317,18 @@
     <string name="auth_method_updated">שיטת האימות עודכנה בהצלחה</string>
     <string name="auth_method_update_failed">נכשל בעדכון שיטת האימות</string>
     <string name="updating_auth_method">מעדכן שיטת אימות…</string>
+    
+    <!-- Developer Options -->
+    <string name="developer_options">אפשרויות מפתח</string>
+    <string name="test_data_controls">בקרת נתוני בדיקה</string>
+    <string name="seed_test_data">מלא נתוני בדיקה</string>
+    <string name="clear_test_data">נקה נתוני בדיקה</string>
+    <string name="seeding_data">ממלא נתונים…</string>
+    <string name="clearing_data">מנקה נתונים…</string>
+    <string name="developer_options_enabled">אפשרויות מפתח הופעלו</string>
+    <string name="developer_options_disabled">אפשרויות מפתח הושבתו</string>
+    <string name="tap_to_enable_developer_options">הקש 12 פעמים כדי להפעיל אפשרויות מפתח</string>
+    <string name="tap_to_disable_developer_options">הקש 6 פעמים כדי לכבות אפשרויות מפתח</string>
     
     <!-- Copyright -->
     <string name="copyright">© Quantum Doodles, 2025</string>

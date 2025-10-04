@@ -57,7 +57,26 @@
     <string name="amount_required">Сумма обязательна</string>
     <string name="invalid_amount">Пожалуйста, введите действительную сумму</string>
     <string name="payment_type">Тип платежа</string>
-    <string name="payment_method">Способ платежа</string>
+    <!-- Payment Method Configuration -->
+    <string name="payment_method_configuration">Настройка способа платежа</string>
+    <string name="set_as_default">Установить по умолчанию</string>
+    <string name="add_payment_method">Добавить способ платежа</string>
+    <string name="edit_payment_method">Редактировать способ платежа</string>
+    <string name="payment_method_alias">Псевдоним способа платежа</string>
+    <string name="alias_hint">например, Личная Visa, Корпоративная карта</string>
+    <string name="withdraw_day">День списания</string>
+    <string name="withdraw_day_hint">День месяца для платежа по кредитной карте (1–31)</string>
+    <string name="withdraw_day_required">День списания обязателен для кредитных карт</string>
+    <string name="invalid_withdraw_day">День списания должен быть от 1 до 31</string>
+    <string name="no_payment_methods_title">Нет способов платежа</string>
+    <string name="no_payment_methods_description">Добавьте способы платежа для лучшей организации ваших расходов и установки способов платежа по умолчанию.</string>
+    <string name="payment_method_alias_required">Псевдоним способа платежа обязателен</string>
+    <string name="credit_card_configuration">Настройка кредитной карты</string>
+    <string name="manage_payment_methods">Управление способами платежа</string>
+    <string name="current_default_payment_method">Текущий способ платежа по умолчанию</string>
+    <string name="other_payment_methods">Другие способы платежа</string>
+    <string name="updating">Обновление…</string>
+    
     <string name="one_time">Однократно</string>
     <string name="recurring">Регулярно</string>
     <string name="recurring_period">Период повторения</string>
@@ -102,10 +121,6 @@
     <string name="password_too_short">Пароль должен содержать не менее 6 символов</string>
     
     <!-- Biometric Authentication -->
-    <string name="biometric_login_title">Вход с биометрией</string>
-    <string name="biometric_login_subtitle">Используйте отпечаток пальца или лицо для входа</string>
-    <string name="biometric_login_use_password">Использовать пароль</string>
-    <string name="login_with_biometric">Войти с биометрией</string>
     
     <!-- Date Picker -->
     <string name="ok">ОК</string>
@@ -170,14 +185,39 @@
     <string name="default_currency">Валюта по умолчанию</string>
     <string name="current_default_currency">Текущая валюта по умолчанию</string>
     <string name="change_default_currency">Изменить валюту по умолчанию</string>
-    <string name="updating_currency">Обновление валюты...</string>
+    <string name="updating_currency">Обновление валюты…</string>
     <string name="currency_updated_successfully">Валюта успешно обновлена</string>
     <string name="currency_settings">Настройки валюты</string>
     <string name="change">Изменить</string>
+    
+    <!-- Device Authentication -->
+    <string name="device_auth_title">Разблокировать PennyWise</string>
+    <string name="device_auth_subtitle">Используйте отпечаток пальца, лицо или PIN-код устройства для продолжения</string>
+    <string name="device_auth_cancel">Отмена</string>
+    <string name="biometric_auth_subtitle">Используйте отпечаток пальца или лицо для продолжения</string>
+    <string name="biometric_auth_cancel">Отмена</string>
+    <string name="enable_device_auth">Включить аутентификацию устройства</string>
+    <string name="disable_device_auth">Отключить аутентификацию устройства</string>
+    <string name="skip_device_auth">Пропустить пока</string>
+    <string name="setup_device_auth">Настроить безопасность</string>
+    <string name="continue_setup">Продолжить настройку</string>
     <string name="change_default_currency_confirmation">Вы уверены, что хотите изменить валюту по умолчанию на %s? Это повлияет на отображение сумм во всем приложении.</string>
     <string name="default_currency_updated">Валюта по умолчанию успешно обновлена</string>
     <string name="default_currency_update_failed">Не удалось обновить валюту по умолчанию</string>
-    <string name="currency_change_warning" formatted="false">Изменение с %s на %s может повлиять на существующие данные</string>
+    <string name="currency_change_warning">Изменение с %1$s на %2$s может повлиять на существующие данные</string>
+    
+    <!-- Currency Error Messages -->
+    <string name="currency_error_empty_code">Пожалуйста, выберите валюту</string>
+    <string name="currency_error_invalid_length">Код валюты должен содержать ровно %d символов</string>
+    <string name="currency_error_unsupported_code">Валюта \'%s\' не поддерживается</string>
+    <string name="currency_error_invalid_amount">Пожалуйста, введите действительную сумму</string>
+    <string name="currency_error_with_suggestions">%1$s. Вы имели в виду: %2$s?</string>
+    
+    <!-- Currency Recovery Messages -->
+    <string name="currency_recovery_empty_code">Пожалуйста, выберите валюту из выпадающего списка</string>
+    <string name="currency_recovery_invalid_length">Пожалуйста, введите 3-буквенный код валюты</string>
+    <string name="currency_recovery_unsupported_code">Пожалуйста, выберите из поддерживаемых валют</string>
+    <string name="currency_recovery_invalid_amount">Пожалуйста, введите действительное положительное число</string>
     
     <!-- Account -->
     <string name="account">Аккаунт</string>
@@ -260,7 +300,7 @@
     <string name="setup_summary_currency">Валюта: %s</string>
     <string name="setup_summary_payment_method">Метод оплаты: %s</string>
     <string name="finish_setup">Завершить</string>
-    <string name="not_selected">-</string>
+    <string name="no_selection">–</string>
     <string name="next_step">Дальше</string>
     <string name="finalizing_setup">Завершение настройки…</string>
     
@@ -277,6 +317,18 @@
     <string name="auth_method_updated">Метод аутентификации успешно обновлен</string>
     <string name="auth_method_update_failed">Не удалось обновить метод аутентификации</string>
     <string name="updating_auth_method">Обновление метода аутентификации…</string>
+    
+    <!-- Developer Options -->
+    <string name="developer_options">Параметры разработчика</string>
+    <string name="test_data_controls">Управление тестовыми данными</string>
+    <string name="seed_test_data">Заполнить тестовыми данными</string>
+    <string name="clear_test_data">Очистить тестовые данные</string>
+    <string name="seeding_data">Заполнение данными…</string>
+    <string name="clearing_data">Очистка данных…</string>
+    <string name="developer_options_enabled">Параметры разработчика включены</string>
+    <string name="developer_options_disabled">Параметры разработчика отключены</string>
+    <string name="tap_to_enable_developer_options">Нажмите 12 раз, чтобы включить параметры разработчика</string>
+    <string name="tap_to_disable_developer_options">Нажмите 6 раз, чтобы отключить параметры разработчика</string>
     
     <!-- Copyright -->
     <string name="copyright">© Quantum Doodles, 2025</string>

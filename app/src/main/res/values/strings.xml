@@ -47,7 +47,7 @@
     <string name="payment_method_alias">Payment Method Alias</string>
     <string name="alias_hint">e.g., Personal Visa, Corporate Card</string>
     <string name="withdraw_day">Withdraw Day</string>
-    <string name="withdraw_day_hint">Day of month for credit card payment (1-31)</string>
+    <string name="withdraw_day_hint">Day of month for credit card payment (1–31)</string>
     <string name="withdraw_day_required">Withdraw day is required for credit cards</string>
     <string name="invalid_withdraw_day">Withdraw day must be between 1 and 31</string>
     <string name="no_payment_methods_title">No Payment Methods</string>
@@ -213,7 +213,7 @@
     <string name="currency_error_invalid_length">Currency code must be exactly %d characters</string>
     <string name="currency_error_unsupported_code">Currency \'%s\' is not supported</string>
     <string name="currency_error_invalid_amount">Please enter a valid amount</string>
-    <string name="currency_error_with_suggestions" formatted="false">%s. Did you mean: %s?</string>
+    <string name="currency_error_with_suggestions">%1$s. Did you mean: %2$s?</string>
     
     <!-- Currency Recovery Messages -->
     <string name="currency_recovery_empty_code">Please select a currency from the dropdown</string>
@@ -222,7 +222,7 @@
     <string name="currency_recovery_invalid_amount">Please enter a valid positive number</string>
     
     <!-- Currency Change Warnings -->
-    <string name="currency_change_warning" formatted="false">Changing from %s to %s may affect existing data</string>
+    <string name="currency_change_warning">Changing from %1$s to %2$s may affect existing data</string>
     
     <!-- Default Currency Settings -->
     <string name="change_default_currency">Change Default Currency</string>
@@ -232,7 +232,7 @@
     <string name="current_default_currency">Current Default Currency</string>
     <string name="currency_settings">Currency Settings</string>
     <string name="change">Change</string>
-    <string name="updating_currency">Updating currency...</string>
+    <string name="updating_currency">Updating currency…</string>
     <string name="currency_updated_successfully">Currency updated successfully</string>
     
     <!-- Account -->
@@ -296,8 +296,8 @@
     <string name="test_data_controls">Test Data Controls</string>
     <string name="seed_test_data">Seed Test Data</string>
     <string name="clear_test_data">Clear Test Data</string>
-    <string name="seeding_data">Seeding Data...</string>
-    <string name="clearing_data">Clearing Data...</string>
+    <string name="seeding_data">Seeding Data…</string>
+    <string name="clearing_data">Clearing Data…</string>
     <string name="developer_options_enabled">Developer options enabled</string>
     <string name="developer_options_disabled">Developer options disabled</string>
     <string name="tap_to_enable_developer_options">Tap 12 times to enable developer options</string>
@@ -311,7 +311,7 @@
     <string name="setup_summary_currency">Currency: %s</string>
     <string name="setup_summary_payment_method">Payment method: %s</string>
     <string name="finish_setup">Finish</string>
-    <string name="not_selected">-</string>
+    <string name="no_selection">–</string>
     <string name="finalizing_setup">Finalizing setup…</string>
     
     <!-- Authentication Method Configuration -->

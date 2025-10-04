@@ -3,8 +3,7 @@ package com.pennywise.app.domain.model
 import java.util.Date
 
 /**
- * Domain model representing a user in the PennyWise app
- * Simplified for single-user per app with device authentication
+ * Domain model representing the application user
  */
 data class User(
     val id: Long = 0,

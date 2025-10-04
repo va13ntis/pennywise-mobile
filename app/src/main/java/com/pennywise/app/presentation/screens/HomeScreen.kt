@@ -86,9 +86,7 @@ fun HomeScreen(
     
     // Reactive computed values
     val transactionsByWeek by viewModel.transactionsByWeek.collectAsState()
-    val totalIncome by viewModel.totalIncome.collectAsState()
     val totalExpenses by viewModel.totalExpenses.collectAsState()
-    val netBalance by viewModel.netBalance.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
     

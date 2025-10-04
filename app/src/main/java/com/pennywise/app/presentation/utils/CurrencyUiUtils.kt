@@ -20,14 +20,12 @@ class CurrencyUiUtils {
     /**
      * Extension function to collect sorted currencies with lifecycle awareness
      * @param currencySortingService The service to get sorted currencies from
-     * @param userId The user ID
      * @param lifecycleOwner The lifecycle owner (Activity, Fragment, etc.)
      * @param lifecycleState The lifecycle state to collect in (default: STARTED)
      * @return StateFlow of sorted currencies that automatically stops collecting when lifecycle stops
      */
     fun collectSortedCurrencies(
         currencySortingService: CurrencySortingService,
-        userId: Long,
         lifecycleOwner: LifecycleOwner,
         lifecycleState: Lifecycle.State = Lifecycle.State.STARTED
     ): StateFlow<List<Currency>> {
@@ -35,7 +33,7 @@ class CurrencyUiUtils {
         
         lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(lifecycleState) {
-                currencySortingService.getSortedCurrencies(userId).collect { sortedCurrencies ->
+                currencySortingService.getSortedCurrencies().collect { sortedCurrencies ->
                     stateFlow.value = sortedCurrencies
                 }
             }
@@ -47,7 +45,6 @@ class CurrencyUiUtils {
     /**
      * Extension function to collect top N currencies with lifecycle awareness
      * @param currencySortingService The service to get sorted currencies from
-     * @param userId The user ID
      * @param limit Maximum number of currencies to return
      * @param lifecycleOwner The lifecycle owner
      * @param lifecycleState The lifecycle state to collect in
@@ -55,7 +52,6 @@ class CurrencyUiUtils {
      */
     fun collectTopCurrencies(
         currencySortingService: CurrencySortingService,
-        userId: Long,
         limit: Int = 10,
         lifecycleOwner: LifecycleOwner,
         lifecycleState: Lifecycle.State = Lifecycle.State.STARTED
@@ -64,7 +60,7 @@ class CurrencyUiUtils {
         
         lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(lifecycleState) {
-                currencySortingService.getTopCurrencies(userId, limit).collect { topCurrencies ->
+                currencySortingService.getTopCurrencies(limit).collect { topCurrencies ->
                     stateFlow.value = topCurrencies
                 }
             }
@@ -76,14 +72,12 @@ class CurrencyUiUtils {
     /**
      * Extension function to collect used currencies with lifecycle awareness
      * @param currencySortingService The service to get sorted currencies from
-     * @param userId The user ID
      * @param lifecycleOwner The lifecycle owner
      * @param lifecycleState The lifecycle state to collect in
      * @return StateFlow of used currencies
      */
     fun collectUsedCurrencies(
         currencySortingService: CurrencySortingService,
-        userId: Long,
         lifecycleOwner: LifecycleOwner,
         lifecycleState: Lifecycle.State = Lifecycle.State.STARTED
     ): StateFlow<List<Currency>> {
@@ -91,7 +85,7 @@ class CurrencyUiUtils {
         
         lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(lifecycleState) {
-                currencySortingService.getUsedCurrencies(userId).collect { usedCurrencies ->
+                currencySortingService.getUsedCurrencies().collect { usedCurrencies ->
                     stateFlow.value = usedCurrencies
                 }
             }
@@ -103,14 +97,12 @@ class CurrencyUiUtils {
     /**
      * Extension function to collect sorted currencies with enhanced reactive updates
      * @param currencySortingService The service to get sorted currencies from
-     * @param userId The user ID
      * @param lifecycleOwner The lifecycle owner
      * @param lifecycleState The lifecycle state to collect in
      * @return StateFlow of sorted currencies with enhanced reactivity
      */
     fun collectSortedCurrenciesReactive(
         currencySortingService: CurrencySortingService,
-        userId: Long,
         lifecycleOwner: LifecycleOwner,
         lifecycleState: Lifecycle.State = Lifecycle.State.STARTED
     ): StateFlow<List<Currency>> {
@@ -118,7 +110,7 @@ class CurrencyUiUtils {
         
         lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(lifecycleState) {
-                currencySortingService.getSortedCurrenciesReactive(userId).collect { sortedCurrencies ->
+                currencySortingService.getSortedCurrenciesReactive().collect { sortedCurrencies ->
                     stateFlow.value = sortedCurrencies
                 }
             }
@@ -134,45 +126,41 @@ class CurrencyUiUtils {
 object CurrencyViewModelExtensions {
     
     /**
-     * Create a StateFlow that collects sorted currencies for a user
+     * Create a StateFlow that collects sorted currencies
      * This is a convenience method for ViewModels
      */
     fun createSortedCurrenciesStateFlow(
-        currencySortingService: CurrencySortingService,
-        userId: Long
+        currencySortingService: CurrencySortingService
     ): Flow<List<Currency>> {
-        return currencySortingService.getSortedCurrencies(userId)
+        return currencySortingService.getSortedCurrencies()
     }
     
     /**
-     * Create a StateFlow that collects top N currencies for a user
+     * Create a StateFlow that collects top N currencies
      */
     fun createTopCurrenciesStateFlow(
         currencySortingService: CurrencySortingService,
-        userId: Long,
         limit: Int = 10
     ): Flow<List<Currency>> {
-        return currencySortingService.getTopCurrencies(userId, limit)
+        return currencySortingService.getTopCurrencies(limit)
     }
     
     /**
-     * Create a StateFlow that collects used currencies for a user
+     * Create a StateFlow that collects used currencies
      */
     fun createUsedCurrenciesStateFlow(
-        currencySortingService: CurrencySortingService,
-        userId: Long
+        currencySortingService: CurrencySortingService
     ): Flow<List<Currency>> {
-        return currencySortingService.getUsedCurrencies(userId)
+        return currencySortingService.getUsedCurrencies()
     }
     
     /**
      * Create a StateFlow that collects sorted currencies with enhanced reactivity
      */
     fun createSortedCurrenciesReactiveStateFlow(
-        currencySortingService: CurrencySortingService,
-        userId: Long
+        currencySortingService: CurrencySortingService
     ): Flow<List<Currency>> {
-        return currencySortingService.getSortedCurrenciesReactive(userId)
+        return currencySortingService.getSortedCurrenciesReactive()
     }
 }
 

@@ -12,7 +12,6 @@ import com.pennywise.app.domain.model.PaymentMethodConfig
 data class PaymentMethodConfigEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val userId: Long,
     val paymentMethod: PaymentMethod,
     val alias: String,
     val isDefault: Boolean = false,
@@ -28,7 +27,6 @@ data class PaymentMethodConfigEntity(
     fun toDomainModel(): PaymentMethodConfig {
         return PaymentMethodConfig(
             id = id,
-            userId = userId,
             paymentMethod = paymentMethod,
             alias = alias,
             isDefault = isDefault,
@@ -46,7 +44,6 @@ data class PaymentMethodConfigEntity(
         fun fromDomainModel(config: PaymentMethodConfig): PaymentMethodConfigEntity {
             return PaymentMethodConfigEntity(
                 id = config.id,
-                userId = config.userId,
                 paymentMethod = config.paymentMethod,
                 alias = config.alias,
                 isDefault = config.isDefault,

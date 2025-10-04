@@ -3,11 +3,10 @@ package com.pennywise.app.domain.model
 import java.util.Date
 
 /**
- * Domain model representing currency usage tracking for a user
+ * Domain model representing currency usage tracking
  */
 data class CurrencyUsage(
     val id: Long = 0,
-    val userId: Long,
     val currency: String,
     val usageCount: Int = 0,
     val lastUsed: Date = Date(),

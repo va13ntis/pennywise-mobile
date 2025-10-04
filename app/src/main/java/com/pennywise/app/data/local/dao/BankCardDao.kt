@@ -21,14 +21,14 @@ interface BankCardDao {
     @Query("SELECT * FROM bank_cards WHERE id = :cardId")
     suspend fun getBankCardById(cardId: Long): BankCardEntity?
     
-    @Query("SELECT * FROM bank_cards WHERE userId = :userId ORDER BY createdAt DESC")
-    fun getBankCardsByUserId(userId: Long): Flow<List<BankCardEntity>>
+    @Query("SELECT * FROM bank_cards ORDER BY createdAt DESC")
+    fun getAllBankCards(): Flow<List<BankCardEntity>>
     
-    @Query("SELECT * FROM bank_cards WHERE userId = :userId AND isActive = 1 ORDER BY createdAt DESC")
-    fun getActiveBankCardsByUserId(userId: Long): Flow<List<BankCardEntity>>
+    @Query("SELECT * FROM bank_cards WHERE isActive = 1 ORDER BY createdAt DESC")
+    fun getActiveBankCards(): Flow<List<BankCardEntity>>
     
-    @Query("SELECT * FROM bank_cards WHERE userId = :userId AND alias = :alias")
-    suspend fun getBankCardByAlias(userId: Long, alias: String): BankCardEntity?
+    @Query("SELECT * FROM bank_cards WHERE alias = :alias")
+    suspend fun getBankCardByAlias(alias: String): BankCardEntity?
     
     @Query("UPDATE bank_cards SET isActive = :isActive, updatedAt = :updatedAt WHERE id = :cardId")
     suspend fun updateBankCardStatus(cardId: Long, isActive: Boolean, updatedAt: Long)
@@ -39,11 +39,8 @@ interface BankCardDao {
     @Query("UPDATE bank_cards SET paymentDay = :paymentDay, updatedAt = :updatedAt WHERE id = :cardId")
     suspend fun updateBankCardPaymentDay(cardId: Long, paymentDay: Int, updatedAt: Long)
     
-    @Query("SELECT COUNT(*) FROM bank_cards WHERE userId = :userId AND alias = :alias AND id != :excludeId")
-    suspend fun isAliasTaken(userId: Long, alias: String, excludeId: Long = 0): Int
-    
-    @Query("DELETE FROM bank_cards WHERE userId = :userId")
-    suspend fun deleteAllBankCardsByUserId(userId: Long)
+    @Query("SELECT COUNT(*) FROM bank_cards WHERE alias = :alias AND id != :excludeId")
+    suspend fun isAliasTaken(alias: String, excludeId: Long = 0): Int
     
     @Query("DELETE FROM bank_cards")
     suspend fun deleteAllBankCards()

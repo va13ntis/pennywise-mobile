@@ -25,26 +25,25 @@ class DataMigrationService @Inject constructor(
      */
     suspend fun migrateCurrencyData() {
         try {
-            // Get the single user (since we now have single-user model)
-            val user = userRepository.getSingleUser()
+            // Get the user
+            val user = userRepository.getUser()
             
             if (user != null) {
                 // Update user's default currency if not already set
                 if (user.defaultCurrency.isEmpty()) {
-                    userRepository.updateDefaultCurrency(user.id, "USD")
+                    userRepository.updateDefaultCurrency("USD")
                 }
                 
-                // Get all transactions for this user
-                val transactions = transactionRepository.getTransactionsByUser(user.id).first()
+                // Get all transactions
+                val transactions = transactionRepository.getTransactions().first()
                 
                 // Group transactions by currency and count usage
                 val currencyCounts = transactions.groupBy { it.currency }
                     .mapValues { it.value.size }
                 
-                // Initialize currency usage data for this user
+                // Initialize currency usage data
                 currencyCounts.forEach { (currency, count) ->
                     val currencyUsage = CurrencyUsage(
-                        userId = user.id,
                         currency = currency,
                         usageCount = count,
                         lastUsed = Date(),
@@ -57,7 +56,6 @@ class DataMigrationService @Inject constructor(
                 // If no currency usage data exists, create default USD usage
                 if (currencyCounts.isEmpty()) {
                     val defaultUsage = CurrencyUsage(
-                        userId = user.id,
                         currency = "USD",
                         usageCount = 0,
                         lastUsed = Date(),
@@ -79,7 +77,7 @@ class DataMigrationService @Inject constructor(
      */
     suspend fun isCurrencyMigrationNeeded(): Boolean {
         return try {
-            val user = userRepository.getSingleUser()
+            val user = userRepository.getUser()
             user?.defaultCurrency?.isEmpty() ?: false
         } catch (e: Exception) {
             false

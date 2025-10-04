@@ -74,7 +74,6 @@ class EntityMappingTest {
         val date = Date()
         val transactionEntity = TransactionEntity(
             id = 1L,
-            userId = 1L,
             amount = 100.50,
             currency = "USD",
             description = "Test transaction",
@@ -95,7 +94,6 @@ class EntityMappingTest {
         
         // Then
         assertEquals("Should map ID correctly", 1L, transaction.id)
-        assertEquals("Should map user ID correctly", 1L, transaction.userId)
         assertEquals("Should map amount correctly", 100.50, transaction.amount, 0.01)
         assertEquals("Should map currency correctly", "USD", transaction.currency)
         assertEquals("Should map description correctly", "Test transaction", transaction.description)
@@ -117,7 +115,6 @@ class EntityMappingTest {
         val date = Date()
         val transaction = Transaction(
             id = 2L,
-            userId = 1L,
             amount = 200.75,
             currency = "EUR",
             description = "Domain transaction",
@@ -138,7 +135,6 @@ class EntityMappingTest {
         
         // Then
         assertEquals("Should map ID correctly", 2L, transactionEntity.id)
-        assertEquals("Should map user ID correctly", 1L, transactionEntity.userId)
         assertEquals("Should map amount correctly", 200.75, transactionEntity.amount, 0.01)
         assertEquals("Should map currency correctly", "EUR", transactionEntity.currency)
         assertEquals("Should map description correctly", "Domain transaction", transactionEntity.description)
@@ -176,7 +172,6 @@ class EntityMappingTest {
         // Given
         val transactionEntity = TransactionEntity(
             id = 1L,
-            userId = 1L,
             amount = 100.0,
             currency = "USD",
             description = "Test",
@@ -222,7 +217,6 @@ class EntityMappingTest {
         // Given
         val transaction = Transaction(
             id = 0L,
-            userId = 1L,
             amount = 100.0,
             currency = "USD",
             description = "Test",

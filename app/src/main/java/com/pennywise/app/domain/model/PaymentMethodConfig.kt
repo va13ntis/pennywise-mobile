@@ -1,11 +1,10 @@
 package com.pennywise.app.domain.model
 
 /**
- * Data class representing a payment method configuration for a user
+ * Data class representing a payment method configuration
  */
 data class PaymentMethodConfig(
     val id: Long = 0,
-    val userId: Long,
     val paymentMethod: PaymentMethod,
     val alias: String, // e.g., "Personal Visa", "Corporate Card", "Main Credit Card"
     val isDefault: Boolean = false,
@@ -44,9 +43,8 @@ data class PaymentMethodConfig(
         /**
          * Create a default payment method config
          */
-        fun createDefault(userId: Long, paymentMethod: PaymentMethod, alias: String = ""): PaymentMethodConfig {
+        fun createDefault(paymentMethod: PaymentMethod, alias: String = ""): PaymentMethodConfig {
             return PaymentMethodConfig(
-                userId = userId,
                 paymentMethod = paymentMethod,
                 alias = alias,
                 isDefault = false,

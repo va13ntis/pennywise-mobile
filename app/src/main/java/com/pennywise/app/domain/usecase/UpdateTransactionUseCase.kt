@@ -27,7 +27,7 @@ class UpdateTransactionUseCase @Inject constructor(
                 // Currency has changed, track the new currency usage
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        currencyUsageTracker.trackCurrencyUsage(updatedTransaction.userId, updatedTransaction.currency)
+                        currencyUsageTracker.trackCurrencyUsage(updatedTransaction.currency)
                     } catch (e: Exception) {
                         // Log error but don't fail the transaction update
                         println("Error tracking currency usage for updated transaction ${updatedTransaction.id}: ${e.message}")

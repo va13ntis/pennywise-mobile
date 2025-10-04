@@ -30,6 +30,7 @@ import java.util.Calendar
  * - Batch currency usage operations
  * - Concurrent currency usage tracking
  * - Large dataset currency usage operations
+ * 
  */
 @RunWith(AndroidJUnit4::class)
 class CurrencyUsageTrackerPerformanceTest {
@@ -64,44 +65,29 @@ class CurrencyUsageTrackerPerformanceTest {
 
     private fun setupTestData() {
         runBlocking {
-            // Create test users
-            val testUsers = listOf(
-                UserEntity(
-                    defaultCurrency = "USD",
-                    locale = "en",
-                    deviceAuthEnabled = false,
-                    createdAt = Date(),
-                    updatedAt = Date()
-                ),
-                UserEntity(
-                    defaultCurrency = "EUR",
-                    locale = "en",
-                    deviceAuthEnabled = false,
-                    createdAt = Date(),
-                    updatedAt = Date()
-                )
+            // Create single test user
+            val testUser = UserEntity(
+                defaultCurrency = "USD",
+                locale = "en",
+                deviceAuthEnabled = false,
+                createdAt = Date(),
+                updatedAt = Date()
             )
+            userDao.insertUser(testUser)
             
-            testUsers.forEach { user ->
-                userDao.insertUser(user)
-            }
-            
-            // Create test currency usage data for multiple users
+            // Create test currency usage data
             val currencies = listOf("USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "SEK", "NOK")
-            val userIds = listOf(1L, 2L)
+            val now = Date()
             
-            userIds.forEach { userId ->
-                currencies.forEachIndexed { index, currency ->
-                    val currencyUsage = CurrencyUsageEntity(
-                        userId = userId,
-                        currency = currency,
-                        usageCount = (100 - index * 5),
-                        lastUsed = Date(System.currentTimeMillis() - index * 86400000L), // Days ago
-                        createdAt = Date(),
-                        updatedAt = Date()
-                    )
-                    currencyUsageDao.insertCurrencyUsage(currencyUsage)
-                }
+            currencies.forEachIndexed { index, currency ->
+                val currencyUsage = CurrencyUsageEntity(
+                    currency = currency,
+                    usageCount = (100 - index * 5),
+                    lastUsed = Date(System.currentTimeMillis() - index * 86400000L), // Days ago
+                    createdAt = now,
+                    updatedAt = now
+                )
+                currencyUsageDao.insertCurrencyUsage(currencyUsage)
             }
         }
     }
@@ -115,34 +101,20 @@ class CurrencyUsageTrackerPerformanceTest {
         benchmarkRule.measureRepeated {
             runBlocking {
                 val now = Date()
-                currencyUsageDao.incrementCurrencyUsage(1L, "USD", now, now)
+                currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
             }
         }
     }
 
     /**
-     * Benchmark: Insert or increment currency usage
-     * This tests the performance of the insert or increment operation
+     * Benchmark: All currency usage query
+     * This tests the performance of querying all currency usage
      */
     @Test
-    fun benchmarkInsertOrIncrementCurrencyUsage() {
+    fun benchmarkAllCurrencyUsageQuery() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val now = Date()
-                currencyUsageDao.insertOrIncrementCurrencyUsage(1L, "USD", now, now, now)
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Currency usage query by user
-     * This tests the performance of querying currency usage by user
-     */
-    @Test
-    fun benchmarkCurrencyUsageQueryByUser() {
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                val usage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
+                val usage = currencyUsageDao.getAllCurrencyUsage().first()
                 assert(usage.isNotEmpty())
             }
         }
@@ -156,7 +128,7 @@ class CurrencyUsageTrackerPerformanceTest {
     fun benchmarkTopCurrenciesQuery() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val topCurrencies = currencyUsageDao.getTopCurrenciesByUser(1L, 5).first()
+                val topCurrencies = currencyUsageDao.getTopCurrencies(5).first()
                 assert(topCurrencies.size <= 5)
             }
         }
@@ -170,21 +142,21 @@ class CurrencyUsageTrackerPerformanceTest {
     fun benchmarkCurrencyUsageSortedByUsage() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val sortedUsage = currencyUsageDao.getUserCurrenciesSortedByUsage(1L).first()
+                val sortedUsage = currencyUsageDao.getCurrencyUsageSortedByUsage().first()
                 assert(sortedUsage.isNotEmpty())
             }
         }
     }
 
     /**
-     * Benchmark: Currency usage query by user and currency
+     * Benchmark: Currency usage query by currency
      * This tests the performance of querying specific currency usage
      */
     @Test
-    fun benchmarkCurrencyUsageQueryByUserAndCurrency() {
+    fun benchmarkCurrencyUsageQueryByCurrency() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val usage = currencyUsageDao.getCurrencyUsageByUserAndCurrency(1L, "USD")
+                val usage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
                 assert(usage != null)
             }
         }
@@ -198,7 +170,7 @@ class CurrencyUsageTrackerPerformanceTest {
     fun benchmarkCurrencyUsageCountQuery() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val count = currencyUsageDao.getCurrencyUsageCountForUser(1L)
+                val count = currencyUsageDao.getCurrencyUsageCount()
                 assert(count > 0)
             }
         }
@@ -216,28 +188,7 @@ class CurrencyUsageTrackerPerformanceTest {
                 val now = Date()
                 
                 currencies.forEach { currency ->
-                    currencyUsageDao.incrementCurrencyUsage(1L, currency, now, now)
-                }
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Multiple users currency usage operations
-     * This tests the performance of currency usage operations across multiple users
-     */
-    @Test
-    fun benchmarkMultipleUsersCurrencyUsageOperations() {
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                val userIds = listOf(1L, 2L)
-                val currencies = listOf("USD", "EUR", "GBP")
-                val now = Date()
-                
-                userIds.forEach { userId ->
-                    currencies.forEach { currency ->
-                        currencyUsageDao.incrementCurrencyUsage(userId, currency, now, now)
-                    }
+                    currencyUsageDao.insertOrIncrementCurrencyUsage(currency, now, now, now)
                 }
             }
         }
@@ -252,14 +203,11 @@ class CurrencyUsageTrackerPerformanceTest {
         benchmarkRule.measureRepeated {
             runBlocking {
                 val operations = listOf(
-                    async { currencyUsageDao.getCurrencyUsageByUser(1L).first() },
-                    async { currencyUsageDao.getTopCurrenciesByUser(1L, 3).first() },
-                    async { currencyUsageDao.getCurrencyUsageByUser(2L).first() },
-                    async { currencyUsageDao.getTopCurrenciesByUser(2L, 3).first() },
-                    async { 
-                        val now = Date()
-                        currencyUsageDao.incrementCurrencyUsage(1L, "USD", now, now)
-                    }
+                    async { currencyUsageDao.getAllCurrencyUsage().first() },
+                    async { currencyUsageDao.getTopCurrencies(5).first() },
+                    async { currencyUsageDao.getCurrencyUsageByCurrency("USD") },
+                    async { currencyUsageDao.getCurrencyUsageCount() },
+                    async { currencyUsageDao.getCurrencyUsageSortedByUsage().first() }
                 )
                 
                 val results = operations.map { it.await() }
@@ -270,160 +218,124 @@ class CurrencyUsageTrackerPerformanceTest {
 
     /**
      * Benchmark: Large dataset currency usage operations
-     * This tests the performance with a larger dataset of currency usage
+     * This tests the performance with a larger set of currencies
      */
     @Test
     fun benchmarkLargeDatasetCurrencyUsageOperations() {
-        // Create additional test data
+        // Create additional currency usage data
         runBlocking {
-            val additionalCurrencies = listOf("BRL", "MXN", "INR", "KRW", "SGD", "HKD", "NZD", "ZAR", "TRY", "RUB")
-            val userIds = listOf(1L, 2L)
-            
-            userIds.forEach { userId ->
-                additionalCurrencies.forEachIndexed { index, currency ->
-                    val currencyUsage = CurrencyUsageEntity(
-                        userId = userId,
-                        currency = currency,
-                        usageCount = (50 - index * 2),
-                        lastUsed = Date(System.currentTimeMillis() - index * 3600000L), // Hours ago
-                        createdAt = Date(),
-                        updatedAt = Date()
-                    )
-                    currencyUsageDao.insertCurrencyUsage(currencyUsage)
-                }
+            val now = Date()
+            repeat(100) { index ->
+                val currencyUsage = CurrencyUsageEntity(
+                    currency = "CUR$index",
+                    usageCount = index,
+                    lastUsed = now,
+                    createdAt = now,
+                    updatedAt = now
+                )
+                currencyUsageDao.insertCurrencyUsage(currencyUsage)
             }
         }
 
         benchmarkRule.measureRepeated {
             runBlocking {
-                val allUsage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
-                val topCurrencies = currencyUsageDao.getTopCurrenciesByUser(1L, 10).first()
-                val count = currencyUsageDao.getCurrencyUsageCountForUser(1L)
-                
-                assert(allUsage.size >= 20) // Original 10 + additional 10
-                assert(topCurrencies.size <= 10)
-                assert(count >= 20)
+                val allUsage = currencyUsageDao.getAllCurrencyUsage().first()
+                assert(allUsage.size >= 100)
             }
         }
     }
 
     /**
-     * Benchmark: Currency usage update operations
-     * This tests the performance of updating currency usage entries
+     * Benchmark: Currency usage deletion
+     * This tests the performance of deleting all currency usage
      */
     @Test
-    fun benchmarkCurrencyUsageUpdateOperations() {
+    fun benchmarkCurrencyUsageDeletion() {
         benchmarkRule.measureRepeated {
             runBlocking {
-                val existingUsage = currencyUsageDao.getCurrencyUsageByUserAndCurrency(1L, "USD")
-                if (existingUsage != null) {
-                    val updatedUsage = existingUsage.copy(
-                        usageCount = existingUsage.usageCount + 1,
-                        lastUsed = Date(),
-                        updatedAt = Date()
-                    )
-                    currencyUsageDao.updateCurrencyUsage(updatedUsage)
-                }
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Currency usage deletion operations
-     * This tests the performance of deleting currency usage entries
-     */
-    @Test
-    fun benchmarkCurrencyUsageDeletionOperations() {
-        // Create a temporary currency usage entry for deletion testing
-        runBlocking {
-            val tempUsage = CurrencyUsageEntity(
-                userId = 1L,
-                currency = "TEMP",
-                usageCount = 1,
-                lastUsed = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
-            )
-            currencyUsageDao.insertCurrencyUsage(tempUsage)
-        }
-
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                val tempUsage = currencyUsageDao.getCurrencyUsageByUserAndCurrency(1L, "TEMP")
-                if (tempUsage != null) {
-                    currencyUsageDao.deleteCurrencyUsage(tempUsage)
-                }
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Currency usage operations with date filtering
-     * This tests the performance of currency usage operations with date-based filtering
-     */
-    @Test
-    fun benchmarkCurrencyUsageOperationsWithDateFiltering() {
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                val calendar = Calendar.getInstance()
+                // Setup some test data first
                 val now = Date()
-                calendar.time = now
-                calendar.add(Calendar.DAY_OF_MONTH, -7)
-                val weekAgo = calendar.time
+                repeat(10) { index ->
+                    currencyUsageDao.insertOrIncrementCurrencyUsage("TEST$index", now, now, now)
+                }
                 
-                // Get all currency usage and filter by date in memory
-                val allUsage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
-                val recentUsage = allUsage.filter { it.lastUsed.after(weekAgo) }
+                // Delete all currency usage
+                currencyUsageDao.deleteAllCurrencyUsage()
                 
-                assert(recentUsage.isNotEmpty())
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Currency usage statistics calculation
-     * This tests the performance of calculating currency usage statistics
-     */
-    @Test
-    fun benchmarkCurrencyUsageStatisticsCalculation() {
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                val allUsage = currencyUsageDao.getCurrencyUsageByUser(1L).first()
+                // Verify deletion
+                val count = currencyUsageDao.getCurrencyUsageCount()
+                assert(count == 0)
                 
-                // Calculate statistics
-                val totalUsage = allUsage.sumOf { it.usageCount }
-                val averageUsage = if (allUsage.isNotEmpty()) totalUsage / allUsage.size else 0
-                val maxUsage = allUsage.maxOfOrNull { it.usageCount } ?: 0
-                val minUsage = allUsage.minOfOrNull { it.usageCount } ?: 0
-                val uniqueCurrencies = allUsage.map { it.currency }.distinct().size
-                
-                assert(totalUsage > 0)
-                assert(averageUsage > 0)
-                assert(maxUsage > 0)
-                assert(minUsage >= 0)
-                assert(uniqueCurrencies > 0)
-            }
-        }
-    }
-
-    /**
-     * Benchmark: Currency usage cleanup operations
-     * This tests the performance of cleaning up currency usage data
-     */
-    @Test
-    fun benchmarkCurrencyUsageCleanupOperations() {
-        benchmarkRule.measureRepeated {
-            runBlocking {
-                // Test cleanup for a specific user
-                val countBefore = currencyUsageDao.getCurrencyUsageCountForUser(2L)
-                currencyUsageDao.deleteAllCurrencyUsageForUser(2L)
-                val countAfter = currencyUsageDao.getCurrencyUsageCountForUser(2L)
-                
-                assert(countBefore > 0)
-                assert(countAfter == 0)
-                
-                // Restore data for next iteration
+                // Restore test data for next iteration
                 setupTestData()
+            }
+        }
+    }
+
+    /**
+     * Benchmark: Sequential currency usage updates
+     * This tests the performance of sequential increment operations
+     */
+    @Test
+    fun benchmarkSequentialCurrencyUsageUpdates() {
+        benchmarkRule.measureRepeated {
+            runBlocking {
+                val now = Date()
+                repeat(10) { _ ->
+                    currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
+                }
+                
+                val usage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
+                assert(usage != null)
+                assert(usage!!.usageCount > 0)
+            }
+        }
+    }
+
+    /**
+     * Benchmark: Currency usage with time-based queries
+     * This tests the performance of querying currencies by last used time
+     */
+    @Test
+    fun benchmarkTimeBasedCurrencyQueries() {
+        benchmarkRule.measureRepeated {
+            runBlocking {
+                // Get all currencies sorted by usage (which considers last used)
+                val sortedUsage = currencyUsageDao.getCurrencyUsageSortedByUsage().first()
+                assert(sortedUsage.isNotEmpty())
+                
+                // Verify they're properly sorted by usage count
+                for (i in 0 until sortedUsage.size - 1) {
+                    assert(sortedUsage[i].usageCount >= sortedUsage[i + 1].usageCount)
+                }
+            }
+        }
+    }
+
+    /**
+     * Benchmark: Mixed currency operations
+     * This tests the performance of mixed read/write operations
+     */
+    @Test
+    fun benchmarkMixedCurrencyOperations() {
+        benchmarkRule.measureRepeated {
+            runBlocking {
+                val now = Date()
+                
+                // Insert/increment
+                currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
+                
+                // Read specific
+                val usdUsage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
+                assert(usdUsage != null)
+                
+                // Read top
+                val topCurrencies = currencyUsageDao.getTopCurrencies(3).first()
+                assert(topCurrencies.isNotEmpty())
+                
+                // Read count
+                val count = currencyUsageDao.getCurrencyUsageCount()
+                assert(count > 0)
             }
         }
     }

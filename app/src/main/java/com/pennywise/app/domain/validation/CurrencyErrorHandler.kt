@@ -57,7 +57,7 @@ class CurrencyErrorHandler @Inject constructor() {
             CurrencyErrorType.UNSUPPORTED_CODE -> {
                 if (suggestions.isNotEmpty()) {
                     val suggestionText = suggestions.joinToString(", ")
-                    context?.getString(R.string.currency_error_with_suggestions, baseMessage, suggestionText)
+                    context?.getString(R.string.currency_error_with_suggestions)?.format(baseMessage, suggestionText)
                         ?: "$baseMessage. Did you mean: $suggestionText?"
                 } else {
                     baseMessage
@@ -166,8 +166,8 @@ class CurrencyErrorHandler @Inject constructor() {
      * Validates if a currency code change is safe (no data loss)
      */
     fun isCurrencyChangeSafe(
-        oldCurrency: Currency,
-        newCurrency: Currency
+        @Suppress("UNUSED_PARAMETER") oldCurrency: Currency,
+        @Suppress("UNUSED_PARAMETER") newCurrency: Currency
     ): Boolean {
         // Currency changes are generally safe, but we can add specific logic here
         // For example, checking if there are existing transactions with the old currency
