@@ -57,7 +57,7 @@ class CurrencyErrorHandler @Inject constructor() {
             CurrencyErrorType.UNSUPPORTED_CODE -> {
                 if (suggestions.isNotEmpty()) {
                     val suggestionText = suggestions.joinToString(", ")
-                    context?.getString(R.string.currency_error_with_suggestions)?.format(baseMessage, suggestionText)
+                    context?.getString(R.string.currency_error_with_suggestions, baseMessage, suggestionText)
                         ?: "$baseMessage. Did you mean: $suggestionText?"
                 } else {
                     baseMessage
