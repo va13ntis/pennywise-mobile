@@ -81,7 +81,6 @@ fun AppNavigation() {
         val localUser = currentUser // Store in local variable to fix smart cast issue
         localUser?.let { user ->
             println("🔍 AppNavigation: USER PREFERENCES CHECK")
-            println("   - User ID: ${user.id}")
             println("   - Default Currency: ${user.defaultCurrency}")
             println("   - Locale: ${user.locale}")
             println("   - Device Auth Enabled: ${user.deviceAuthEnabled}")
@@ -185,8 +184,7 @@ fun AppNavigation() {
         // Add Expense screen
         composable(ADD_EXPENSE_ROUTE) {
             AddExpenseScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onSaveExpense = { } // Not used, ViewModel handles saving
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         

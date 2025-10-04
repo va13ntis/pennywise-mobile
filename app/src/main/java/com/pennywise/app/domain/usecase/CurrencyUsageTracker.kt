@@ -16,14 +16,13 @@ class CurrencyUsageTracker @Inject constructor(
 ) {
     
     /**
-     * Track currency usage for a specific user and currency
+     * Track currency usage for a specific currency
      * This method should be called whenever a transaction is created or updated with a currency
      */
-    suspend fun trackCurrencyUsage(userId: Long, currencyCode: String) {
+    suspend fun trackCurrencyUsage(currencyCode: String) {
         withContext(ioDispatcher) {
             try {
-                // Use the optimized method from the repository
-                currencyUsageRepository.incrementCurrencyUsage(userId, currencyCode)
+                currencyUsageRepository.incrementCurrencyUsage(currencyCode)
             } catch (e: Exception) {
                 // Log error but don't fail the transaction creation
                 // In a production app, you might want to use a proper logging framework
@@ -33,44 +32,44 @@ class CurrencyUsageTracker @Inject constructor(
     }
     
     /**
-     * Get currencies for a user sorted by popularity (usage count)
+     * Get currencies sorted by popularity (usage count)
      */
-    suspend fun getUserCurrenciesByPopularity(userId: Long): List<String> {
+    suspend fun getCurrenciesByPopularity(): List<String> {
         return withContext(ioDispatcher) {
             try {
-                currencyUsageRepository.getCurrencyUsageByUser(userId)
+                currencyUsageRepository.getCurrencyUsage()
                     .first()
                     .map { it.currency }
             } catch (e: Exception) {
-                println("Error getting user currencies by popularity: ${e.message}")
+                println("Error getting currencies by popularity: ${e.message}")
                 emptyList()
             }
         }
     }
     
     /**
-     * Get top currencies for a user with a limit
+     * Get top currencies with a limit
      */
-    suspend fun getTopCurrenciesForUser(userId: Long, limit: Int = 10): List<String> {
+    suspend fun getTopCurrencies(limit: Int = 10): List<String> {
         return withContext(ioDispatcher) {
             try {
-                currencyUsageRepository.getTopCurrenciesByUser(userId, limit)
+                currencyUsageRepository.getTopCurrencies(limit)
                     .first()
                     .map { it.currency }
             } catch (e: Exception) {
-                println("Error getting top currencies for user: ${e.message}")
+                println("Error getting top currencies: ${e.message}")
                 emptyList()
             }
         }
     }
     
     /**
-     * Get currency usage statistics for a user
+     * Get currency usage statistics
      */
-    suspend fun getCurrencyUsageStats(userId: Long): CurrencyUsageStats {
+    suspend fun getCurrencyUsageStats(): CurrencyUsageStats {
         return withContext(ioDispatcher) {
             try {
-                val usageList = currencyUsageRepository.getCurrencyUsageByUser(userId).first()
+                val usageList = currencyUsageRepository.getCurrencyUsage().first()
                 val totalUsage = usageList.sumOf { it.usageCount.toLong() }
                 val mostUsedCurrency = usageList.maxByOrNull { it.usageCount }?.currency
                 val leastUsedCurrency = usageList.minByOrNull { it.usageCount }?.currency
@@ -91,70 +90,12 @@ class CurrencyUsageTracker @Inject constructor(
     }
     
     /**
-     * Get most used currencies for a user
-     */
-    suspend fun getMostUsedCurrencies(userId: Long, limit: Int = 5): List<CurrencyUsageInfo> {
-        return withContext(ioDispatcher) {
-            try {
-                currencyUsageRepository.getTopCurrenciesByUser(userId, limit)
-                    .first()
-                    .map { 
-                        CurrencyUsageInfo(
-                            currency = it.currency,
-                            usageCount = it.usageCount,
-                            lastUsed = it.lastUsed,
-                            percentage = 0.0 // Will be calculated below
-                        )
-                    }
-                    .let { currencies ->
-                        val totalUsage = currencies.sumOf { it.usageCount }
-                        currencies.map { currency ->
-                            currency.copy(
-                                percentage = if (totalUsage > 0) (currency.usageCount.toDouble() / totalUsage) * 100 else 0.0
-                            )
-                        }
-                    }
-            } catch (e: Exception) {
-                println("Error getting most used currencies: ${e.message}")
-                emptyList()
-            }
-        }
-    }
-    
-    /**
-     * Get least used currencies for a user
-     */
-    suspend fun getLeastUsedCurrencies(userId: Long, limit: Int = 5): List<CurrencyUsageInfo> {
-        return withContext(ioDispatcher) {
-            try {
-                val allCurrencies = currencyUsageRepository.getCurrencyUsageByUser(userId).first()
-                val totalUsage = allCurrencies.sumOf { it.usageCount }
-                
-                allCurrencies
-                    .sortedBy { it.usageCount }
-                    .take(limit)
-                    .map { 
-                        CurrencyUsageInfo(
-                            currency = it.currency,
-                            usageCount = it.usageCount,
-                            lastUsed = it.lastUsed,
-                            percentage = if (totalUsage > 0) (it.usageCount.toDouble() / totalUsage) * 100 else 0.0
-                        )
-                    }
-            } catch (e: Exception) {
-                println("Error getting least used currencies: ${e.message}")
-                emptyList()
-            }
-        }
-    }
-    
-    /**
      * Get currency usage trend (recent vs historical usage)
      */
-    suspend fun getCurrencyUsageTrend(userId: Long, daysBack: Int = 30): CurrencyUsageTrend {
+    suspend fun getCurrencyUsageTrend(daysBack: Int = 30): CurrencyUsageTrend {
         return withContext(ioDispatcher) {
             try {
-                val allCurrencies = currencyUsageRepository.getCurrencyUsageByUser(userId).first()
+                val allCurrencies = currencyUsageRepository.getCurrencyUsage().first()
                 val actualDaysBack = maxOf(0, daysBack) // Handle negative days by treating as 0
                 
                 val recentCurrencies: List<com.pennywise.app.domain.model.CurrencyUsage>
@@ -186,12 +127,12 @@ class CurrencyUsageTracker @Inject constructor(
     /**
      * Get currency usage summary for display in UI
      */
-    suspend fun getCurrencyUsageSummary(userId: Long): CurrencyUsageSummary {
+    suspend fun getCurrencyUsageSummary(): CurrencyUsageSummary {
         return withContext(ioDispatcher) {
             try {
                 // Directly call repository methods to handle exceptions properly
-                val usageList = currencyUsageRepository.getCurrencyUsageByUser(userId).first()
-                val topCurrencies = currencyUsageRepository.getTopCurrenciesByUser(userId, 3).first()
+                val usageList = currencyUsageRepository.getCurrencyUsage().first()
+                val topCurrencies = currencyUsageRepository.getTopCurrencies(3).first()
                 
                 val totalUsage = usageList.sumOf { it.usageCount.toLong() }
                 val mostUsedCurrency = usageList.maxByOrNull { it.usageCount }?.currency
@@ -222,6 +163,64 @@ class CurrencyUsageTracker @Inject constructor(
             } catch (e: Exception) {
                 println("Error getting currency usage summary: ${e.message}")
                 CurrencyUsageSummary()
+            }
+        }
+    }
+    
+    /**
+     * Get most used currencies
+     */
+    suspend fun getMostUsedCurrencies(limit: Int = 5): List<CurrencyUsageInfo> {
+        return withContext(ioDispatcher) {
+            try {
+                currencyUsageRepository.getTopCurrencies(limit)
+                    .first()
+                    .map { 
+                        CurrencyUsageInfo(
+                            currency = it.currency,
+                            usageCount = it.usageCount,
+                            lastUsed = it.lastUsed,
+                            percentage = 0.0 // Will be calculated below
+                        )
+                    }
+                    .let { currencies ->
+                        val totalUsage = currencies.sumOf { it.usageCount }
+                        currencies.map { currency ->
+                            currency.copy(
+                                percentage = if (totalUsage > 0) (currency.usageCount.toDouble() / totalUsage) * 100 else 0.0
+                            )
+                        }
+                    }
+            } catch (e: Exception) {
+                println("Error getting most used currencies: ${e.message}")
+                emptyList()
+            }
+        }
+    }
+    
+    /**
+     * Get least used currencies
+     */
+    suspend fun getLeastUsedCurrencies(limit: Int = 5): List<CurrencyUsageInfo> {
+        return withContext(ioDispatcher) {
+            try {
+                val allCurrencies = currencyUsageRepository.getCurrencyUsage().first()
+                val totalUsage = allCurrencies.sumOf { it.usageCount }
+                
+                allCurrencies
+                    .sortedBy { it.usageCount }
+                    .take(limit)
+                    .map { 
+                        CurrencyUsageInfo(
+                            currency = it.currency,
+                            usageCount = it.usageCount,
+                            lastUsed = it.lastUsed,
+                            percentage = if (totalUsage > 0) (it.usageCount.toDouble() / totalUsage) * 100 else 0.0
+                        )
+                    }
+            } catch (e: Exception) {
+                println("Error getting least used currencies: ${e.message}")
+                emptyList()
             }
         }
     }

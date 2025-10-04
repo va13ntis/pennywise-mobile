@@ -11,11 +11,11 @@ interface CurrencyUsageRepository {
     suspend fun updateCurrencyUsage(currencyUsage: CurrencyUsage)
     suspend fun deleteCurrencyUsage(currencyUsage: CurrencyUsage)
     suspend fun getCurrencyUsageById(id: Long): CurrencyUsage?
-    suspend fun getCurrencyUsageByUserAndCurrency(userId: Long, currency: String): CurrencyUsage?
-    fun getCurrencyUsageByUser(userId: Long): Flow<List<CurrencyUsage>>
-    fun getTopCurrenciesByUser(userId: Long, limit: Int = 10): Flow<List<CurrencyUsage>>
-    fun getUserCurrenciesSortedByUsage(userId: Long): Flow<List<CurrencyUsage>>
-    suspend fun incrementCurrencyUsage(userId: Long, currency: String)
-    suspend fun deleteAllCurrencyUsageForUser(userId: Long)
-    suspend fun getCurrencyUsageCountForUser(userId: Long): Int
+    suspend fun getCurrencyUsageByCurrency(currency: String): CurrencyUsage?
+    fun getCurrencyUsage(): Flow<List<CurrencyUsage>>
+    fun getTopCurrencies(limit: Int = 10): Flow<List<CurrencyUsage>>
+    fun getCurrenciesSortedByUsage(): Flow<List<CurrencyUsage>>
+    suspend fun incrementCurrencyUsage(currency: String)
+    suspend fun deleteAllCurrencyUsage()
+    suspend fun getCurrencyUsageCount(): Int
 }

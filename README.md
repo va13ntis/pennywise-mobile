@@ -125,6 +125,8 @@ The app follows Clean Architecture principles with three main layers:
 2. **Domain Layer**: Contains business logic, use cases, and domain models
 3. **Data Layer**: Contains data sources, repositories, and external interfaces
 
+PennyWise is designed as a personal finance manager where each installation manages one user's financial data. Authentication is used for device security (app lock/unlock) and future cloud sync capabilities.
+
 ### Key Components
 
 - **Use Cases**: Implement business logic and coordinate between repositories

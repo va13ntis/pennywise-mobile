@@ -41,54 +41,54 @@ interface SplitPaymentInstallmentRepository {
     fun getInstallmentsByParentTransaction(parentTransactionId: Long): Flow<List<SplitPaymentInstallment>>
     
     /**
-     * Get all installments for a user
+     * Get all installments
      */
-    fun getInstallmentsByUser(userId: Long): Flow<List<SplitPaymentInstallment>>
+    fun getInstallments(): Flow<List<SplitPaymentInstallment>>
     
     /**
-     * Get unpaid installments for a user
+     * Get unpaid installments
      */
-    fun getUnpaidInstallmentsByUser(userId: Long): Flow<List<SplitPaymentInstallment>>
+    fun getUnpaidInstallments(): Flow<List<SplitPaymentInstallment>>
     
     /**
-     * Get paid installments for a user
+     * Get paid installments
      */
-    fun getPaidInstallmentsByUser(userId: Long): Flow<List<SplitPaymentInstallment>>
+    fun getPaidInstallments(): Flow<List<SplitPaymentInstallment>>
     
     /**
      * Get installments within a date range
      */
-    fun getInstallmentsByDateRange(userId: Long, startDate: Date, endDate: Date): Flow<List<SplitPaymentInstallment>>
+    fun getInstallmentsByDateRange(startDate: Date, endDate: Date): Flow<List<SplitPaymentInstallment>>
     
     /**
      * Get unpaid installments within a date range
      */
-    fun getUnpaidInstallmentsByDateRange(userId: Long, startDate: Date, endDate: Date): Flow<List<SplitPaymentInstallment>>
+    fun getUnpaidInstallmentsByDateRange(startDate: Date, endDate: Date): Flow<List<SplitPaymentInstallment>>
     
     /**
      * Get paid installments within a date range
      */
-    fun getPaidInstallmentsByDateRange(userId: Long, startDate: Date, endDate: Date): Flow<List<SplitPaymentInstallment>>
+    fun getPaidInstallmentsByDateRange(startDate: Date, endDate: Date): Flow<List<SplitPaymentInstallment>>
     
     /**
      * Get installments by category
      */
-    fun getInstallmentsByCategory(userId: Long, category: String): Flow<List<SplitPaymentInstallment>>
+    fun getInstallmentsByCategory(category: String): Flow<List<SplitPaymentInstallment>>
     
     /**
      * Get installments by type
      */
-    fun getInstallmentsByType(userId: Long, type: TransactionType): Flow<List<SplitPaymentInstallment>>
+    fun getInstallmentsByType(type: TransactionType): Flow<List<SplitPaymentInstallment>>
     
     /**
      * Get total amount of paid installments by type and date range
      */
-    fun getTotalPaidInstallmentsByTypeAndDateRange(userId: Long, type: TransactionType, startDate: Date, endDate: Date): Flow<Double?>
+    fun getTotalPaidInstallmentsByTypeAndDateRange(type: TransactionType, startDate: Date, endDate: Date): Flow<Double?>
     
     /**
      * Get total amount of unpaid installments by type and date range
      */
-    fun getTotalUnpaidInstallmentsByTypeAndDateRange(userId: Long, type: TransactionType, startDate: Date, endDate: Date): Flow<Double?>
+    fun getTotalUnpaidInstallmentsByTypeAndDateRange(type: TransactionType, startDate: Date, endDate: Date): Flow<Double?>
     
     /**
      * Mark an installment as paid
@@ -106,7 +106,7 @@ interface SplitPaymentInstallmentRepository {
     suspend fun deleteInstallmentsByParentTransaction(parentTransactionId: Long)
     
     /**
-     * Get count of overdue installments for a user
+     * Get count of overdue installments
      */
-    suspend fun getOverdueInstallmentsCount(userId: Long): Int
+    suspend fun getOverdueInstallmentsCount(): Int
 }

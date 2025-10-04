@@ -61,11 +61,11 @@ class DatabaseConfigTest {
         assertNotNull(userCount)
 
         // Test transaction table
-        val transactionCount = transactionDao.getTransactionCount(1L)
+        val transactionCount = transactionDao.getTransactionCount()
         assertNotNull(transactionCount)
 
         // Test currency_usage table
-        val currencyUsageCount = currencyUsageDao.getCurrencyUsageCountForUser(1L)
+        val currencyUsageCount = currencyUsageDao.getCurrencyUsageCount()
         assertNotNull(currencyUsageCount)
     }
 
@@ -73,7 +73,6 @@ class DatabaseConfigTest {
     fun testDatabaseSchema() = runBlocking {
         // Test that all expected columns exist by inserting and retrieving data
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -83,8 +82,6 @@ class DatabaseConfigTest {
         database.userDao().insertUser(user)
 
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -96,8 +93,6 @@ class DatabaseConfigTest {
         database.transactionDao().insertTransaction(transaction)
 
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
@@ -107,7 +102,7 @@ class DatabaseConfigTest {
         database.currencyUsageDao().insertCurrencyUsage(currencyUsage)
 
         // Verify data was inserted successfully
-        val retrievedUser = database.userDao().getUserById(1)
+        val retrievedUser = database.userDao().getUser()
         val retrievedTransaction = database.transactionDao().getTransactionById(1)
         val retrievedCurrencyUsage = database.currencyUsageDao().getCurrencyUsageById(1)
 
@@ -118,9 +113,8 @@ class DatabaseConfigTest {
 
     @Test
     fun testDatabaseConstraints() = runBlocking {
-        // Test foreign key constraints
+        // Test database constraints
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -131,8 +125,6 @@ class DatabaseConfigTest {
 
         // This should succeed
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -143,23 +135,29 @@ class DatabaseConfigTest {
         )
         database.transactionDao().insertTransaction(transaction)
 
-        // This should fail due to foreign key constraint
+        // Test unique constraint on currency usage
         try {
-            val invalidTransaction = TransactionEntity(
-                id = 2,
-                userId = 999, // Non-existent user
-                amount = 100.0,
-                description = "Invalid transaction",
-                category = "Food",
-                type = TransactionType.EXPENSE,
-                date = Date(),
+            val currencyUsage1 = CurrencyUsageEntity(
+                currency = "USD",
+                usageCount = 1,
+                lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
             )
-            database.transactionDao().insertTransaction(invalidTransaction)
+            database.currencyUsageDao().insertCurrencyUsage(currencyUsage1)
+
+            // This should fail due to unique constraint on currency
+            val currencyUsage2 = CurrencyUsageEntity(
+                currency = "USD", // Duplicate currency
+                usageCount = 2,
+                lastUsed = Date(),
+                createdAt = Date(),
+                updatedAt = Date()
+            )
+            database.currencyUsageDao().insertCurrencyUsage(currencyUsage2)
             assert(false) // Should not reach here
         } catch (e: Exception) {
-            // Expected to fail due to foreign key constraint
+            // Expected to fail due to unique constraint
             assert(true)
         }
     }
@@ -168,7 +166,6 @@ class DatabaseConfigTest {
     fun testDatabaseIndexes() = runBlocking {
         // Test that indexes are working by querying with indexed columns
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -178,8 +175,6 @@ class DatabaseConfigTest {
         database.userDao().insertUser(user)
 
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -191,8 +186,6 @@ class DatabaseConfigTest {
         database.transactionDao().insertTransaction(transaction)
 
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
@@ -202,12 +195,12 @@ class DatabaseConfigTest {
         database.currencyUsageDao().insertCurrencyUsage(currencyUsage)
 
         // Test queries that should use indexes
-        val userTransactions = database.transactionDao().getTransactionsByUser(1)
-        val userCurrencyUsages = database.currencyUsageDao().getCurrencyUsageByUser(1)
-        val topCurrencies = database.currencyUsageDao().getTopCurrenciesByUser(1, 10)
+        val allTransactions = database.transactionDao().getAllTransactions()
+        val allCurrencyUsages = database.currencyUsageDao().getAllCurrencyUsage()
+        val topCurrencies = database.currencyUsageDao().getTopCurrencies(10)
 
-        assertNotNull(userTransactions)
-        assertNotNull(userCurrencyUsages)
+        assertNotNull(allTransactions)
+        assertNotNull(allCurrencyUsages)
         assertNotNull(topCurrencies)
     }
 
@@ -215,7 +208,6 @@ class DatabaseConfigTest {
     fun testDatabasePerformance() = runBlocking {
         // Test database performance with bulk operations
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -231,7 +223,6 @@ class DatabaseConfigTest {
         for (i in 1..1000) {
             val transaction = TransactionEntity(
                 id = i.toLong(),
-                userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
@@ -250,7 +241,7 @@ class DatabaseConfigTest {
         assert(duration < 10000) { "Bulk insertion took too long: ${duration}ms" }
 
         // Verify all transactions were inserted
-        val transactionCount = database.transactionDao().getTransactionsByUser(1).first().size
+        val transactionCount = database.transactionDao().getAllTransactions().first().size
         assertEquals(1000, transactionCount)
     }
 
@@ -258,7 +249,6 @@ class DatabaseConfigTest {
     fun testDatabaseConcurrency() = runBlocking {
         // Test database concurrency with multiple operations
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -274,7 +264,6 @@ class DatabaseConfigTest {
         val transactions = (1..100).map { i ->
             TransactionEntity(
                 id = i.toLong(),
-                userId = 1,
                 amount = i * 10.0,
                 description = "Transaction $i",
                 category = "Category $i",
@@ -296,7 +285,7 @@ class DatabaseConfigTest {
         assert(duration < 5000) { "Concurrent operations took too long: ${duration}ms" }
 
         // Verify all transactions were inserted
-        val transactionCount = database.transactionDao().getTransactionsByUser(1).first().size
+        val transactionCount = database.transactionDao().getAllTransactions().first().size
         assertEquals(100, transactionCount)
     }
 
@@ -304,7 +293,6 @@ class DatabaseConfigTest {
     fun testDatabaseDataIntegrity() = runBlocking {
         // Test data integrity with complex relationships
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -315,8 +303,6 @@ class DatabaseConfigTest {
 
         // Create multiple related entities
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -328,8 +314,6 @@ class DatabaseConfigTest {
         database.transactionDao().insertTransaction(transaction)
 
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
@@ -339,7 +323,7 @@ class DatabaseConfigTest {
         database.currencyUsageDao().insertCurrencyUsage(currencyUsage)
 
         // Verify data integrity
-        val retrievedUser = database.userDao().getUserById(1)
+        val retrievedUser = database.userDao().getUser()
         val retrievedTransaction = database.transactionDao().getTransactionById(1)
         val retrievedCurrencyUsage = database.currencyUsageDao().getCurrencyUsageById(1)
 
@@ -347,16 +331,12 @@ class DatabaseConfigTest {
         assertNotNull(retrievedTransaction)
         assertNotNull(retrievedCurrencyUsage)
 
-        // Verify relationships
-        assertEquals(retrievedUser?.id, retrievedTransaction?.userId)
-        assertEquals(retrievedUser?.id, retrievedCurrencyUsage?.userId)
     }
 
     @Test
     fun testDatabaseCleanup() = runBlocking {
         // Test database cleanup operations
         val user = UserEntity(
-            id = 1,
             defaultCurrency = "USD",
             locale = "en",
             deviceAuthEnabled = false,
@@ -366,8 +346,6 @@ class DatabaseConfigTest {
         database.userDao().insertUser(user)
 
         val transaction = TransactionEntity(
-            id = 1,
-            userId = 1,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -379,8 +357,6 @@ class DatabaseConfigTest {
         database.transactionDao().insertTransaction(transaction)
 
         val currencyUsage = CurrencyUsageEntity(
-            id = 1,
-            userId = 1,
             currency = "USD",
             usageCount = 1,
             lastUsed = Date(),
@@ -390,21 +366,21 @@ class DatabaseConfigTest {
         database.currencyUsageDao().insertCurrencyUsage(currencyUsage)
 
         // Verify data exists
-        assertNotNull(database.userDao().getUserById(1))
+        assertNotNull(database.userDao().getUser())
         assertNotNull(database.transactionDao().getTransactionById(1))
         assertNotNull(database.currencyUsageDao().getCurrencyUsageById(1))
 
         // Clean up data
         val transactionToDelete = database.transactionDao().getTransactionById(1)
         val currencyUsageToDelete = database.currencyUsageDao().getCurrencyUsageById(1)
-        val userToDelete = database.userDao().getUserById(1)
+        val userToDelete = database.userDao().getUser()
         
         transactionToDelete?.let { database.transactionDao().deleteTransaction(it) }
         currencyUsageToDelete?.let { database.currencyUsageDao().deleteCurrencyUsage(it) }
         userToDelete?.let { database.userDao().deleteUser(it) }
 
         // Verify data was cleaned up
-        assert(database.userDao().getUserById(1) == null)
+        assert(database.userDao().getUser() == null)
         assert(database.transactionDao().getTransactionById(1) == null)
         assert(database.currencyUsageDao().getCurrencyUsageById(1) == null)
     }

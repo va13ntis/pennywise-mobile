@@ -12,8 +12,7 @@ import com.pennywise.app.domain.model.UserStatus
 import java.util.Date
 
 /**
- * Room entity for users
- * Simplified for single-user per app with device authentication
+ * Room entity for user data
  */
 @Entity(tableName = "users")
 @TypeConverters(DateConverter::class, UserRoleConverter::class, UserStatusConverter::class)

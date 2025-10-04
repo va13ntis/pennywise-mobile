@@ -71,7 +71,7 @@ class PennywiseDatabaseTest {
         assertTrue(userId > 0)
 
         // Retrieve user
-        val retrievedUser = userDao.getUserById(userId)
+        val retrievedUser = userDao.getUser()
         assertNotNull(retrievedUser)
         assertEquals(user.defaultCurrency, retrievedUser?.defaultCurrency)
         assertEquals(user.locale, retrievedUser?.locale)
@@ -80,31 +80,19 @@ class PennywiseDatabaseTest {
         val updatedUser = retrievedUser!!.copy(defaultCurrency = "EUR")
         userDao.updateUser(updatedUser)
 
-        val retrievedUpdatedUser = userDao.getUserById(userId)
+        val retrievedUpdatedUser = userDao.getUser()
         assertNotNull(retrievedUpdatedUser)
         assertEquals("EUR", retrievedUpdatedUser?.defaultCurrency)
 
         // Delete user
         userDao.deleteUser(updatedUser)
-        val deletedUser = userDao.getUserById(userId)
+        val deletedUser = userDao.getUser()
         assertNull(deletedUser)
     }
 
     @Test
     fun testTransactionEntityOperations() = runBlocking {
-        // Create test user first
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
-
-        // Create test transaction
         val transaction = TransactionEntity(
-            userId = userId,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
@@ -140,19 +128,7 @@ class PennywiseDatabaseTest {
 
     @Test
     fun testCurrencyUsageEntityOperations() = runBlocking {
-        // Create test user first
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
-
-        // Create test currency usage
         val currencyUsage = CurrencyUsageEntity(
-            userId = userId,
             currency = "USD",
             usageCount = 5,
             lastUsed = Date(),
@@ -186,133 +162,96 @@ class PennywiseDatabaseTest {
 
     @Test
     fun testCurrencyUsageIncrement() = runBlocking {
-        // Create test user first
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
+        val now = Date()
+        
+        // Increment usage (will create if not exists)
+        currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
 
-        // Create initial currency usage
-        val currencyUsage = CurrencyUsageEntity(
-            userId = userId,
-            currency = "USD",
-            usageCount = 1,
-            lastUsed = Date(),
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val currencyUsageId = currencyUsageDao.insertCurrencyUsage(currencyUsage)
-
-        // Increment usage
-        currencyUsageDao.incrementCurrencyUsage(userId, "USD", Date(), Date())
-
+        // Verify creation
+        val currencyUsage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
+        assertNotNull(currencyUsage)
+        assertEquals(1, currencyUsage?.usageCount)
+        
+        // Increment again
+        currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
+        
         // Verify increment
-        val updatedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(currencyUsageId)
+        val updatedCurrencyUsage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
         assertNotNull(updatedCurrencyUsage)
         assertEquals(2, updatedCurrencyUsage?.usageCount)
     }
 
     @Test
-    fun testCurrencyUsageByUser() = runBlocking {
-        // Create test user first
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
-
-        // Create multiple currency usage records
+    fun testAllCurrencyUsage() = runBlocking {
+        val now = Date()
         val currencyUsages = listOf(
             CurrencyUsageEntity(
-                userId = userId,
                 currency = "USD",
                 usageCount = 5,
-                lastUsed = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                lastUsed = now,
+                createdAt = now,
+                updatedAt = now
             ),
             CurrencyUsageEntity(
-                userId = userId,
                 currency = "EUR",
                 usageCount = 3,
-                lastUsed = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                lastUsed = now,
+                createdAt = now,
+                updatedAt = now
             ),
             CurrencyUsageEntity(
-                userId = userId,
                 currency = "GBP",
                 usageCount = 2,
-                lastUsed = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                lastUsed = now,
+                createdAt = now,
+                updatedAt = now
             )
         )
 
         currencyUsages.forEach { currencyUsageDao.insertCurrencyUsage(it) }
 
-        // Retrieve currency usage by user
-        val userCurrencyUsages = currencyUsageDao.getCurrencyUsageByUser(userId).first()
-        assertEquals(3, userCurrencyUsages.size)
+        // Retrieve all currency usage
+        val allCurrencyUsages = currencyUsageDao.getAllCurrencyUsage().first()
+        assertEquals(3, allCurrencyUsages.size)
 
         // Verify currencies are present
-        val currencyCodes = userCurrencyUsages.map { it.currency }
+        val currencyCodes = allCurrencyUsages.map { it.currency }
         assertTrue(currencyCodes.contains("USD"))
         assertTrue(currencyCodes.contains("EUR"))
         assertTrue(currencyCodes.contains("GBP"))
     }
 
     @Test
-    fun testTopCurrenciesByUser() = runBlocking {
-        // Create test user first
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
-
-        // Create currency usage records with different usage counts
+    fun testTopCurrencies() = runBlocking {
+        val now = Date()
         val currencyUsages = listOf(
             CurrencyUsageEntity(
-                userId = userId,
                 currency = "USD",
                 usageCount = 10,
-                lastUsed = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                lastUsed = now,
+                createdAt = now,
+                updatedAt = now
             ),
             CurrencyUsageEntity(
-                userId = userId,
                 currency = "EUR",
                 usageCount = 5,
-                lastUsed = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                lastUsed = now,
+                createdAt = now,
+                updatedAt = now
             ),
             CurrencyUsageEntity(
-                userId = userId,
                 currency = "GBP",
                 usageCount = 15,
-                lastUsed = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                lastUsed = now,
+                createdAt = now,
+                updatedAt = now
             )
         )
 
         currencyUsages.forEach { currencyUsageDao.insertCurrencyUsage(it) }
 
         // Retrieve top currencies (should be ordered by usage count)
-        val topCurrencies = currencyUsageDao.getTopCurrenciesByUser(userId, 2).first()
+        val topCurrencies = currencyUsageDao.getTopCurrencies(2).first()
         assertEquals(2, topCurrencies.size)
 
         // Verify ordering (GBP should be first with 15, USD second with 10)
@@ -323,111 +262,64 @@ class PennywiseDatabaseTest {
     }
 
     @Test
-    fun testTransactionByUser() = runBlocking {
-        // Create test user first
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
-
-        // Create multiple transactions
+    fun testAllTransactions() = runBlocking {
+        val now = Date()
         val transactions = listOf(
             TransactionEntity(
-                userId = userId,
                 amount = 100.0,
                 description = "Transaction 1",
                 category = "Food",
                 type = TransactionType.EXPENSE,
-                date = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                date = now,
+                createdAt = now,
+                updatedAt = now
             ),
             TransactionEntity(
-                userId = userId,
                 amount = 200.0,
                 description = "Transaction 2",
                 category = "Transport",
                 type = TransactionType.EXPENSE,
-                date = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                date = now,
+                createdAt = now,
+                updatedAt = now
             ),
             TransactionEntity(
-                userId = userId,
                 amount = 300.0,
                 description = "Transaction 3",
                 category = "Entertainment",
                 type = TransactionType.EXPENSE,
-                date = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                date = now,
+                createdAt = now,
+                updatedAt = now
             )
         )
 
         val transactionIds = transactions.map { transactionDao.insertTransaction(it) }
 
-        // Retrieve transactions by user
-        val userTransactions = transactionDao.getTransactionsByUser(userId).first()
-        assertEquals(3, userTransactions.size)
+        // Retrieve all transactions
+        val allTransactions = transactionDao.getAllTransactions().first()
+        assertEquals(3, allTransactions.size)
 
         // Verify all transactions are present
-        val retrievedTransactionIds = userTransactions.map { it.id }
+        val retrievedTransactionIds = allTransactions.map { it.id }
         assertTrue(retrievedTransactionIds.containsAll(transactionIds))
     }
 
     @Test
-    fun testDatabaseConstraints() = runBlocking {
-        // Test foreign key constraint - should fail when inserting transaction with non-existent user
-        val transaction = TransactionEntity(
-            userId = 999, // Non-existent user
-            amount = 100.0,
-            description = "Test transaction",
-            category = "Food",
-            type = TransactionType.EXPENSE,
-            date = Date(),
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-
-        try {
-            transactionDao.insertTransaction(transaction)
-            assert(false) // Should not reach here
-        } catch (e: Exception) {
-            // Expected to fail due to foreign key constraint
-            assert(true)
-        }
-    }
-
-    @Test
     fun testDatabasePerformance() = runBlocking {
-        // Create test user first
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
-
-        // Measure insertion performance
         val startTime = System.currentTimeMillis()
+        val now = Date()
         
         // Insert 1000 transactions
         for (i in 1..1000) {
             val transaction = TransactionEntity(
-                userId = userId,
                 amount = i * 10.0,
                 description = "Transaction $i",
-                category = "Category $i",
+                category = "Category ${i % 10}",
                 type = TransactionType.EXPENSE,
-                date = Date(),
-                createdAt = Date(),
-                updatedAt = Date()
+                date = now,
+                createdAt = now,
+                updatedAt = now
             )
             transactionDao.insertTransaction(transaction)
         }
@@ -439,57 +331,131 @@ class PennywiseDatabaseTest {
         assert(duration < 10000) { "Insertion took too long: ${duration}ms" }
 
         // Verify all transactions were inserted
-        val transactionCount = transactionDao.getTransactionsByUser(userId).first().size
+        val transactionCount = transactionDao.getTransactionCount()
         assertEquals(1000, transactionCount)
     }
 
     @Test
     fun testDatabaseIntegrity() = runBlocking {
-        // Create test user
-        val user = UserEntity(
-            defaultCurrency = "USD",
-            locale = "en",
-            deviceAuthEnabled = false,
-            createdAt = Date(),
-            updatedAt = Date()
-        )
-        val userId = userDao.insertUser(user)
-
+        val now = Date()
+        
         // Create transaction
         val transaction = TransactionEntity(
-            userId = userId,
             amount = 100.0,
             description = "Test transaction",
             category = "Food",
             type = TransactionType.EXPENSE,
-            date = Date(),
-            createdAt = Date(),
-            updatedAt = Date()
+            date = now,
+            createdAt = now,
+            updatedAt = now
         )
         val transactionId = transactionDao.insertTransaction(transaction)
 
         // Create currency usage
         val currencyUsage = CurrencyUsageEntity(
-            userId = userId,
             currency = "USD",
             usageCount = 1,
-            lastUsed = Date(),
-            createdAt = Date(),
-            updatedAt = Date()
+            lastUsed = now,
+            createdAt = now,
+            updatedAt = now
         )
         val currencyUsageId = currencyUsageDao.insertCurrencyUsage(currencyUsage)
 
         // Verify data integrity
-        val retrievedUser = userDao.getUserById(userId)
         val retrievedTransaction = transactionDao.getTransactionById(transactionId)
         val retrievedCurrencyUsage = currencyUsageDao.getCurrencyUsageById(currencyUsageId)
 
-        assertNotNull(retrievedUser)
         assertNotNull(retrievedTransaction)
         assertNotNull(retrievedCurrencyUsage)
 
-        // Verify relationships
-        assertEquals(retrievedUser?.id, retrievedTransaction?.userId)
-        assertEquals(retrievedUser?.id, retrievedCurrencyUsage?.userId)
+        // Verify data consistency
+        assertEquals("USD", retrievedTransaction?.currency)
+        assertEquals("USD", retrievedCurrencyUsage?.currency)
+    }
+
+    @Test
+    fun testTransactionsByCategory() = runBlocking {
+        val now = Date()
+        val transactions = listOf(
+            TransactionEntity(
+                amount = 100.0,
+                description = "Groceries",
+                category = "Food",
+                type = TransactionType.EXPENSE,
+                date = now,
+                createdAt = now,
+                updatedAt = now
+            ),
+            TransactionEntity(
+                amount = 200.0,
+                description = "Restaurant",
+                category = "Food",
+                type = TransactionType.EXPENSE,
+                date = now,
+                createdAt = now,
+                updatedAt = now
+            ),
+            TransactionEntity(
+                amount = 50.0,
+                description = "Bus ticket",
+                category = "Transport",
+                type = TransactionType.EXPENSE,
+                date = now,
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+
+        transactions.forEach { transactionDao.insertTransaction(it) }
+
+        // Get transactions by category
+        val foodTransactions = transactionDao.getTransactionsByCategory("Food").first()
+        assertEquals(2, foodTransactions.size)
+        
+        val transportTransactions = transactionDao.getTransactionsByCategory("Transport").first()
+        assertEquals(1, transportTransactions.size)
+    }
+
+    @Test
+    fun testTransactionsByType() = runBlocking {
+        val now = Date()
+        val transactions = listOf(
+            TransactionEntity(
+                amount = 100.0,
+                description = "Expense 1",
+                category = "Food",
+                type = TransactionType.EXPENSE,
+                date = now,
+                createdAt = now,
+                updatedAt = now
+            ),
+            TransactionEntity(
+                amount = 200.0,
+                description = "Income 1",
+                category = "Salary",
+                type = TransactionType.INCOME,
+                date = now,
+                createdAt = now,
+                updatedAt = now
+            ),
+            TransactionEntity(
+                amount = 50.0,
+                description = "Expense 2",
+                category = "Transport",
+                type = TransactionType.EXPENSE,
+                date = now,
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+
+        transactions.forEach { transactionDao.insertTransaction(it) }
+
+        // Get transactions by type
+        val expenses = transactionDao.getTransactionsByType(TransactionType.EXPENSE).first()
+        assertEquals(2, expenses.size)
+        
+        val income = transactionDao.getTransactionsByType(TransactionType.INCOME).first()
+        assertEquals(1, income.size)
     }
 }

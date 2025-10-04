@@ -8,7 +8,6 @@ import java.util.Date
 data class SplitPaymentInstallment(
     val id: Long = 0,
     val parentTransactionId: Long, // Reference to the original transaction
-    val userId: Long, // Reference to the user who owns this installment
     val amount: Double, // The installment amount
     val currency: String = "USD",
     val description: String, // Description with installment info

@@ -31,8 +31,11 @@ import com.pennywise.app.domain.repository.BankCardRepository
 import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.usecase.CurrencySortingService
+import com.pennywise.app.domain.validation.AuthenticationValidator
+import com.pennywise.app.data.validation.AuthenticationValidatorImpl
 import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.presentation.auth.AuthManager
+import com.pennywise.app.presentation.auth.DeviceAuthService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -122,14 +125,27 @@ object RepositoryModule {
     }
     
     /**
+     * Provides the AuthenticationValidator implementation
+     */
+    @Provides
+    @Singleton
+    fun provideAuthenticationValidator(
+        userRepository: UserRepository,
+        deviceAuthService: DeviceAuthService
+    ): AuthenticationValidator {
+        return AuthenticationValidatorImpl(userRepository, deviceAuthService)
+    }
+    
+    /**
      * Provides the TransactionRepository implementation
      */
     @Provides
     @Singleton
     fun provideTransactionRepository(
-        transactionDao: TransactionDao
+        transactionDao: TransactionDao,
+        authValidator: AuthenticationValidator
     ): TransactionRepository {
-        return TransactionRepositoryImpl(transactionDao)
+        return TransactionRepositoryImpl(transactionDao, authValidator)
     }
     
     /**
@@ -138,9 +154,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideCurrencyUsageRepository(
-        currencyUsageDao: CurrencyUsageDao
+        currencyUsageDao: CurrencyUsageDao,
+        authValidator: AuthenticationValidator
     ): CurrencyUsageRepository {
-        return CurrencyUsageRepositoryImpl(currencyUsageDao)
+        return CurrencyUsageRepositoryImpl(currencyUsageDao, authValidator)
     }
     
     /**
@@ -187,9 +204,10 @@ object RepositoryModule {
     @Singleton
     fun provideBankCardRepository(
         bankCardDao: BankCardDao,
-        encryptionManager: CardEncryptionManager
+        encryptionManager: CardEncryptionManager,
+        authValidator: AuthenticationValidator
     ): BankCardRepository {
-        return BankCardRepositoryImpl(bankCardDao, encryptionManager)
+        return BankCardRepositoryImpl(bankCardDao, encryptionManager, authValidator)
     }
     
     /**
@@ -198,9 +216,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideSplitPaymentInstallmentRepository(
-        splitPaymentInstallmentDao: SplitPaymentInstallmentDao
+        splitPaymentInstallmentDao: SplitPaymentInstallmentDao,
+        authValidator: AuthenticationValidator
     ): SplitPaymentInstallmentRepository {
-        return SplitPaymentInstallmentRepositoryImpl(splitPaymentInstallmentDao)
+        return SplitPaymentInstallmentRepositoryImpl(splitPaymentInstallmentDao, authValidator)
     }
     
     /**
@@ -209,9 +228,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun providePaymentMethodConfigRepository(
-        paymentMethodConfigDao: PaymentMethodConfigDao
+        paymentMethodConfigDao: PaymentMethodConfigDao,
+        authValidator: AuthenticationValidator
     ): PaymentMethodConfigRepository {
-        return PaymentMethodConfigRepositoryImpl(paymentMethodConfigDao)
+        return PaymentMethodConfigRepositoryImpl(paymentMethodConfigDao, authValidator)
     }
     
     /**

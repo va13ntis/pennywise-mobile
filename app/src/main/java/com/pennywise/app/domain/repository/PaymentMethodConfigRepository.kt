@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.Flow
 interface PaymentMethodConfigRepository {
     
     /**
-     * Get all payment method configurations for a user
+     * Get all payment method configurations
      */
-    fun getPaymentMethodConfigsByUser(userId: Long): Flow<List<PaymentMethodConfig>>
+    fun getPaymentMethodConfigs(): Flow<List<PaymentMethodConfig>>
     
     /**
      * Get payment method configuration by ID
@@ -20,14 +20,14 @@ interface PaymentMethodConfigRepository {
     suspend fun getPaymentMethodConfigById(id: Long): PaymentMethodConfig?
     
     /**
-     * Get default payment method configuration for a user
+     * Get default payment method configuration
      */
-    suspend fun getDefaultPaymentMethodConfig(userId: Long): PaymentMethodConfig?
+    suspend fun getDefaultPaymentMethodConfig(): PaymentMethodConfig?
     
     /**
      * Get payment method configurations by payment method type
      */
-    fun getPaymentMethodConfigsByType(userId: Long, paymentMethod: PaymentMethod): Flow<List<PaymentMethodConfig>>
+    fun getPaymentMethodConfigsByType(paymentMethod: PaymentMethod): Flow<List<PaymentMethodConfig>>
     
     /**
      * Insert a new payment method configuration
@@ -47,15 +47,15 @@ interface PaymentMethodConfigRepository {
     /**
      * Set a payment method configuration as default
      */
-    suspend fun setDefaultPaymentMethodConfig(userId: Long, configId: Long)
+    suspend fun setDefaultPaymentMethodConfig(configId: Long)
     
     /**
-     * Check if a user has any payment method configurations
+     * Check if there are any payment method configurations
      */
-    suspend fun getPaymentMethodConfigCount(userId: Long): Int
+    suspend fun getPaymentMethodConfigCount(): Int
     
     /**
      * Get credit card configurations that need withdraw day configuration
      */
-    fun getCreditCardConfigs(userId: Long): Flow<List<PaymentMethodConfig>>
+    fun getCreditCardConfigs(): Flow<List<PaymentMethodConfig>>
 }

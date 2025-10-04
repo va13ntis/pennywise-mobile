@@ -25,6 +25,9 @@ class BankCardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<BankCardUiState>(BankCardUiState.Idle)
     val uiState: StateFlow<BankCardUiState> = _uiState.asStateFlow()
     
+    private val _needsAuthentication = MutableStateFlow(false)
+    val needsAuthentication: StateFlow<Boolean> = _needsAuthentication.asStateFlow()
+    
     private val _bankCards = MutableStateFlow<List<BankCard>>(emptyList())
     val bankCards: StateFlow<List<BankCard>> = _bankCards.asStateFlow()
     
@@ -41,18 +44,31 @@ class BankCardViewModel @Inject constructor(
     private fun loadBankCards() {
         viewModelScope.launch {
             try {
-                val currentUser = authManager.currentUser.value
-                if (currentUser != null) {
-                    bankCardRepository.getBankCardsByUserId(currentUser.id).collect { cards ->
-                        _bankCards.value = cards
-                    }
-                    
-                    bankCardRepository.getActiveBankCardsByUserId(currentUser.id).collect { cards ->
-                        _activeBankCards.value = cards
-                    }
+                bankCardRepository.getBankCards().collect { cards ->
+                    _bankCards.value = cards
+                    _needsAuthentication.value = false
                 }
+            } catch (e: SecurityException) {
+                _uiState.value = BankCardUiState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = BankCardUiState.Error("Failed to load bank cards: ${e.message}")
+                _needsAuthentication.value = false
+            }
+        }
+        
+        viewModelScope.launch {
+            try {
+                bankCardRepository.getActiveBankCards().collect { cards ->
+                    _activeBankCards.value = cards
+                    _needsAuthentication.value = false
+                }
+            } catch (e: SecurityException) {
+                _uiState.value = BankCardUiState.Error("Authentication required")
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _uiState.value = BankCardUiState.Error("Failed to load bank cards: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -79,7 +95,6 @@ class BankCardViewModel @Inject constructor(
                 }
                 
                 val bankCard = BankCard(
-                    userId = currentUser.id,
                     alias = alias.trim(),
                     lastFourDigits = lastFourDigits.trim(),
                     paymentDay = paymentDay,
@@ -92,14 +107,20 @@ class BankCardViewModel @Inject constructor(
                 result.fold(
                     onSuccess = {
                         _uiState.value = BankCardUiState.Success("Bank card added successfully")
+                        _needsAuthentication.value = false
                         loadBankCards() // Refresh the list
                     },
                     onFailure = { error ->
                         _uiState.value = BankCardUiState.Error("Failed to add bank card: ${error.message}")
+                        _needsAuthentication.value = false
                     }
                 )
+            } catch (e: SecurityException) {
+                _uiState.value = BankCardUiState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = BankCardUiState.Error("Failed to add bank card: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -136,14 +157,20 @@ class BankCardViewModel @Inject constructor(
                 result.fold(
                     onSuccess = {
                         _uiState.value = BankCardUiState.Success("Bank card updated successfully")
+                        _needsAuthentication.value = false
                         loadBankCards() // Refresh the list
                     },
                     onFailure = { error ->
                         _uiState.value = BankCardUiState.Error("Failed to update bank card: ${error.message}")
+                        _needsAuthentication.value = false
                     }
                 )
+            } catch (e: SecurityException) {
+                _uiState.value = BankCardUiState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = BankCardUiState.Error("Failed to update bank card: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -160,14 +187,20 @@ class BankCardViewModel @Inject constructor(
                 result.fold(
                     onSuccess = {
                         _uiState.value = BankCardUiState.Success("Bank card deleted successfully")
+                        _needsAuthentication.value = false
                         loadBankCards() // Refresh the list
                     },
                     onFailure = { error ->
                         _uiState.value = BankCardUiState.Error("Failed to delete bank card: ${error.message}")
+                        _needsAuthentication.value = false
                     }
                 )
+            } catch (e: SecurityException) {
+                _uiState.value = BankCardUiState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = BankCardUiState.Error("Failed to delete bank card: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -185,14 +218,20 @@ class BankCardViewModel @Inject constructor(
                     onSuccess = {
                         val status = if (bankCard.isActive) "deactivated" else "activated"
                         _uiState.value = BankCardUiState.Success("Bank card $status successfully")
+                        _needsAuthentication.value = false
                         loadBankCards() // Refresh the list
                     },
                     onFailure = { error ->
                         _uiState.value = BankCardUiState.Error("Failed to update bank card status: ${error.message}")
+                        _needsAuthentication.value = false
                     }
                 )
+            } catch (e: SecurityException) {
+                _uiState.value = BankCardUiState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = BankCardUiState.Error("Failed to update bank card status: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
@@ -202,6 +241,7 @@ class BankCardViewModel @Inject constructor(
      */
     fun clearUiState() {
         _uiState.value = BankCardUiState.Idle
+        _needsAuthentication.value = false
     }
     
     /**

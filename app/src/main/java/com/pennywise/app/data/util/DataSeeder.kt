@@ -35,15 +35,15 @@ class DataSeeder @Inject constructor(
             println("✅ Test user created (ID: ${testUser.id})")
             
             // Create sample transactions for the current month
-            createSampleTransactions(testUser.id)
+            createSampleTransactions()
             println("✅ Sample transactions for current month created")
             
             // Create historical data for previous months (6 months of history)
-            createHistoricalTransactions(testUser.id, 6)
+            createHistoricalTransactions(6)
             println("✅ Historical transactions created")
             
             // Create future data for next months (2 months ahead for testing navigation)
-            createFutureTransactions(testUser.id, 2)
+            createFutureTransactions(2)
             println("✅ Future transactions created")
             
             println("✅ Test data seeded successfully!")
@@ -59,9 +59,9 @@ class DataSeeder @Inject constructor(
      */
     private suspend fun createTestUser(): UserEntity {
         // Check if user already exists
-        val existingUser = userDao.getSingleUser()
+        val existingUser = userDao.getUser()
         if (existingUser != null) {
-            println("⚠️ Test user already exists with ID: ${existingUser.id}")
+            println("⚠️ Test user already exists")
             return existingUser
         }
         
@@ -74,22 +74,22 @@ class DataSeeder @Inject constructor(
         )
         
         println("🔄 Creating test user with default settings")
-        val userId = userDao.insertUser(testUser)
-        println("✅ Test user created with ID: $userId")
+        userDao.insertUser(testUser)
+        println("✅ Test user created successfully")
         
         // Verify the user was created correctly
-        val createdUser = userDao.getUserById(userId)
-        println("🔍 Verification - Created user (ID: ${createdUser?.id})")
+        val createdUser = userDao.getUser()
+        println("🔍 Verification - User created successfully")
         
-        // Return the created user with the correct ID, not the original testUser
-        return createdUser ?: testUser.copy(id = userId)
+        // Return the created user (should always exist after insert)
+        return createdUser ?: error("Failed to create test user")
     }
     
     /**
      * Create sample transactions for testing
      */
-    private suspend fun createSampleTransactions(userId: Long) {
-        println("🔄 Creating sample transactions for user ID: $userId")
+    private suspend fun createSampleTransactions() {
+        println("🔄 Creating sample transactions")
         
         val calendar = Calendar.getInstance()
         val currentMonth = calendar.get(Calendar.MONTH)
@@ -98,46 +98,45 @@ class DataSeeder @Inject constructor(
         val transactions = mutableListOf<TransactionEntity>()
         
         // Income transactions
-        val incomeTransactions = createIncomeTransactions(userId, currentMonth, currentYear)
+        val incomeTransactions = createIncomeTransactions(currentMonth, currentYear)
         transactions.addAll(incomeTransactions)
         println("✅ Created ${incomeTransactions.size} income transactions")
         
         // Regular expense transactions
-        val regularExpenses = createRegularExpenses(userId, currentMonth, currentYear)
+        val regularExpenses = createRegularExpenses(currentMonth, currentYear)
         transactions.addAll(regularExpenses)
         println("✅ Created ${regularExpenses.size} regular expense transactions")
         
         // Recurring expense transactions
-        val recurringExpenses = createRecurringExpenses(userId, currentMonth, currentYear)
+        val recurringExpenses = createRecurringExpenses(currentMonth, currentYear)
         transactions.addAll(recurringExpenses)
         println("✅ Created ${recurringExpenses.size} recurring expense transactions")
         
         // Insert all transactions
         transactionDao.insertTransactions(transactions)
-        println("✅ Inserted ${transactions.size} total transactions for user ID: $userId")
+        println("✅ Inserted ${transactions.size} total transactions")
         
         // Verify transactions were created
-        val transactionCount = transactionDao.getTransactionCount(userId)
-        println("🔍 Verification - Transactions for user $userId: $transactionCount")
+        val transactionCount = transactionDao.getTransactionCount()
+        println("🔍 Verification - Total transactions: $transactionCount")
         
         // Also verify by type
-        val incomeCount = transactionDao.getTransactionsByType(userId, TransactionType.INCOME).first().size
-        val expenseCount = transactionDao.getTransactionsByType(userId, TransactionType.EXPENSE).first().size
-        val recurringCount = transactionDao.getRecurringTransactions(userId).first().size
+        val incomeCount = transactionDao.getTransactionsByType(TransactionType.INCOME).first().size
+        val expenseCount = transactionDao.getTransactionsByType(TransactionType.EXPENSE).first().size
+        val recurringCount = transactionDao.getRecurringTransactions().first().size
         println("🔍 Verification - Income: $incomeCount, Expenses: $expenseCount, Recurring: $recurringCount")
     }
     
     /**
      * Create sample income transactions
      */
-    private fun createIncomeTransactions(userId: Long, month: Int, year: Int): List<TransactionEntity> {
+    private fun createIncomeTransactions(month: Int, year: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
         return listOf(
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = 3500.0,
                 description = "Salary - ${getMonthName(month)} ${year}",
                 category = "Salary",
@@ -149,7 +148,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = 500.0,
                 description = "Freelance Project",
                 category = "Freelance",
@@ -161,7 +159,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = 250.0,
                 description = "Investment Dividend",
                 category = "Investment",
@@ -173,7 +170,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = 100.0,
                 description = "Cash Gift",
                 category = "Gift",
@@ -189,7 +185,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create sample regular expense transactions
      */
-    private fun createRegularExpenses(userId: Long, month: Int, year: Int): List<TransactionEntity> {
+    private fun createRegularExpenses(month: Int, year: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
@@ -197,7 +193,6 @@ class DataSeeder @Inject constructor(
             // Week 1 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -120.0,
                 description = "Grocery Shopping",
                 category = "Groceries",
@@ -209,7 +204,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -45.0,
                 description = "Gas Station",
                 category = "Transportation",
@@ -221,7 +215,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -35.0,
                 description = "Pharmacy",
                 category = "Healthcare",
@@ -235,7 +228,6 @@ class DataSeeder @Inject constructor(
             // Week 2 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -85.0,
                 description = "Restaurant Dinner",
                 category = "Dining Out",
@@ -247,7 +239,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -200.0,
                 description = "Shopping Mall",
                 category = "Clothing",
@@ -259,7 +250,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -20.0,
                 description = "Mobile App Purchase",
                 category = "Software",
@@ -273,7 +263,6 @@ class DataSeeder @Inject constructor(
             // Week 3 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -60.0,
                 description = "Movie Tickets",
                 category = "Entertainment",
@@ -285,7 +274,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -95.0,
                 description = "Gym Membership",
                 category = "Fitness",
@@ -297,7 +285,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -50.0,
                 description = "Bookstore",
                 category = "Education",
@@ -311,7 +298,6 @@ class DataSeeder @Inject constructor(
             // Week 4 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -150.0,
                 description = "Home Supplies",
                 category = "Household",
@@ -323,7 +309,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -75.0,
                 description = "Coffee Shop",
                 category = "Coffee",
@@ -335,7 +320,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -120.0,
                 description = "Pet Supplies",
                 category = "Pets",
@@ -351,14 +335,13 @@ class DataSeeder @Inject constructor(
     /**
      * Create sample recurring expense transactions
      */
-    private fun createRecurringExpenses(userId: Long, month: Int, year: Int): List<TransactionEntity> {
+    private fun createRecurringExpenses(month: Int, year: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
         return listOf(
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -1200.0,
                 description = "Rent Payment - ${getMonthName(month)} ${year}",
                 category = "Rent",
@@ -370,7 +353,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -150.0,
                 description = "Electricity Bill",
                 category = "Electricity",
@@ -382,7 +364,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -80.0,
                 description = "Internet Bill",
                 category = "Internet",
@@ -394,7 +375,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                userId = userId,
                 amount = -25.0,
                 description = "Netflix Subscription",
                 category = "Streaming",
@@ -406,7 +386,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -60.0,
                 description = "Phone Plan",
                 category = "Mobile",
@@ -418,7 +397,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -35.0,
                 description = "Cloud Storage",
                 category = "Subscription",
@@ -430,7 +408,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -15.0,
                 description = "Music Streaming",
                 category = "Subscription",
@@ -446,7 +423,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create future transactions for testing navigation
      */
-    private suspend fun createFutureTransactions(userId: Long, numberOfMonths: Int) {
+    private suspend fun createFutureTransactions(numberOfMonths: Int) {
         println("🔄 Creating future transactions for the next $numberOfMonths months")
         
         val calendar = Calendar.getInstance()
@@ -465,15 +442,15 @@ class DataSeeder @Inject constructor(
             val monthTransactions = mutableListOf<TransactionEntity>()
             
             // Create recurring transactions (similar each month)
-            val recurringExpenses = createFutureRecurringExpenses(userId, targetMonth, targetYear, i)
+            val recurringExpenses = createFutureRecurringExpenses(targetMonth, targetYear, i)
             monthTransactions.addAll(recurringExpenses)
             
             // Create income (mostly stable)
-            val incomeTransactions = createFutureIncomeTransactions(userId, targetMonth, targetYear, i)
+            val incomeTransactions = createFutureIncomeTransactions(targetMonth, targetYear, i)
             monthTransactions.addAll(incomeTransactions)
             
             // Create expenses with some variations
-            val regularExpenses = createFutureRegularExpenses(userId, targetMonth, targetYear, i)
+            val regularExpenses = createFutureRegularExpenses(targetMonth, targetYear, i)
             monthTransactions.addAll(regularExpenses)
             
             allFutureTransactions.addAll(monthTransactions)
@@ -488,7 +465,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create historical transactions for previous months
      */
-    private suspend fun createHistoricalTransactions(userId: Long, numberOfMonths: Int) {
+    private suspend fun createHistoricalTransactions(numberOfMonths: Int) {
         println("🔄 Creating historical transactions for the past $numberOfMonths months")
         
         val calendar = Calendar.getInstance()
@@ -507,15 +484,15 @@ class DataSeeder @Inject constructor(
             val monthTransactions = mutableListOf<TransactionEntity>()
             
             // Create recurring transactions (similar each month with slight variations)
-            val recurringExpenses = createHistoricalRecurringExpenses(userId, targetMonth, targetYear, i)
+            val recurringExpenses = createHistoricalRecurringExpenses(targetMonth, targetYear, i)
             monthTransactions.addAll(recurringExpenses)
             
             // Create income (mostly stable with occasional variations)
-            val incomeTransactions = createHistoricalIncomeTransactions(userId, targetMonth, targetYear, i)
+            val incomeTransactions = createHistoricalIncomeTransactions(targetMonth, targetYear, i)
             monthTransactions.addAll(incomeTransactions)
             
             // Create expenses with seasonal variations
-            val regularExpenses = createHistoricalRegularExpenses(userId, targetMonth, targetYear, i)
+            val regularExpenses = createHistoricalRegularExpenses(targetMonth, targetYear, i)
             monthTransactions.addAll(regularExpenses)
             
             allHistoricalTransactions.addAll(monthTransactions)
@@ -530,7 +507,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create historical recurring expenses for a specific month
      */
-    private fun createHistoricalRecurringExpenses(userId: Long, month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
+    private fun createHistoricalRecurringExpenses(month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
@@ -538,7 +515,6 @@ class DataSeeder @Inject constructor(
         val recurringTransactions = mutableListOf(
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -1200.0, // Rent stays the same
                 description = "Rent Payment - ${getMonthName(month)} ${year}",
                 category = "Rent",
@@ -550,7 +526,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -60.0, // Phone plan stays the same
                 description = "Phone Plan",
                 category = "Mobile",
@@ -567,7 +542,6 @@ class DataSeeder @Inject constructor(
         recurringTransactions.add(
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 // Electricity varies by season
                 amount = -130.0 * seasonalFactor,
                 description = "Electricity Bill",
@@ -584,7 +558,6 @@ class DataSeeder @Inject constructor(
         recurringTransactions.addAll(listOf(
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -80.0,
                 description = "Internet Bill",
                 category = "Internet",
@@ -596,7 +569,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -25.0,
                 description = "Netflix Subscription",
                 category = "Streaming",
@@ -608,7 +580,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -15.0,
                 description = "Music Streaming",
                 category = "Subscription",
@@ -626,7 +597,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create historical income transactions for a specific month
      */
-    private fun createHistoricalIncomeTransactions(userId: Long, month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
+    private fun createHistoricalIncomeTransactions(month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
@@ -634,7 +605,6 @@ class DataSeeder @Inject constructor(
             // Regular salary - consistent each month
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = 3500.0,
                 description = "Salary - ${getMonthName(month)} ${year}",
                 category = "Salary",
@@ -651,7 +621,6 @@ class DataSeeder @Inject constructor(
             incomeTransactions.add(
                 TransactionEntity(
                     id = 0,
-                    userId = userId,
                     amount = 400.0 + (monthsAgo * 20), // Slightly variable amount
                     description = "Freelance Project",
                     category = "Freelance",
@@ -669,7 +638,6 @@ class DataSeeder @Inject constructor(
             incomeTransactions.add(
                 TransactionEntity(
                     id = 0,
-                    userId = userId,
                     amount = 250.0,
                     description = "Investment Dividend",
                     category = "Investment",
@@ -687,7 +655,6 @@ class DataSeeder @Inject constructor(
             incomeTransactions.add(
                 TransactionEntity(
                     id = 0,
-                    userId = userId,
                     amount = 150.0,
                     description = "Holiday Gift",
                     category = "Gift",
@@ -708,7 +675,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create historical regular expenses for a specific month
      */
-    private fun createHistoricalRegularExpenses(userId: Long, month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
+    private fun createHistoricalRegularExpenses(month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
@@ -721,7 +688,6 @@ class DataSeeder @Inject constructor(
                 regularExpenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -(100.0 + (Math.random() * 40)), // Variable grocery expenses
                         description = "Grocery Shopping",
                         category = "Groceries",
@@ -740,7 +706,6 @@ class DataSeeder @Inject constructor(
             regularExpenses.add(
                 TransactionEntity(
                     id = 0,
-                    userId = userId,
                     amount = -45.0,
                     description = "Gas Station",
                     category = "Transportation",
@@ -761,7 +726,6 @@ class DataSeeder @Inject constructor(
                 regularExpenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -(40.0 + (Math.random() * 60)), // Variable dining expenses
                         description = "Restaurant Dinner",
                         category = "Dining Out",
@@ -776,14 +740,13 @@ class DataSeeder @Inject constructor(
         }
         
         // Add seasonal expenses
-        addSeasonalExpenses(regularExpenses, userId, calendar, month)
+        addSeasonalExpenses(regularExpenses, calendar, month)
         
         // Add healthcare expenses (occasional)
         if (monthsAgo % 3 == 1) { // Every third month
             regularExpenses.add(
                 TransactionEntity(
                     id = 0,
-                    userId = userId,
                     amount = -35.0,
                     description = "Pharmacy",
                     category = "Healthcare",
@@ -801,7 +764,6 @@ class DataSeeder @Inject constructor(
             regularExpenses.add(
                 TransactionEntity(
                     id = 0,
-                    userId = userId,
                     amount = -60.0,
                     description = "Movie Tickets",
                     category = "Entertainment",
@@ -822,7 +784,6 @@ class DataSeeder @Inject constructor(
      */
     private fun addSeasonalExpenses(
         expenses: MutableList<TransactionEntity>,
-        userId: Long,
         calendar: Calendar,
         month: Int
     ) {
@@ -831,7 +792,6 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -150.0,
                         description = "Post-Holiday Sales Shopping",
                         category = "Clothing",
@@ -847,7 +807,6 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -120.0,
                         description = "Valentine's Day Dinner",
                         category = "Dining Out",
@@ -863,7 +822,6 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -180.0,
                         description = "Spring Wardrobe Update",
                         category = "Clothing",
@@ -879,7 +837,6 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -95.0,
                         description = "Beach Day Trip",
                         category = "Entertainment",
@@ -895,7 +852,6 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -210.0,
                         description = "Fall Shopping",
                         category = "Clothing",
@@ -911,7 +867,6 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        userId = userId,
                         amount = -350.0,
                         description = "Holiday Gift Shopping",
                         category = "Gifts",
@@ -986,14 +941,13 @@ class DataSeeder @Inject constructor(
     /**
      * Create future recurring expenses for a specific month
      */
-    private fun createFutureRecurringExpenses(userId: Long, month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
+    private fun createFutureRecurringExpenses(month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
         return listOf(
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -1200.0, // Rent stays the same
                 description = "Rent Payment - ${getMonthName(month)} ${year}",
                 category = "Rent",
@@ -1005,7 +959,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -150.0, // Electricity varies slightly
                 description = "Electricity Bill",
                 category = "Electricity",
@@ -1017,7 +970,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -80.0,
                 description = "Internet Bill",
                 category = "Internet",
@@ -1029,7 +981,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -25.0,
                 description = "Netflix Subscription",
                 category = "Streaming",
@@ -1041,7 +992,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -60.0,
                 description = "Phone Plan",
                 category = "Mobile",
@@ -1057,14 +1007,13 @@ class DataSeeder @Inject constructor(
     /**
      * Create future income transactions for a specific month
      */
-    private fun createFutureIncomeTransactions(userId: Long, month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
+    private fun createFutureIncomeTransactions(month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
         val incomeTransactions = mutableListOf(
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = 3500.0,
                 description = "Salary - ${getMonthName(month)} ${year}",
                 category = "Salary",
@@ -1081,7 +1030,6 @@ class DataSeeder @Inject constructor(
             incomeTransactions.add(
                 TransactionEntity(
                     id = 0,
-                    userId = userId,
                     amount = 450.0,
                     description = "Freelance Project",
                     category = "Freelance",
@@ -1100,7 +1048,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create future regular expenses for a specific month
      */
-    private fun createFutureRegularExpenses(userId: Long, month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
+    private fun createFutureRegularExpenses(month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
@@ -1108,7 +1056,6 @@ class DataSeeder @Inject constructor(
             // Grocery expenses
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -110.0,
                 description = "Grocery Shopping",
                 category = "Groceries",
@@ -1120,7 +1067,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -125.0,
                 description = "Grocery Shopping",
                 category = "Groceries",
@@ -1132,7 +1078,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -95.0,
                 description = "Grocery Shopping",
                 category = "Groceries",
@@ -1146,7 +1091,6 @@ class DataSeeder @Inject constructor(
             // Transportation
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -50.0,
                 description = "Gas Station",
                 category = "Transportation",
@@ -1158,7 +1102,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -45.0,
                 description = "Gas Station",
                 category = "Transportation",
@@ -1172,7 +1115,6 @@ class DataSeeder @Inject constructor(
             // Dining out
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -75.0,
                 description = "Restaurant Dinner",
                 category = "Dining Out",
@@ -1184,7 +1126,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -55.0,
                 description = "Coffee Shop",
                 category = "Coffee",
@@ -1198,7 +1139,6 @@ class DataSeeder @Inject constructor(
             // Entertainment
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -65.0,
                 description = "Movie Tickets",
                 category = "Entertainment",
@@ -1212,7 +1152,6 @@ class DataSeeder @Inject constructor(
             // Miscellaneous
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -180.0,
                 description = "Shopping Mall",
                 category = "Clothing",
@@ -1224,7 +1163,6 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                userId = userId,
                 amount = -40.0,
                 description = "Pharmacy",
                 category = "Healthcare",

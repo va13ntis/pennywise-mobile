@@ -38,6 +38,9 @@ class CurrencySelectionViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<CurrencySelectionUiState>(CurrencySelectionUiState.Loading)
     val uiState: StateFlow<CurrencySelectionUiState> = _uiState
     
+    private val _needsAuthentication = MutableStateFlow(false)
+    val needsAuthentication: StateFlow<Boolean> = _needsAuthentication
+    
     // Sorted currencies (all)
     private val _sortedCurrencies = MutableStateFlow<List<Currency>>(emptyList())
     val sortedCurrencies: StateFlow<List<Currency>> = _sortedCurrencies
@@ -68,45 +71,74 @@ class CurrencySelectionViewModel @Inject constructor(
      */
     private fun observeUserAndLoadCurrencies() {
         viewModelScope.launch {
-            authManager.currentUser.collect { user ->
-                if (user != null) {
-                    loadCurrenciesForUser(user.id)
-                } else {
-                    _uiState.value = CurrencySelectionUiState.Error("User not authenticated")
+            try {
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        loadCurrencies()
+                        _needsAuthentication.value = false
+                    } else {
+                        _uiState.value = CurrencySelectionUiState.Error("User not authenticated")
+                        _needsAuthentication.value = true
+                    }
                 }
+            } catch (e: SecurityException) {
+                _uiState.value = CurrencySelectionUiState.Error("Authentication required")
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _uiState.value = CurrencySelectionUiState.Error("Failed to load user data: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
     }
     
     /**
-     * Load currencies for a specific user
+     * Load currencies
      */
-    private fun loadCurrenciesForUser(userId: Long) {
+    private fun loadCurrencies() {
         viewModelScope.launch {
             try {
                 _uiState.value = CurrencySelectionUiState.Loading
                 
                 // Collect sorted currencies
-                currencySortingService.getSortedCurrencies(userId).collect { sortedCurrencies ->
+                currencySortingService.getSortedCurrencies().collect { sortedCurrencies ->
                     _sortedCurrencies.value = sortedCurrencies
                     updateFilteredCurrencies()
+                    _needsAuthentication.value = false
                 }
+            } catch (e: SecurityException) {
+                _uiState.value = CurrencySelectionUiState.Error("Authentication required")
+                _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = CurrencySelectionUiState.Error("Failed to load currencies: ${e.message}")
+                _needsAuthentication.value = false
             }
         }
         
         viewModelScope.launch {
-            // Collect top currencies
-            currencySortingService.getTopCurrencies(userId, 10).collect { topCurrencies ->
-                _topCurrencies.value = topCurrencies
+            try {
+                // Collect top currencies
+                currencySortingService.getTopCurrencies(10).collect { topCurrencies ->
+                    _topCurrencies.value = topCurrencies
+                    _needsAuthentication.value = false
+                }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _needsAuthentication.value = false
             }
         }
         
         viewModelScope.launch {
-            // Collect used currencies
-            currencySortingService.getUsedCurrencies(userId).collect { usedCurrencies ->
-                _usedCurrencies.value = usedCurrencies
+            try {
+                // Collect used currencies
+                currencySortingService.getUsedCurrencies().collect { usedCurrencies ->
+                    _usedCurrencies.value = usedCurrencies
+                    _needsAuthentication.value = false
+                }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _needsAuthentication.value = false
             }
         }
         
@@ -169,9 +201,13 @@ class CurrencySelectionViewModel @Inject constructor(
      */
     fun trackCurrencyUsage(currency: Currency) {
         viewModelScope.launch {
-            val currentUser = authManager.currentUser.value
-            if (currentUser != null) {
-                currencySortingService.trackCurrencyUsage(currentUser.id, currency.code)
+            try {
+                currencySortingService.trackCurrencyUsage(currency.code)
+                _needsAuthentication.value = false
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _needsAuthentication.value = false
             }
         }
     }
@@ -213,7 +249,7 @@ class CurrencySelectionViewModel @Inject constructor(
     fun refreshCurrencies() {
         val currentUser = authManager.currentUser.value
         if (currentUser != null) {
-            loadCurrenciesForUser(currentUser.id)
+            loadCurrencies()
         }
     }
     
@@ -224,6 +260,7 @@ class CurrencySelectionViewModel @Inject constructor(
         _uiState.value = CurrencySelectionUiState.Loading
         _searchQuery.value = ""
         _selectedCurrency.value = null
+        _needsAuthentication.value = false
     }
 }
 

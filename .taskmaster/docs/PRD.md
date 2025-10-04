@@ -18,12 +18,14 @@ App Requirements:
 
 Data Model for Expenses:
 - id: Int
-- userId: Int
 - date: LocalDate (parsed from either dd/MM/yyyy or ISO format)
 - merchant: String (בית העסק)
 - amount: Double (סכום החיוב)
 - isRecurring: Boolean (derived from תשלום = "קבוע")
 - notes: String? (פרטים)
+
+**ARCHITECTURAL DECISION - SINGLE-USER APPROACH:**
+This is a personal finance app with ONE user per installation. The database schema does NOT use multi-user/multi-tenant design. There are NO userId fields in any entities, NO foreign key relationships to a users table, and NO user-based data filtering in queries. Authentication is used solely for security, backup, and sync purposes - NOT for data isolation. All data in the app belongs to the single authenticated user on that device.
 
 UI Form (New Expense):
 - Date picker

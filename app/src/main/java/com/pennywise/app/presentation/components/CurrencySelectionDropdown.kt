@@ -121,7 +121,7 @@ fun CurrencySelectionDropdown(
                             }
                             
                             if (currency != currencies.last()) {
-                                Divider(
+                                HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                     color = MaterialTheme.colorScheme.outlineVariant
                                 )

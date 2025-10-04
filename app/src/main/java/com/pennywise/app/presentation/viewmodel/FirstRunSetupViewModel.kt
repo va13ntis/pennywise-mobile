@@ -51,7 +51,7 @@ class FirstRunSetupViewModel @Inject constructor(
                 )
                 
                 // Check if user already exists
-                val existingUser = userRepository.getSingleUser()
+                val existingUser = userRepository.getUser()
                 if (existingUser != null) {
                     // User already exists, complete setup
                     _uiState.value = _uiState.value.copy(
@@ -195,7 +195,7 @@ class FirstRunSetupViewModel @Inject constructor(
                             val enableAuth = authMethod != AuthMethod.NONE
                             println("🔍 FirstRunSetupViewModel: Setting device auth enabled = $enableAuth for method = $authMethod")
                             deviceAuthService.setDeviceAuthEnabled(enableAuth)
-                            userRepository.updateDeviceAuthEnabled(userId, enableAuth)
+                            userRepository.updateDeviceAuthEnabled(enableAuth)
                         }
                         
                         // Save preferences to settings manager
@@ -208,14 +208,14 @@ class FirstRunSetupViewModel @Inject constructor(
                         selectedPaymentMethod?.let { method ->
                             println("🔧 FirstRunSetupViewModel: Applying payment method ${method.displayName}")
                             val configId = paymentMethodConfigRepository.insertPaymentMethodConfig(
-                                com.pennywise.app.domain.model.PaymentMethodConfig.createDefault(userId, method)
+                                com.pennywise.app.domain.model.PaymentMethodConfig.createDefault(method)
                             )
-                            val paymentMethodResult = paymentMethodConfigRepository.setDefaultPaymentMethodConfig(userId, configId)
+                            val paymentMethodResult = paymentMethodConfigRepository.setDefaultPaymentMethodConfig(configId)
                             println("🔧 FirstRunSetupViewModel: Payment method set result: $paymentMethodResult")
                         }
                         
                         // Verify user was created correctly
-                        val createdUser = userRepository.getSingleUser()
+                        val createdUser = userRepository.getUser()
                         println("✅ FirstRunSetupViewModel: VERIFIED user settings: currency=${createdUser?.defaultCurrency}, locale=${createdUser?.locale}")
                         
                         // Add a delay to ensure database updates are complete

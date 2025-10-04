@@ -5,6 +5,7 @@ import com.pennywise.app.data.local.entity.TransactionEntity
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.domain.repository.TransactionRepository
+import com.pennywise.app.domain.validation.AuthenticationValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -14,163 +15,133 @@ import java.util.Date
 import javax.inject.Inject
 
 /**
- * Implementation of TransactionRepository using Room database
+ * Implementation of TransactionRepository using Room database with authentication validation.
+ * All database operations require user authentication.
  */
 class TransactionRepositoryImpl @Inject constructor(
-    private val transactionDao: TransactionDao
-) : TransactionRepository {
+    private val transactionDao: TransactionDao,
+    authValidator: AuthenticationValidator
+) : TransactionRepository, BaseAuthenticatedRepository(authValidator) {
     
-    override suspend fun insertTransaction(transaction: Transaction): Long {
-        return transactionDao.insertTransaction(TransactionEntity.fromDomainModel(transaction))
+    override suspend fun insertTransaction(transaction: Transaction): Long = withAuthentication {
+        transactionDao.insertTransaction(TransactionEntity.fromDomainModel(transaction))
     }
     
-    override suspend fun updateTransaction(transaction: Transaction) {
+    override suspend fun updateTransaction(transaction: Transaction) = withAuthentication {
         transactionDao.updateTransaction(TransactionEntity.fromDomainModel(transaction))
     }
     
-    override suspend fun deleteTransaction(transaction: Transaction) {
+    override suspend fun deleteTransaction(transaction: Transaction) = withAuthentication {
         transactionDao.deleteTransaction(TransactionEntity.fromDomainModel(transaction))
     }
     
-    override suspend fun getTransactionById(id: Long): Transaction? {
-        return transactionDao.getTransactionById(id)?.toDomainModel()
+    override suspend fun getTransactionById(id: Long): Transaction? = withAuthentication {
+        transactionDao.getTransactionById(id)?.toDomainModel()
     }
     
     // User-specific operations
-    override fun getTransactionsByUser(userId: Long): Flow<List<Transaction>> {
-        return transactionDao.getTransactionsByUser(userId).map { entities ->
-            entities.map { it.toDomainModel() }
+    override fun getTransactions(): Flow<List<Transaction>> = 
+        kotlinx.coroutines.flow.flow {
+            withAuthentication {
+                transactionDao.getAllTransactions().collect { entities ->
+                    emit(entities.map { it.toDomainModel() })
+                }
+            }
         }
-    }
     
-    override fun getTransactionsByUserAndDateRange(userId: Long, startDate: Date, endDate: Date): Flow<List<Transaction>> {
-        return transactionDao.getTransactionsByDateRange(userId, startDate, endDate).map { entities ->
-            entities.map { it.toDomainModel() }
+    override fun getTransactionsByDateRange(startDate: Date, endDate: Date): Flow<List<Transaction>> = 
+        kotlinx.coroutines.flow.flow {
+            withAuthentication {
+                transactionDao.getTransactionsByDateRange(startDate, endDate).collect { entities ->
+                    emit(entities.map { it.toDomainModel() })
+                }
+            }
         }
-    }
     
-    override fun getTransactionsByUserAndCategory(userId: Long, category: String): Flow<List<Transaction>> {
-        return transactionDao.getTransactionsByCategory(userId, category).map { entities ->
-            entities.map { it.toDomainModel() }
+    override fun getTransactionsByCategory(category: String): Flow<List<Transaction>> = 
+        kotlinx.coroutines.flow.flow {
+            withAuthentication {
+                transactionDao.getTransactionsByCategory(category).collect { entities ->
+                    emit(entities.map { it.toDomainModel() })
+                }
+            }
         }
-    }
     
-    override fun getTransactionsByUserAndType(userId: Long, type: TransactionType): Flow<List<Transaction>> {
-        return transactionDao.getTransactionsByType(userId, type).map { entities ->
-            entities.map { it.toDomainModel() }
+    override fun getTransactionsByType(type: TransactionType): Flow<List<Transaction>> = 
+        kotlinx.coroutines.flow.flow {
+            withAuthentication {
+                transactionDao.getTransactionsByType(type).collect { entities ->
+                    emit(entities.map { it.toDomainModel() })
+                }
+            }
         }
-    }
     
-    override fun getRecurringTransactionsByUser(userId: Long): Flow<List<Transaction>> {
-        return transactionDao.getRecurringTransactions(userId).map { entities ->
-            entities.map { it.toDomainModel() }
+    override fun getRecurringTransactions(): Flow<List<Transaction>> = 
+        kotlinx.coroutines.flow.flow {
+            withAuthentication {
+                transactionDao.getRecurringTransactions().collect { entities ->
+                    emit(entities.map { it.toDomainModel() })
+                }
+            }
         }
-    }
     
     // Monthly operations
-    override fun getTransactionsByMonth(userId: Long, month: YearMonth): Flow<List<Transaction>> {
-        val startDate = month.atDay(1).toDate()
-        val endDate = month.atEndOfMonth().toDate()
-        
-        println("🔍 TransactionRepository: Querying transactions for user $userId, month $month")
-        println("🔍 TransactionRepository: Date range: $startDate to $endDate")
-        
-        return getTransactionsByUserAndDateRange(userId, startDate, endDate).map { transactions ->
-            println("🔍 TransactionRepository: Found ${transactions.size} transactions for $month")
-            
-            // Debug: Show recent transactions for this user
-            kotlinx.coroutines.runBlocking {
-                val recentTransactions = transactionDao.getRecentTransactionsByUser(userId)
-                println("🔍 TransactionRepository: Recent transactions for user $userId:")
-                recentTransactions.forEachIndexed { index, transaction ->
-                    println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
-                }
+    override fun getTransactionsByMonth(month: YearMonth): Flow<List<Transaction>> = 
+        kotlinx.coroutines.flow.flow {
+            withAuthentication {
+                val startDate = month.atDay(1).toDate()
+                val endDate = month.atEndOfMonth().toDate()
                 
-                val countInRange = transactionDao.getTransactionCountByDateRange(userId, startDate, endDate)
-                println("🔍 TransactionRepository: Count of transactions in date range: $countInRange")
+                println("🔍 TransactionRepository: Querying transactions for month $month")
+                println("🔍 TransactionRepository: Date range: $startDate to $endDate")
+                
+                transactionDao.getTransactionsByDateRange(startDate, endDate).collect { entities ->
+                    val transactions = entities.map { it.toDomainModel() }
+                    println("🔍 TransactionRepository: Found ${transactions.size} transactions for $month")
+                    
+                    // Debug: Show recent transactions
+                    val recentTransactions = transactionDao.getRecentTransactions()
+                    println("🔍 TransactionRepository: Recent transactions:")
+                    recentTransactions.forEachIndexed { index, transaction ->
+                        println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
+                    }
+                    
+                    val countInRange = transactionDao.getTransactionCountByDateRange(startDate, endDate)
+                    println("🔍 TransactionRepository: Count of transactions in date range: $countInRange")
+                    
+                    transactions.forEachIndexed { index, transaction ->
+                        println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
+                    }
+                    
+                    emit(transactions)
+                }
             }
-            
-            transactions.forEachIndexed { index, transaction ->
-                println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
-            }
-            transactions
         }
-    }
     
     // Aggregation operations
-    override suspend fun getTotalIncomeByUser(userId: Long, startDate: Date, endDate: Date): Double {
-        return transactionDao.getTotalIncome(userId, startDate, endDate)
+    override suspend fun getTotalIncome(startDate: Date, endDate: Date): Double = withAuthentication {
+        transactionDao.getTotalIncome(startDate, endDate)
     }
     
-    override suspend fun getTotalExpenseByUser(userId: Long, startDate: Date, endDate: Date): Double {
-        return transactionDao.getTotalExpense(userId, startDate, endDate)
+    override suspend fun getTotalExpense(startDate: Date, endDate: Date): Double = withAuthentication {
+        transactionDao.getTotalExpense(startDate, endDate)
     }
     
-    override suspend fun getBalanceByUser(userId: Long): Double {
-        return transactionDao.getBalance(userId)
+    override suspend fun getBalance(): Double = withAuthentication {
+        transactionDao.getBalance()
     }
     
-    override suspend fun getTotalByTypeAndDateRange(userId: Long, type: TransactionType, startDate: Date, endDate: Date): Double {
-        return transactionDao.getTotalByTypeAndDateRange(userId, type, startDate, endDate)
+    override suspend fun getTotalByTypeAndDateRange(type: TransactionType, startDate: Date, endDate: Date): Double = withAuthentication {
+        transactionDao.getTotalByTypeAndDateRange(type, startDate, endDate)
     }
     
     // Count operations
-    override suspend fun getTransactionCountByUser(userId: Long): Int {
-        return transactionDao.getTransactionCount(userId)
+    override suspend fun getTransactionCount(): Int = withAuthentication {
+        transactionDao.getTransactionCount()
     }
     
-    override suspend fun getTransactionCountByUserAndDateRange(userId: Long, startDate: Date, endDate: Date): Int {
-        return transactionDao.getTransactionCountByDateRange(userId, startDate, endDate)
-    }
-    
-    // Legacy methods for backward compatibility (deprecated)
-    @Deprecated("Use getTransactionsByUser instead")
-    override fun getAllTransactions(): Flow<List<Transaction>> {
-        // This method is deprecated and should not be used in new code
-        // For now, we'll return an empty list since we need a userId
-        return kotlinx.coroutines.flow.flowOf(emptyList())
-    }
-    
-    @Deprecated("Use getTransactionsByUserAndDateRange instead")
-    override fun getTransactionsByDateRange(startDate: Date, endDate: Date): Flow<List<Transaction>> {
-        // This method is deprecated and should not be used in new code
-        // For now, we'll return an empty list since we need a userId
-        return kotlinx.coroutines.flow.flowOf(emptyList())
-    }
-    
-    @Deprecated("Use getTransactionsByUserAndCategory instead")
-    override fun getTransactionsByCategory(category: String): Flow<List<Transaction>> {
-        // This method is deprecated and should not be used in new code
-        // For now, we'll return an empty list since we need a userId
-        return kotlinx.coroutines.flow.flowOf(emptyList())
-    }
-    
-    @Deprecated("Use getTransactionsByUserAndType instead")
-    override fun getTransactionsByType(type: TransactionType): Flow<List<Transaction>> {
-        // This method is deprecated and should not be used in new code
-        // For now, we'll return an empty list since we need a userId
-        return kotlinx.coroutines.flow.flowOf(emptyList())
-    }
-    
-    @Deprecated("Use getTotalIncomeByUser instead")
-    override suspend fun getTotalIncome(startDate: Date, endDate: Date): Double {
-        // This method is deprecated and should not be used in new code
-        // For now, we'll return 0.0 since we need a userId
-        return 0.0
-    }
-    
-    @Deprecated("Use getTotalExpenseByUser instead")
-    override suspend fun getTotalExpense(startDate: Date, endDate: Date): Double {
-        // This method is deprecated and should not be used in new code
-        // For now, we'll return 0.0 since we need a userId
-        return 0.0
-    }
-    
-    @Deprecated("Use getBalanceByUser instead")
-    override suspend fun getBalance(): Double {
-        // This method is deprecated and should not be used in new code
-        // For now, we'll return 0.0 since we need a userId
-        return 0.0
+    override suspend fun getTransactionCountByDateRange(startDate: Date, endDate: Date): Int = withAuthentication {
+        transactionDao.getTransactionCountByDateRange(startDate, endDate)
     }
 }
 

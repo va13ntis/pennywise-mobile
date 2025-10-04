@@ -1,0 +1,637 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.2.2" type="baseline" client="gradle" dependencies="false" name="AGP (8.2.2)" variant="all" version="8.2.2">
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Library lint checks reference invalid APIs; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.compose.runtime.lint.RuntimeIssueRegistry`)&#xA;which contains some references to invalid API:&#xA;org.jetbrains.kotlin.analysis.api.session.KtAnalysisSessionProvider: org.jetbrains.kotlin.analysis.api.lifetime.KtLifetimeTokenFactory getTokenFactory()&#xA;(Referenced from androidx/compose/runtime/lint/AutoboxingStateCreationDetector.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`AutoboxingStateValueProperty`&#xA;`AutoboxingStateCreation`&#xA;`CoroutineCreationDuringComposition`&#xA;`FlowOperatorInvokedInComposition`&#xA;`ComposableLambdaParameterNaming`&#xA;`ComposableLambdaParameterPosition`&#xA;`ComposableNaming`&#xA;`StateFlowValueCalledInComposition`&#xA;`CompositionLocalNaming`&#xA;`MutableCollectionMutableState`&#xA;`ProduceStateDoesNotAssignValue`&#xA;`RememberReturnType`&#xA;`OpaqueUnitKey`&#xA;`UnrememberedMutableState`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of the library.">
+        <location
+            file="$GRADLE_USER_HOME/caches/transforms-3/6835fc55cab44d60093219f4b4fbd5f4/transformed/runtime-release/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="OldTargetApi"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details."
+        errorLine1="        targetSdk = 34"
+        errorLine2="        ~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="17"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="AppBundleLocaleChanges"
+        message="Found dynamic locale changes, but did not find corresponding Play Core library calls for downloading languages and splitting by language is not disabled in the `bundle` configuration"
+        errorLine1="                configuration.setLocales(android.os.LocaleList(locale))"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/PennyWiseApplication.kt"
+            line="76"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="TestManifestGradleConfiguration"
+        message="Please use debugImplementation."
+        errorLine1="    androidTestImplementation(&quot;androidx.compose.ui:ui-test-manifest&quot;)"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="153"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="305"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/components/ExpenseSection.kt"
+            line="59"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/components/ExpenseSection.kt"
+            line="242"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/components/MonthlySummaryCard.kt"
+            line="182"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/components/RecurringExpensesSection.kt"
+            line="67"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/components/RecurringExpensesSection.kt"
+            line="264"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/components/RecurringExpensesSection.kt"
+            line="379"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="DataBindingWithoutKapt"
+        message="If you plan to use data binding in a Kotlin project, you should apply the kotlin-kapt plugin."
+        errorLine1="        dataBinding = true"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="46"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="StringFormatInvalid"
+        message="Format string &apos;`currency_change_warning`&apos; is not a valid format string so it should not be passed to `String.format`"
+        errorLine1="            context?.getString("
+        errorLine2="            ^">
+        <location
+            file="src/main/java/com/pennywise/app/domain/validation/CurrencyErrorHandler.kt"
+            line="186"
+            column="13"/>
+        <location
+            file="src/main/res/values-iw/strings.xml"
+            line="180"
+            column="5"
+            message="This definition does not require arguments"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        Log.d(&quot;AddExpenseScreen&quot;, &quot;Current user: $currentUser&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="373"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        Log.d(&quot;AddExpenseScreen&quot;, &quot;Validation: merchant=&apos;$merchant&apos; (error: $merchantError), amount=&apos;$amount&apos; (error: $amountError), category=&apos;$category&apos; (error: $categoryError), currency=${selectedCurrency?.code}, valid=$isFormValid (was: $wasValid)&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="481"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        Log.d(&quot;AddExpenseScreen&quot;, &quot;UI State changed: $uiState&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="509"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                Log.d(&quot;AddExpenseScreen&quot;, &quot;Save successful, navigating back&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="512"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                Log.e(&quot;AddExpenseScreen&quot;, &quot;Save failed: ${(uiState as AddExpenseUiState.Error).message}&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="516"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                Log.d(&quot;AddExpenseScreen&quot;, &quot;Save in progress...&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="522"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                Log.d(&quot;AddExpenseScreen&quot;, &quot;UI State: $uiState&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="525"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                        Log.d(&quot;AddExpenseScreen&quot;, &quot;=== SAVE BUTTON CLICKED ===&quot;)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="561"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                        Log.d(&quot;AddExpenseScreen&quot;, &quot;Save button clicked&quot;)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="562"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                        Log.d(&quot;AddExpenseScreen&quot;, &quot;Form valid: $isFormValid, Currency: ${selectedCurrency?.code}&quot;)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="563"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                        Log.d(&quot;AddExpenseScreen&quot;, &quot;Merchant: &apos;$merchant&apos;, Amount: &apos;$amount&apos;, Category: &apos;$category&apos;&quot;)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="564"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                        Log.d(&quot;AddExpenseScreen&quot;, &quot;After validation - Form valid: $isFormValid&quot;)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="569"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                            Log.d(&quot;AddExpenseScreen&quot;, &quot;Proceeding with save...&quot;)"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="573"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                            Log.d(&quot;AddExpenseScreen&quot;, &quot;Calling viewModel.saveExpense with data: $expenseData&quot;)"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="593"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                            Log.d(&quot;AddExpenseScreen&quot;, &quot;Form validation failed - not saving&quot;)"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="596"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                        Log.d(&quot;AddExpenseScreen&quot;, &quot;Save button enabled: $enabled (formValid: $isFormValid, currency: ${selectedCurrency?.code}, uiState: $uiState)&quot;)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/screens/AddExpenseScreen.kt"
+            line="601"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                android.util.Log.d(&quot;AddExpenseViewModel&quot;, &quot;Saving expense&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/viewmodel/AddExpenseViewModel.kt"
+            line="172"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                android.util.Log.d(&quot;AddExpenseViewModel&quot;, &quot;Expense data: $expenseData&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/viewmodel/AddExpenseViewModel.kt"
+            line="173"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        android.util.Log.d(&quot;LocaleFormatter&quot;, &quot;=== System Date Format Debug ===&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="164"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        android.util.Log.d(&quot;LocaleFormatter&quot;, &quot;System Locale: ${systemLocale.language}_${systemLocale.country}&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="165"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        android.util.Log.d(&quot;LocaleFormatter&quot;, &quot;System Locale Display: ${systemLocale.displayName}&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="166"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        android.util.Log.d(&quot;LocaleFormatter&quot;, &quot;System Date Format (user preference): $systemFormatted&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="174"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        android.util.Log.d(&quot;LocaleFormatter&quot;, &quot;Locale Date Format (locale default): $localeFormatted&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="175"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="        android.util.Log.d(&quot;LocaleFormatter&quot;, &quot;=== End Date Format Debug ===&quot;)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="176"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.d(&quot;SoundManager&quot;, &quot;Sound loading skipped - add kaching.mp3 to enable sound feature&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="58"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.d(&quot;SoundManager&quot;, &quot;Sound pool initialized successfully&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="61"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.e(&quot;SoundManager&quot;, &quot;Failed to initialize sound pool&quot;, e)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="63"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.w(&quot;SoundManager&quot;, &quot;Sound pool not initialized or sound not loaded&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="73"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.d(&quot;SoundManager&quot;, &quot;Kaching sound played successfully&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="86"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.e(&quot;SoundManager&quot;, &quot;Failed to play kaching sound&quot;, e)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.d(&quot;SoundManager&quot;, &quot;Sound pool released&quot;)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="100"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="            Log.e(&quot;SoundManager&quot;, &quot;Failed to release sound pool&quot;, e)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/SoundManager.kt"
+            line="102"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;characters&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;currency_error_invalid_length&quot;>Currency code must be exactly %d characters&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="213"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;months&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;for_months&quot;>for %d months&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="275"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="StringFormatCount"
+        message="Inconsistent number of arguments in formatting string `currency_change_warning`; found both 2 here and 0 in values-iw\strings.xml"
+        errorLine1="    &lt;string name=&quot;currency_change_warning&quot;>Changing from %1$s to %2$s may affect existing data&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="225"
+            column="5"/>
+        <location
+            file="src/main/res/values-iw/strings.xml"
+            line="180"
+            column="5"
+            message="Conflicting number of arguments (0) here"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; SDK_INT is always >= 26"
+        errorLine1="        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="95"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; SDK_INT is always >= 26"
+        errorLine1="            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleFormatter.kt"
+            line="220"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; SDK_INT is always >= 26"
+        errorLine1="        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleManager.kt"
+            line="50"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; SDK_INT is always >= 26"
+        errorLine1="        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/util/LocaleManager.kt"
+            line="70"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; SDK_INT is always >= 26"
+        errorLine1="            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/PennyWiseApplication.kt"
+            line="75"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; SDK_INT is always >= 26"
+        errorLine1="                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/PennyWiseApplication.kt"
+            line="107"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="StaticFieldLeak"
+        message="This field leaks a context object"
+        errorLine1="    @ApplicationContext private val context: Context"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/viewmodel/DeviceAuthPromptViewModel.kt"
+            line="22"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="StaticFieldLeak"
+        message="This field leaks a context object"
+        errorLine1="    @ApplicationContext private val context: Context"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/pennywise/app/presentation/viewmodel/FirstRunSetupViewModel.kt"
+            line="35"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="Overdraw"
+        message="Possible overdraw: Root element paints background `?attr/colorSurfaceVariant` with a theme that also paints a background (inferred theme is `@style/Theme.PennyWise`)"
+        errorLine1="    android:background=&quot;?attr/colorSurfaceVariant&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/layout/item_currency_section_header.xml"
+            line="11"
+            column="5"/>
+    </issue>
+
+</issues>

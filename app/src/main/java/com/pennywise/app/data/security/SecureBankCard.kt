@@ -8,7 +8,6 @@ import java.util.Date
  */
 data class SecureBankCard(
     val id: Long = 0,
-    val userId: Long,
     val alias: String,
     val encryptedLastFourDigits: String, // Encrypted last four digits
     val paymentDay: Int,
@@ -23,7 +22,6 @@ data class SecureBankCard(
     fun toDomainModel(encryptionManager: CardEncryptionManager): BankCard {
         return BankCard(
             id = id,
-            userId = userId,
             alias = alias,
             lastFourDigits = encryptionManager.decryptLastFourDigits(encryptedLastFourDigits),
             paymentDay = paymentDay,
@@ -40,7 +38,6 @@ data class SecureBankCard(
         fun fromDomainModel(bankCard: BankCard, encryptionManager: CardEncryptionManager): SecureBankCard {
             return SecureBankCard(
                 id = bankCard.id,
-                userId = bankCard.userId,
                 alias = bankCard.alias,
                 encryptedLastFourDigits = encryptionManager.encryptLastFourDigits(bankCard.lastFourDigits),
                 paymentDay = bankCard.paymentDay,

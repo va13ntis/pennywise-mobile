@@ -3,8 +3,6 @@ package com.pennywise.app.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import androidx.room.ForeignKey
-import androidx.room.Index
 import com.pennywise.app.data.local.converter.DateConverter
 import com.pennywise.app.data.local.converter.TransactionTypeConverter
 import com.pennywise.app.data.local.converter.RecurringPeriodConverter
@@ -18,23 +16,11 @@ import java.util.Date
 /**
  * Room entity for transactions
  */
-@Entity(
-    tableName = "transactions",
-    foreignKeys = [
-        ForeignKey(
-            entity = UserEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [Index("userId")]
-)
+@Entity(tableName = "transactions")
 @TypeConverters(DateConverter::class, TransactionTypeConverter::class, RecurringPeriodConverter::class, PaymentMethodConverter::class)
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val userId: Long, // Foreign key to users table
     val amount: Double,
     val currency: String = "USD",
     val description: String,
@@ -52,7 +38,6 @@ data class TransactionEntity(
     fun toDomainModel(): Transaction {
         return Transaction(
             id = id,
-            userId = userId,
             amount = amount,
             currency = currency,
             description = description,
@@ -73,7 +58,6 @@ data class TransactionEntity(
         fun fromDomainModel(transaction: Transaction): TransactionEntity {
             return TransactionEntity(
                 id = transaction.id,
-                userId = transaction.userId,
                 amount = transaction.amount,
                 currency = transaction.currency,
                 description = transaction.description,

@@ -287,7 +287,7 @@ fun SettingsScreen(
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                                 )
                                 
-                                Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                                 
                                 Text(
                                     text = stringResource(R.string.change_default_currency),
@@ -453,7 +453,7 @@ fun SettingsScreen(
                         
                         // Original currency selection (only show if conversion is enabled)
                         if (currencyConversionEnabled) {
-                            Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             
                             Text(
                                 text = stringResource(R.string.original_currency),
@@ -619,7 +619,7 @@ fun SettingsScreen(
                                             onDelete = { /* TODO: Confirm delete */ }
                                         )
                                         
-                                        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                                     }
                                     
                                     // Show other payment methods
@@ -642,7 +642,7 @@ fun SettingsScreen(
                                     }
                                     
                                     // Add new payment method button
-                                    Divider(modifier = Modifier.padding(horizontal = 16.dp))
+                                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                                     Button(
                                         onClick = { /* TODO: Open add payment method dialog */ },
                                         modifier = Modifier

@@ -21,7 +21,7 @@ class AddTransactionUseCase @Inject constructor(
         // Track currency usage asynchronously (don't block the main flow)
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                currencyUsageTracker.trackCurrencyUsage(transaction.userId, transaction.currency)
+                currencyUsageTracker.trackCurrencyUsage(transaction.currency)
             } catch (e: Exception) {
                 // Log error but don't fail the transaction creation
                 println("Error tracking currency usage for transaction $transactionId: ${e.message}")
@@ -31,4 +31,3 @@ class AddTransactionUseCase @Inject constructor(
         return transactionId
     }
 }
-

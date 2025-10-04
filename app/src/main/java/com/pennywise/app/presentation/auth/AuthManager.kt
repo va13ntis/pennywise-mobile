@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywise.app.domain.model.User
@@ -21,7 +20,6 @@ import javax.inject.Singleton
 
 /**
  * Central authentication state manager to handle user session persistence
- * Simplified for single-user per app with device authentication
  */
 @Singleton
 class AuthManager @Inject constructor(
@@ -29,7 +27,6 @@ class AuthManager @Inject constructor(
     private val userRepository: UserRepository
 ) {
     
-    private val userIdKey = intPreferencesKey("user_id")
     private val isLoggedInKey = booleanPreferencesKey("is_logged_in")
     
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -38,32 +35,17 @@ class AuthManager @Inject constructor(
     val isAuthenticated: Flow<Boolean> = _currentUser.map { it != null }
     
     /**
-     * Initialize authentication state from stored preferences
+     * Initialize authentication state by loading the user from database
      */
     suspend fun initializeAuthState() {
         try {
-            // First, try to restore the current user from storage
-            val preferences = context.dataStore.data.first()
-            val userId = preferences[userIdKey]
-            val isLoggedIn = preferences[isLoggedInKey] ?: false
-            
-            if (isLoggedIn && userId != null) {
-                // Verify the user still exists in the database
-                val user = userRepository.getUserById(userId.toLong())
-                if (user != null) {
-                    _currentUser.value = user
-                    println("✅ AuthManager: User restored from storage (ID: ${user.id})")
-                } else {
-                    // User no longer exists, clear stored credentials
-                    logout()
-                }
+            val user = userRepository.getUser()
+            if (user != null) {
+                _currentUser.value = user
+                println("✅ AuthManager: User found in database")
             } else {
-                // No stored user, try to get the single user from database
-                val user = userRepository.getSingleUser()
-                if (user != null) {
-                    _currentUser.value = user
-                    println("✅ AuthManager: Single user found in database (ID: ${user.id})")
-                }
+                _currentUser.value = null
+                println("ℹ️ AuthManager: No user found in database")
             }
         } catch (e: Exception) {
             // If there's any error during initialization, just clear the state
@@ -73,17 +55,16 @@ class AuthManager @Inject constructor(
     }
     
     /**
-     * Save authenticated user to persistent storage
+     * Save the authenticated user
      */
     suspend fun saveAuthenticatedUser(user: User) {
         try {
-            println("🔄 AuthManager: Saving authenticated user (ID: ${user.id})")
+            println("🔄 AuthManager: Setting authenticated user")
             context.dataStore.edit { preferences ->
-                preferences[userIdKey] = user.id.toInt()
                 preferences[isLoggedInKey] = true
             }
             _currentUser.value = user
-            println("✅ AuthManager: User saved successfully")
+            println("✅ AuthManager: User set successfully")
         } catch (e: Exception) {
             println("❌ AuthManager: Error saving user: ${e.message}")
             // If there's an error saving preferences, still set the current user
@@ -92,12 +73,11 @@ class AuthManager @Inject constructor(
     }
     
     /**
-     * Clear authentication state and stored credentials
+     * Clear authentication state
      */
     suspend fun logout() {
         try {
             context.dataStore.edit { preferences ->
-                preferences.remove(userIdKey)
                 preferences[isLoggedInKey] = false
             }
         } catch (e: Exception) {
@@ -113,7 +93,7 @@ class AuthManager @Inject constructor(
      */
     suspend fun updateCurrentUser(updatedUser: User) {
         try {
-            println("🔄 AuthManager: Updating current user (ID: ${updatedUser.id})")
+            println("🔄 AuthManager: Updating current user")
             // Update the user in the database
             userRepository.updateUser(updatedUser)
             // Update the current user state

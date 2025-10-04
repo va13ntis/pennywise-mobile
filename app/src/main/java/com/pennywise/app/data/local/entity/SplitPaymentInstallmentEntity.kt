@@ -18,12 +18,6 @@ import java.util.Date
     tableName = "split_payment_installments",
     foreignKeys = [
         ForeignKey(
-            entity = UserEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
             entity = TransactionEntity::class,
             parentColumns = ["id"],
             childColumns = ["parentTransactionId"],
@@ -31,7 +25,6 @@ import java.util.Date
         )
     ],
     indices = [
-        Index("userId"),
         Index("parentTransactionId"),
         Index("dueDate"),
         Index("isPaid")
@@ -42,7 +35,6 @@ data class SplitPaymentInstallmentEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val parentTransactionId: Long, // Foreign key to the original transaction
-    val userId: Long, // Foreign key to users table
     val amount: Double,
     val currency: String = "USD",
     val description: String,
@@ -60,7 +52,6 @@ data class SplitPaymentInstallmentEntity(
         return SplitPaymentInstallment(
             id = id,
             parentTransactionId = parentTransactionId,
-            userId = userId,
             amount = amount,
             currency = currency,
             description = description,
@@ -81,7 +72,6 @@ data class SplitPaymentInstallmentEntity(
             return SplitPaymentInstallmentEntity(
                 id = installment.id,
                 parentTransactionId = installment.parentTransactionId,
-                userId = installment.userId,
                 amount = installment.amount,
                 currency = installment.currency,
                 description = installment.description,

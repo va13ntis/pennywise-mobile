@@ -224,8 +224,7 @@ fun PillToggleButton(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    showCheckmark: Boolean = true
+    modifier: Modifier = Modifier
 ) {
     // Animation for selection state
     val elevation by animateFloatAsState(
@@ -362,16 +361,14 @@ private fun getLocalizedPaymentMethodName(paymentMethod: com.pennywise.app.domai
 @Composable
 fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
-    onSaveExpense: (expenseData: ExpenseFormData) -> Unit,
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
-    // Get the current user ID from the ViewModel
+    // Get the current user from the ViewModel (for display purposes only)
     val currentUser by viewModel.currentUser.collectAsState()
-    val userId = currentUser?.id ?: 1L // Fallback to 1L if no user is found
     
-    // Debug logging for user ID
+    // Debug logging for current user
     LaunchedEffect(currentUser) {
-        Log.d("AddExpenseScreen", "Current user: $currentUser, UserId: $userId")
+        Log.d("AddExpenseScreen", "Current user: $currentUser")
     }
     
     // Form state management using remember and mutableStateOf
@@ -410,9 +407,6 @@ fun AddExpenseScreen(
     val categoryRequiredText = stringResource(R.string.category_required)
     
     // Currency dropdown string resources
-    val currencyLabelText = stringResource(R.string.currency)
-    val currencyHintText = stringResource(R.string.currency_selection_hint)
-    val currencyContentDesc = stringResource(R.string.select_currency)
     val currencyNoDecimalPlaces = stringResource(R.string.currency_no_decimal_places)
 
     // Currency-specific validation messages
@@ -592,7 +586,7 @@ fun AddExpenseScreen(
                                 selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedBankCardId else null
                             )
                             Log.d("AddExpenseScreen", "Calling viewModel.saveExpense with data: $expenseData")
-                            viewModel.saveExpense(expenseData, userId)
+                            viewModel.saveExpense(expenseData)
                         } else {
                             Log.d("AddExpenseScreen", "Form validation failed - not saving")
                         }
@@ -842,7 +836,7 @@ fun AddExpenseScreen(
                                 }
                                 
                                 if (currency != currencies.last()) {
-                                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
@@ -979,8 +973,7 @@ fun AddExpenseScreen(
                                         },
                                         isSelected = selectedRecurringPeriod == period,
                                         onClick = { selectedRecurringPeriod = period },
-                                        modifier = Modifier.weight(1f),
-                                        showCheckmark = false
+                                        modifier = Modifier.weight(1f)
                                     )
                                 }
                             }

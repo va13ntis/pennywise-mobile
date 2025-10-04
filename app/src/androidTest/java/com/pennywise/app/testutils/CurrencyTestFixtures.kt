@@ -36,7 +36,6 @@ object CurrencyTestFixtures {
         return listOf(
             Transaction(
                 id = 1L,
-                userId = 1L,
                 amount = 100.0,
                 currency = "USD",
                 description = "Test USD Transaction",
@@ -47,7 +46,6 @@ object CurrencyTestFixtures {
             ),
             Transaction(
                 id = 2L,
-                userId = 1L,
                 amount = 85.50,
                 currency = "EUR",
                 description = "Test EUR Transaction",
@@ -58,7 +56,6 @@ object CurrencyTestFixtures {
             ),
             Transaction(
                 id = 3L,
-                userId = 1L,
                 amount = 15000.0,
                 currency = "JPY",
                 description = "Test JPY Transaction",
@@ -69,7 +66,6 @@ object CurrencyTestFixtures {
             ),
             Transaction(
                 id = 4L,
-                userId = 1L,
                 amount = 75.25,
                 currency = "GBP",
                 description = "Test GBP Transaction",
