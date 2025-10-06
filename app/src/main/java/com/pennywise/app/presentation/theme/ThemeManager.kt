@@ -37,9 +37,10 @@ class ThemeManager @Inject constructor(
             SettingsViewModel.ThemeMode.SYSTEM -> systemIsDark
         }
         
-        MaterialTheme(
-            colorScheme = if (isDarkTheme) DarkColorScheme else LightColorScheme,
-            typography = Typography,
+        // Use the proper PennyWiseTheme with all custom styling and dynamic colors
+        PennyWiseTheme(
+            darkTheme = isDarkTheme,
+            dynamicColor = true, // Enable dynamic colors on Android 12+
             content = content
         )
     }

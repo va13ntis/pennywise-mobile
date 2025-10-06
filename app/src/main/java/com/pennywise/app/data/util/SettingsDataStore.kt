@@ -36,7 +36,13 @@ class SettingsDataStore @Inject constructor(
         .map { preferences ->
             val themeModeString = preferences[themeKey] ?: SettingsViewModel.ThemeMode.SYSTEM.name
             try {
-                SettingsViewModel.ThemeMode.valueOf(themeModeString)
+                // Handle both uppercase enum names and lowercase strings
+                when (themeModeString.lowercase()) {
+                    "light" -> SettingsViewModel.ThemeMode.LIGHT
+                    "dark" -> SettingsViewModel.ThemeMode.DARK
+                    "system" -> SettingsViewModel.ThemeMode.SYSTEM
+                    else -> SettingsViewModel.ThemeMode.valueOf(themeModeString)
+                }
             } catch (e: IllegalArgumentException) {
                 SettingsViewModel.ThemeMode.SYSTEM
             }
