@@ -147,18 +147,18 @@ class CurrencyConversionServiceIntegrationTest {
             // Mock no cache available
             every { realSharedPreferences.getString("exchange_rate_USD_EUR", null) } returns null
             
-            // Mock API timeout
-            coEvery { mockCurrencyApi.getExchangeRate("USD", "EUR") } throws 
+            // Mock API timeout - ensure the mock is properly configured with explicit parameters
+            coEvery { mockCurrencyApi.getExchangeRate(eq("USD"), eq("EUR")) } throws 
                 java.net.SocketTimeoutException("Connection timeout")
             
-            // Execute conversion
+            // Execute conversion with timeout
             val result = service.convertCurrency(100.0, "USD", "EUR")
             
-            // Verify null result for timeout
-            assertNull(result)
+            // Verify null result for timeout (service should return null on any exception)
+            assertNull(result, "Service should return null when API throws SocketTimeoutException")
             
-            // Verify API was attempted
-            coVerify { mockCurrencyApi.getExchangeRate("USD", "EUR") }
+            // Verify API was attempted with exact parameters
+            coVerify(exactly = 1) { mockCurrencyApi.getExchangeRate("USD", "EUR") }
         }
 
         @Test
