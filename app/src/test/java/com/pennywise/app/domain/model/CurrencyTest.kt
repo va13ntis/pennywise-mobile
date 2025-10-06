@@ -106,6 +106,7 @@ class CurrencyTest {
             // Note: This test assumes the method handles null gracefully
             // If the method doesn't handle null, this test would need to be adjusted
             assertThrows(NullPointerException::class.java) {
+                @Suppress("CAST_NEVER_SUCCEEDS")
                 Currency.fromCode(null as String)
             }
         }

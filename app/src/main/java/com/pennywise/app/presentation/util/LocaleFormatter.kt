@@ -19,7 +19,7 @@ object LocaleFormatter {
      * Format currency amount based on selected currency preference
      * Falls back to language-based currency if no preference is set
      */
-    fun formatCurrency(amount: Double, context: Context, selectedCurrency: String = ""): String {
+    fun formatCurrency(amount: Double, @Suppress("UNUSED_PARAMETER") context: Context, selectedCurrency: String = ""): String {
         // If a specific currency is selected, use it
         if (selectedCurrency.isNotEmpty()) {
             return formatCurrencyByCode(amount, selectedCurrency)
@@ -105,13 +105,14 @@ object LocaleFormatter {
     /**
      * Get the system date format with proper region detection
      */
-    private fun getSystemDateFormat(context: Context, locale: Locale): DateFormat {
+    private fun getSystemDateFormat(@Suppress("UNUSED_PARAMETER") context: Context, locale: Locale): DateFormat {
         // Try to get the system's date format preference
         return try {
             // Method 1: Use system default (should respect user's date format preference)
             val systemFormat = DateFormat.getDateInstance(DateFormat.SHORT)
             
             // Method 2: Use locale-specific format as fallback
+            @Suppress("UNUSED_VARIABLE")
             val localeFormat = DateFormat.getDateInstance(DateFormat.SHORT, locale)
             
             // Method 3: Try to detect region-specific format
@@ -120,7 +121,7 @@ object LocaleFormatter {
             
             // For specific regions like Israel, prioritize region-specific format
             // since system format might not always respect region settings
-            return when {
+            when {
                 locale.country == "IL" || locale.language == "iw" -> regionFormat
                 locale.country == "GB" -> regionFormat
                 locale.country == "US" -> regionFormat
@@ -157,7 +158,7 @@ object LocaleFormatter {
      * Debug utility to log system date format information
      * This can be called to verify system date format detection is working
      */
-    fun logSystemDateFormatInfo(context: Context) {
+    fun logSystemDateFormatInfo(@Suppress("UNUSED_PARAMETER") context: Context) {
         val systemLocale = Locale.getDefault()
         val testDate = Date()
         
@@ -279,7 +280,7 @@ object LocaleFormatter {
     /**
      * Get currency symbol for current locale or selected currency
      */
-    fun getCurrencySymbol(context: Context, selectedCurrency: String = ""): String {
+    fun getCurrencySymbol(@Suppress("UNUSED_PARAMETER") context: Context, selectedCurrency: String = ""): String {
         // If a specific currency is selected, use its symbol
         if (selectedCurrency.isNotEmpty()) {
             return getCurrencySymbolByCode(selectedCurrency)

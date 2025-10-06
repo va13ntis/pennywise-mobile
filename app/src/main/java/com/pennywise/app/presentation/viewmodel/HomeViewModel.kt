@@ -89,7 +89,7 @@ class HomeViewModel @Inject constructor(
     // Reactive computed values
     val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = _transactions.map { transactions ->
         transactions
-            .filter { it.type == TransactionType.EXPENSE }
+            .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }  // Exclude recurring expenses
             .sortedByDescending { it.date }
             .groupBy { transaction ->
                 val calendar = Calendar.getInstance().apply {

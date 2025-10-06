@@ -1,8 +1,18 @@
 package com.pennywise.app.presentation.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,16 +20,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Today
-
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -27,43 +41,36 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
-import com.pennywise.app.presentation.components.ExpenseSection
-import com.pennywise.app.presentation.components.MonthlySummaryCard
+import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.presentation.components.RecurringExpensesSection
-import com.pennywise.app.presentation.utils.DateFormatter
+import com.pennywise.app.presentation.theme.expense_red
+import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
- * Home screen that displays monthly expense summary with navigation and management features
+ * Modern home screen with Material 3 design
+ * Features monthly summary, weekly breakdown, and quick actions
+ * Uses real transaction data from HomeViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,263 +78,420 @@ fun HomeScreen(
     onAddExpense: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val transactions by viewModel.transactions.collectAsState()
+    // State collection from real ViewModel
+    val currentMonth by viewModel.currentMonth.collectAsState()
+    val totalExpenses by viewModel.totalExpenses.collectAsState()
+    val transactionsByWeek by viewModel.transactionsByWeek.collectAsState()
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
     val splitPaymentInstallments by viewModel.splitPaymentInstallments.collectAsState()
-    val currentMonth by viewModel.currentMonth.collectAsState()
+    val currencyCode by viewModel.currency.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val currency by viewModel.currency.collectAsState()
-    val currencyConversionEnabled by viewModel.currencyConversionEnabled.collectAsState()
-    val originalCurrency by viewModel.originalCurrency.collectAsState()
-    val conversionState by viewModel.conversionState.collectAsState()
     
-    // Reactive computed values
-    val transactionsByWeek by viewModel.transactionsByWeek.collectAsState()
-    val totalExpenses by viewModel.totalExpenses.collectAsState()
+    // Convert currency code to symbol
+    val currencySymbol = remember(currencyCode) {
+        CurrencyFormatter.getCurrencySymbol(currencyCode)
+    }
     
-    val snackbarHostState = remember { SnackbarHostState() }
+    // Local state for week expansion (not in ViewModel)
+    var expandedWeeks by remember { mutableStateOf<Set<Int>>(emptySet()) }
     
-    // Show error messages in snackbar
-    LaunchedEffect(error) {
-        error?.let { errorMessage ->
-            snackbarHostState.showSnackbar(message = errorMessage)
-            viewModel.clearError()
+    // UI state
+    val lazyListState = rememberLazyListState()
+    
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
         }
+        return
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.nav_settings)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddExpense,
-                containerColor = MaterialTheme.colorScheme.primary
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.add_expense),
-                    tint = MaterialTheme.colorScheme.onPrimary
+                // Main Add Expense button
+                FloatingActionButton(
+                    onClick = onAddExpense,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = CircleShape,
+                    modifier = Modifier.size(72.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.add_expense),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                
+                // Smaller Settings button underneath
+                FloatingActionButton(
+                    onClick = onNavigateToSettings,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = CircleShape,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.nav_settings),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            // Top Summary Card
+            item {
+                TopSummaryCard(
+                    currentMonth = currentMonth,
+                    totalAmount = totalExpenses,
+                    currencySymbol = currencySymbol,
+                    onPreviousMonth = { viewModel.changeMonth(-1) },
+                    onNextMonth = { viewModel.changeMonth(1) }
                 )
             }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (isLoading) {
-                // Loading state
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+            
+            // Recurring Expenses Section (appears after top summary)
+            if (recurringTransactions.isNotEmpty() || splitPaymentInstallments.isNotEmpty()) {
+                item {
+                    RecurringExpensesSection(
+                        transactions = recurringTransactions,
+                        splitPaymentInstallments = splitPaymentInstallments,
+                        currencySymbol = currencySymbol
+                    )
                 }
-            } else {
-                // Content
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Monthly summary card with integrated month navigation
-                    item {
-                        MonthlySummaryCard(
-                            totalExpenses = totalExpenses,
-                            currentMonth = currentMonth,
-                            currency = currency,
-                            currencyConversionEnabled = currencyConversionEnabled,
-                            originalCurrency = originalCurrency,
-                            conversionState = conversionState,
-                            onConvertAmount = { amount -> viewModel.convertAmount(amount) },
-                            onPaymentMethodFilterChanged = { paymentMethod -> 
-                                viewModel.setPaymentMethodFilter(paymentMethod) 
-                            },
-                            onPreviousMonth = { viewModel.changeMonth(-1) },
-                            onNextMonth = { viewModel.changeMonth(1) },
-                            onCurrentMonth = { viewModel.navigateToCurrentMonth() },
-                            onBeginningOfYear = { viewModel.navigateToBeginningOfYear() },
-                            onEndOfYear = { viewModel.navigateToEndOfYear() }
-                        )
-                    }
-                    
-                    // Recurring expenses section (includes both recurring transactions and split payment installments)
-                    if (recurringTransactions.isNotEmpty() || splitPaymentInstallments.isNotEmpty()) {
-                        item {
-                            RecurringExpensesSection(
-                                transactions = recurringTransactions,
-                                splitPaymentInstallments = splitPaymentInstallments,
-                                currency = currency,
-                                currencyConversionEnabled = currencyConversionEnabled,
-                                originalCurrency = originalCurrency,
-                                conversionState = conversionState,
-                                onConvertAmount = { amount -> viewModel.convertAmount(amount) }
-                            )
+            }
+            
+            // Weekly Summary Cards (sorted in descending order - most recent first)
+            val sortedWeeks = transactionsByWeek.entries
+                .sortedByDescending { it.key }
+            
+            items(
+                items = sortedWeeks,
+                key = { it.key }
+            ) { (weekNumber, transactions) ->
+                WeeklySummaryCard(
+                    weekNumber = weekNumber,
+                    transactions = transactions,
+                    currencySymbol = currencySymbol,
+                    isExpanded = expandedWeeks.contains(weekNumber),
+                    onToggleExpansion = {
+                        expandedWeeks = if (expandedWeeks.contains(weekNumber)) {
+                            expandedWeeks - weekNumber
+                        } else {
+                            expandedWeeks + weekNumber
                         }
                     }
-                    
-                    // Weekly expense sections
-                    transactionsByWeek.forEach { (weekNumber, weekTransactions) ->
-                        item {
-                            ExpenseSection(
-                                title = stringResource(R.string.week_format, weekNumber),
-                                transactions = weekTransactions,
-                                currency = currency,
-                                currencyConversionEnabled = currencyConversionEnabled,
-                                originalCurrency = originalCurrency,
-                                conversionState = conversionState,
-                                onConvertAmount = { amount -> viewModel.convertAmount(amount) }
-                            )
-                        }
-                    }
-                    
-                    // Empty state if no transactions
-                    if (transactions.isEmpty() && recurringTransactions.isEmpty() && splitPaymentInstallments.isEmpty()) {
-                        item {
-                            EmptyState()
-                        }
-                    }
-                    
-                }
+                )
+            }
+            
+            // Bottom spacing for FAB
+            item {
+                Spacer(modifier = Modifier.height(100.dp))
             }
         }
     }
 }
 
-
 /**
- * Month navigation component with previous/next/current buttons - RTL aware
+ * Top summary card with month navigation and total amount
  */
 @Composable
-fun MonthNavigation(
-    currentMonth: java.time.YearMonth,
+private fun TopSummaryCard(
+    currentMonth: YearMonth,
+    totalAmount: Double,
+    currencySymbol: String,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onCurrentMonth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        // Top row with navigation arrows and current month button - RTL aware
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Previous/Next button (position depends on RTL)
-            IconButton(
-                onClick = if (isRtl) onNextMonth else onPreviousMonth,
-                modifier = Modifier.padding(4.dp)
-            ) {
-                Icon(
-                    imageVector = if (isRtl) Icons.Default.ChevronRight else Icons.Default.ChevronLeft,
-                    contentDescription = if (isRtl) stringResource(R.string.next_month) else stringResource(R.string.previous_month),
-                    tint = MaterialTheme.colorScheme.primary
+            // Left: Month navigation
+            MonthNavigationRow(
+                currentMonth = currentMonth,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+                isRtl = isRtl
+            )
+            
+            // Right: Total amount
+            AnimatedContent(
+                targetState = totalAmount,
+                transitionSpec = {
+                    slideInHorizontally(
+                        animationSpec = tween(300),
+                        initialOffsetX = { if (isRtl) it else -it }
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutHorizontally(
+                        animationSpec = tween(300),
+                        targetOffsetX = { if (isRtl) -it else it }
+                    ) + fadeOut(animationSpec = tween(300))
+                },
+                label = "amount_animation"
+            ) { amount ->
+                Text(
+                    text = "$currencySymbol${String.format("%.2f", amount)}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.End
                 )
             }
-            
-            // Current month button
-            Button(
-                onClick = onCurrentMonth,
-                modifier = Modifier.padding(horizontal = 8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+        }
+    }
+}
+
+/**
+ * Inline month navigation row
+ */
+@Composable
+private fun MonthNavigationRow(
+    currentMonth: YearMonth,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    isRtl: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Previous month button
+        IconButton(
+            onClick = onPreviousMonth,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = if (isRtl) Icons.Default.ChevronRight else Icons.Default.ChevronLeft,
+                contentDescription = "Previous month",
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        
+        // Month/year text
+        Text(
+            text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        
+        // Next month button
+        IconButton(
+            onClick = onNextMonth,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = if (isRtl) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                contentDescription = "Next month",
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+/**
+ * Weekly summary card with expand/collapse functionality
+ * Now uses real Transaction data
+ */
+@Composable
+private fun WeeklySummaryCard(
+    weekNumber: Int,
+    transactions: List<Transaction>,
+    currencySymbol: String,
+    isExpanded: Boolean,
+    onToggleExpansion: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val weekTotal = transactions.sumOf { it.amount }
+    
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Week header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpansion() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left: Week number
+                Text(
+                    text = "Week $weekNumber",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                // Right: Amount and expand/collapse arrow
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Today,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    // Amount
                     Text(
-                        text = stringResource(R.string.current_month),
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "$currencySymbol${String.format("%.2f", weekTotal)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = expense_red
+                    )
+                    
+                    // Expand/collapse triangle
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             
-            // Next/Previous button (position depends on RTL)
-            IconButton(
-                onClick = if (isRtl) onPreviousMonth else onNextMonth,
-                modifier = Modifier.padding(4.dp)
+            // Expanded content (transaction list)
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Real transaction list
+                transactions.sortedByDescending { it.date }.forEach { transaction ->
+                    TransactionItem(
+                        transaction = transaction,
+                        currencySymbol = currencySymbol
+                    )
+                    
+                    if (transaction != transactions.last()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Individual transaction item in expanded weekly view
+ * Uses real Transaction domain model
+ */
+@Composable
+private fun TransactionItem(
+    transaction: Transaction,
+    currencySymbol: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Left: Category and description
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Category icon background
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = if (isRtl) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
-                    contentDescription = if (isRtl) stringResource(R.string.previous_month) else stringResource(R.string.next_month),
-                    tint = MaterialTheme.colorScheme.primary
+                Text(
+                    text = getCategoryEmoji(transaction.category),
+                    style = MaterialTheme.typography.bodySmall
                 )
+            }
+            
+            // Description
+            Column {
+                Text(
+                    text = transaction.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (transaction.category.isNotEmpty()) {
+                    Text(
+                        text = transaction.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         
-        // Month/Year display
+        // Right: Amount
         Text(
-            text = DateFormatter.formatMonthYear(LocalContext.current, currentMonth),
-            style = MaterialTheme.typography.titleLarge,
+            text = "$currencySymbol${String.format("%.2f", transaction.amount)}",
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(top = 8.dp)
+            color = expense_red
         )
     }
 }
 
 /**
- * Empty state when no transactions are available
+ * Map category names to emojis
  */
-@Composable
-fun EmptyState(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = stringResource(R.string.no_transactions_yet),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.add_your_first_expense),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun getCategoryEmoji(category: String): String {
+    return when (category.lowercase()) {
+        "food", "groceries", "restaurant" -> "🍔"
+        "transport", "gas", "parking", "uber" -> "🚗"
+        "bills", "utilities", "rent", "electric" -> "🧾"
+        "entertainment", "movies", "games" -> "🎬"
+        "shopping", "clothes", "electronics" -> "🛍️"
+        "health", "medical", "pharmacy" -> "🏥"
+        "education", "books", "courses" -> "📚"
+        "other", "notes" -> "🗒️"
+        else -> "💰"
     }
 }
+
+

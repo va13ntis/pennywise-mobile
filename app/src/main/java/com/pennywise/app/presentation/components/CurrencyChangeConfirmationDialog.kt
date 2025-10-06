@@ -12,7 +12,7 @@ import com.pennywise.app.domain.model.Currency
  */
 @Composable
 fun CurrencyChangeConfirmationDialog(
-    currentCurrency: String,
+    @Suppress("UNUSED_PARAMETER") currentCurrency: String,
     newCurrency: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit

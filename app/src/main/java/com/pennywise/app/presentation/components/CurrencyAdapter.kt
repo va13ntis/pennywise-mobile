@@ -92,7 +92,7 @@ class CurrencyAdapter {
             
             // Add divider between items (except for the last item)
             if (currency != currencies.last()) {
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }

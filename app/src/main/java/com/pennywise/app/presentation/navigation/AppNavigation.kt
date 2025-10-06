@@ -167,9 +167,7 @@ fun AppNavigation() {
             println("🖼️ Screen: HomeScreen composing")
             val homeViewModel = hiltViewModel<HomeViewModel>()
             
-            // HomeViewModel now automatically observes the authenticated user
-            // No need to manually set user ID anymore
-            
+            // HomeScreen uses real HomeViewModel with actual transaction data
             HomeScreen(
                 onAddExpense = {
                     navController.navigate(ADD_EXPENSE_ROUTE)

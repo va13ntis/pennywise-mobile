@@ -507,7 +507,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create historical recurring expenses for a specific month
      */
-    private fun createHistoricalRecurringExpenses(month: Int, year: Int, monthsAgo: Int): List<TransactionEntity> {
+    private fun createHistoricalRecurringExpenses(month: Int, year: Int, @Suppress("UNUSED_PARAMETER") monthsAgo: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
@@ -941,7 +941,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create future recurring expenses for a specific month
      */
-    private fun createFutureRecurringExpenses(month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
+    private fun createFutureRecurringExpenses(month: Int, year: Int, @Suppress("UNUSED_PARAMETER") monthsAhead: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
@@ -1048,7 +1048,7 @@ class DataSeeder @Inject constructor(
     /**
      * Create future regular expenses for a specific month
      */
-    private fun createFutureRegularExpenses(month: Int, year: Int, monthsAhead: Int): List<TransactionEntity> {
+    private fun createFutureRegularExpenses(month: Int, year: Int, @Suppress("UNUSED_PARAMETER") monthsAhead: Int): List<TransactionEntity> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         

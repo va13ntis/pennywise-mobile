@@ -366,6 +366,12 @@ fun AddExpenseScreen(
     // Get the current user from the ViewModel (for display purposes only)
     val currentUser by viewModel.currentUser.collectAsState()
     
+    // Collect state from ViewModel first (before using in remember blocks)
+    val uiState by viewModel.uiState.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
+    val bankCards by viewModel.bankCards.collectAsState()
+    val defaultPaymentMethod by viewModel.defaultPaymentMethod.collectAsState()
+    
     // Debug logging for current user
     LaunchedEffect(currentUser) {
         Log.d("AddExpenseScreen", "Current user: $currentUser")
@@ -385,6 +391,11 @@ fun AddExpenseScreen(
     var showInstallmentOptions by remember { mutableStateOf(false) }
     var selectedBankCardId by remember { mutableStateOf<Long?>(null) }
     
+    // Initialize payment method from user's default preference
+    LaunchedEffect(defaultPaymentMethod) {
+        selectedPaymentMethod = defaultPaymentMethod
+    }
+    
     // Validation states
     var merchantError by remember { mutableStateOf<String?>(null) }
     var amountError by remember { mutableStateOf<String?>(null) }
@@ -395,10 +406,6 @@ fun AddExpenseScreen(
     
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
-    
-    val uiState by viewModel.uiState.collectAsState()
-    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
-    val bankCards by viewModel.bankCards.collectAsState()
     
     // Pre-fetch string resources to avoid calling them from non-@Composable contexts
     val merchantRequiredText = stringResource(R.string.merchant_required)

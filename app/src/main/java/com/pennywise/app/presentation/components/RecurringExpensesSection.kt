@@ -3,6 +3,8 @@ package com.pennywise.app.presentation.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,22 +25,17 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,205 +45,117 @@ import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.theme.income_green
-import com.pennywise.app.presentation.util.CurrencyFormatter
-import com.pennywise.app.presentation.util.LocaleFormatter
-import com.pennywise.app.presentation.viewmodel.HomeViewModel
-import kotlin.math.abs
 
 /**
  * Specialized section for recurring expenses that appears at the top of the home screen
+ * Aligned with weekly summary card design for consistency
  */
 @Composable
 fun RecurringExpensesSection(
     transactions: List<Transaction>,
     splitPaymentInstallments: List<SplitPaymentInstallment> = emptyList(),
-    currency: String = "",
-    currencyConversionEnabled: Boolean = false,
-    originalCurrency: String = "",
-    conversionState: HomeViewModel.ConversionState = HomeViewModel.ConversionState.Idle,
-    onConvertAmount: (Double) -> Unit = {},
+    currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
     if (transactions.isEmpty() && splitPaymentInstallments.isEmpty()) {
         return
     }
     
-    var expanded by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    var isExpanded by remember { mutableStateOf(false) }
     
-    // Calculate total only when transactions or installments change - prevents unnecessary recomposition
-    val totalAmount by remember(transactions, splitPaymentInstallments) {
-        derivedStateOf<Double> { 
-            transactions.sumOf { it.amount } + splitPaymentInstallments.sumOf { it.amount }
-        }
-    }
-    
-    // Format amount only when total or currency changes - prevents unnecessary recomposition
-    val formattedTotal by remember(totalAmount, currency) {
-        derivedStateOf<String> {
-            CurrencyFormatter.formatAmount(totalAmount, currency, context)
-        }
-    }
+    // Calculate total
+    val totalAmount = transactions.sumOf { it.amount } + splitPaymentInstallments.sumOf { it.amount }
     
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column {
-            // Header with special styling for recurring expenses
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Header - matches weekly card style
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(20.dp),
+                    .clickable { isExpanded = !isExpanded },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Title and total amount
-                Column(
-                    modifier = Modifier.weight(1f)
+                // Left: Title
+                Text(
+                    text = stringResource(R.string.recurring_expenses),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                // Right: Amount and expand/collapse arrow
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.recurring_expenses),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.recurring_expenses),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    // Amount
                     Text(
-                        text = formattedTotal,
-                        style = MaterialTheme.typography.titleLarge,
+                        text = "$currencySymbol${String.format("%.2f", totalAmount)}",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = expense_red,
-                        textAlign = TextAlign.Start
+                        color = expense_red
                     )
                     
-                    // Currency conversion display
-                    if (currencyConversionEnabled && originalCurrency.isNotEmpty() && originalCurrency != currency) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        
-                        // Trigger conversion for total amount
-                        LaunchedEffect(totalAmount, originalCurrency, currency) {
-                            if (totalAmount > 0) {
-                                onConvertAmount(totalAmount)
-                            }
-                        }
-                        
-                        when (conversionState) {
-                            is HomeViewModel.ConversionState.Loading -> {
-                                Text(
-                                    text = stringResource(R.string.loading),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            is HomeViewModel.ConversionState.Success -> {
-                                val originalFormatted = CurrencyFormatter.formatAmount(
-                                    conversionState.originalAmount, 
-                                    originalCurrency,
-                                    context
-                                )
-                                val convertedFormatted = CurrencyFormatter.formatAmount(
-                                    conversionState.convertedAmount, 
-                                    currency,
-                                    context
-                                )
-                                
-                                Text(
-                                    text = "$originalFormatted → $convertedFormatted",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            is HomeViewModel.ConversionState.Error -> {
-                                Text(
-                                    text = stringResource(R.string.conversion_unavailable),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                            else -> { /* Idle state, do nothing */ }
-                        }
-                    }
+                    // Expand/collapse triangle
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // Expand/collapse icon
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) 
-                        stringResource(R.string.collapse) 
-                    else 
-                        stringResource(R.string.expand),
-                    tint = MaterialTheme.colorScheme.primary
-                )
             }
             
-            // Animated content for transaction list
+            // Expanded content
             AnimatedVisibility(
-                visible = expanded,
+                visible = isExpanded,
                 enter = expandVertically(
+                    animationSpec = tween(300)
+                ) + fadeIn(
                     animationSpec = tween(300)
                 ),
                 exit = shrinkVertically(
                     animationSpec = tween(300)
+                ) + fadeOut(
+                    animationSpec = tween(300)
                 )
             ) {
                 Column {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        thickness = 0.5.dp,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     
                     // Display recurring transactions
-                    transactions.forEachIndexed { index, transaction ->
+                    transactions.sortedByDescending { it.date }.forEach { transaction ->
                         RecurringTransactionItem(
                             transaction = transaction,
-                            currency = currency
+                            currencySymbol = currencySymbol
                         )
                         
-                        // Add divider between items (except for the last one)
-                        if (index < transactions.size - 1 || splitPaymentInstallments.isNotEmpty()) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                thickness = 0.5.dp,
-                                modifier = Modifier.padding(horizontal = 20.dp)
-                            )
+                        if (transaction != transactions.last() || splitPaymentInstallments.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                     
                     // Display split payment installments
-                    splitPaymentInstallments.forEachIndexed { index, installment ->
+                    splitPaymentInstallments.sortedBy { it.dueDate }.forEach { installment ->
                         SplitPaymentInstallmentItem(
                             installment = installment,
-                            currency = currency
+                            currencySymbol = currencySymbol
                         )
                         
-                        // Add divider between items (except for the last one)
-                        if (index < splitPaymentInstallments.size - 1) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                thickness = 0.5.dp,
-                                modifier = Modifier.padding(horizontal = 20.dp)
-                            )
+                        if (installment != splitPaymentInstallments.last()) {
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
@@ -255,240 +165,139 @@ fun RecurringExpensesSection(
 }
 
 /**
- * Specialized transaction item for recurring expenses with enhanced styling
+ * Specialized transaction item for recurring expenses
+ * Aligned with regular transaction item style
  */
 @Composable
-fun RecurringTransactionItem(
+private fun RecurringTransactionItem(
     transaction: Transaction,
-    currency: String = "",
+    currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    
-    // Format amount only when transaction amount or currency changes - prevents unnecessary recomposition
-    val formattedAmount by remember(transaction.amount, currency) {
-        derivedStateOf<String> {
-            CurrencyFormatter.formatAmount(transaction.amount, currency, context)
-        }
-    }
-    
-    // Format date only when transaction date changes - prevents unnecessary recomposition
-    val formattedDate by remember(transaction.date) {
-        derivedStateOf<String> {
-            LocaleFormatter.formatTransactionDate(transaction.date, context)
-        }
-    }
-    
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Transaction details
-        Column(
-            modifier = Modifier.weight(1f)
+        // Left: Category emoji and description
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Title row with description and recurring badge
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 4.dp)
+            // Category icon background with recurring indicator
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
+                    text = "🔄",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            // Description and category
+            Column {
+                Text(
                     text = transaction.description,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // Recurring badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "🔄",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-            
-            // Date
-            Text(
-                text = formattedDate,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 2.dp)
-            )
-            
-            // Category and frequency row
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 if (transaction.category.isNotEmpty()) {
                     Text(
                         text = transaction.category,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                // Show recurring period if available
-                transaction.recurringPeriod?.let { period ->
-                    if (transaction.category.isNotEmpty()) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    Text(
-                        text = formatRecurringPeriod(period),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.Medium
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
         
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        // Amount
+        // Right: Amount
         Text(
-            text = formattedAmount,
-            style = MaterialTheme.typography.bodyLarge,
+            text = "$currencySymbol${String.format("%.2f", transaction.amount)}",
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = expense_red,
-            textAlign = TextAlign.End
+            color = expense_red
         )
     }
 }
 
-// Note: Currency formatting is now handled by CurrencyFormatter utility class
-
 /**
- * Specialized item for split payment installments with enhanced styling
+ * Specialized item for split payment installments
+ * Aligned with regular transaction item style
  */
 @Composable
-fun SplitPaymentInstallmentItem(
+private fun SplitPaymentInstallmentItem(
     installment: SplitPaymentInstallment,
-    currency: String = "",
+    currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    
-    // Format amount only when installment amount or currency changes - prevents unnecessary recomposition
-    val formattedAmount by remember(installment.amount, currency) {
-        derivedStateOf<String> {
-            CurrencyFormatter.formatAmount(installment.amount, currency, context)
-        }
-    }
-    
-    // Format due date only when installment due date changes - prevents unnecessary recomposition
-    val formattedDueDate by remember(installment.dueDate) {
-        derivedStateOf<String> {
-            LocaleFormatter.formatTransactionDate(installment.dueDate, context)
-        }
-    }
-    
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Installment details
-        Column(
-            modifier = Modifier.weight(1f)
+        // Left: Icon and details
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Title row with description and split payment badge
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 4.dp)
+            // Split payment icon background
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
+                Text(
+                    text = "💳",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            
+            // Description and status
+            Column {
                 Text(
                     text = installment.getFormattedDescription(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // Split payment badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (installment.category.isNotEmpty()) {
+                        Text(
+                            text = installment.category,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Text(
-                        text = "💳",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-            
-            // Due date
-            Text(
-                text = "Due: $formattedDueDate",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (installment.isOverdue()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 2.dp)
-            )
-            
-            // Category and status row
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (installment.category.isNotEmpty()) {
-                    Text(
-                        text = installment.category,
+                        text = if (installment.isPaid) "✓ Paid" else "Pending",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        color = if (installment.isPaid) income_green else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (installment.isPaid) FontWeight.Medium else FontWeight.Normal
                     )
                 }
-                
-                // Show payment status
-                if (installment.category.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(
-                    text = if (installment.isPaid) "Paid" else "Pending",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (installment.isPaid) income_green else expense_red,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
         
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        // Amount
+        // Right: Amount
         Text(
-            text = formattedAmount,
-            style = MaterialTheme.typography.bodyLarge,
+            text = "$currencySymbol${String.format("%.2f", installment.amount)}",
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = expense_red,
-            textAlign = TextAlign.End
+            color = if (installment.isPaid) MaterialTheme.colorScheme.onSurfaceVariant else expense_red
         )
-    }
-}
-
-/**
- * Format recurring period for display using localized strings
- */
-@Composable
-private fun formatRecurringPeriod(period: com.pennywise.app.domain.model.RecurringPeriod): String {
-    return when (period) {
-        com.pennywise.app.domain.model.RecurringPeriod.DAILY -> stringResource(R.string.recurring_daily)
-        com.pennywise.app.domain.model.RecurringPeriod.WEEKLY -> stringResource(R.string.recurring_weekly)
-        com.pennywise.app.domain.model.RecurringPeriod.MONTHLY -> stringResource(R.string.recurring_monthly)
-        com.pennywise.app.domain.model.RecurringPeriod.YEARLY -> stringResource(R.string.recurring_yearly)
     }
 }

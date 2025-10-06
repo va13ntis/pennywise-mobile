@@ -78,6 +78,7 @@ class LocaleManager @Inject constructor() {
         val updatedContext = context.createConfigurationContext(configuration)
         
         // Also update the resources configuration directly
+        @Suppress("DEPRECATION")
         context.resources.updateConfiguration(configuration, context.resources.displayMetrics)
         
         return updatedContext

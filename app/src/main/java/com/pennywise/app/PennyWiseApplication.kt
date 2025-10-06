@@ -79,6 +79,7 @@ class PennyWiseApplication : Application() {
                 configuration.locale = locale
             }
             
+            @Suppress("DEPRECATION")
             resources.updateConfiguration(configuration, resources.displayMetrics)
         } catch (e: Exception) {
             Timber.e(e, "Failed to apply preferred locale")

@@ -47,6 +47,7 @@ class BaseAuthenticatedRepositoryTest {
         // When & Then
         val exception = assertThrows(SecurityException::class.java) {
             runTest {
+                @Suppress("UNUSED_EXPRESSION")
                 repository.testOperation { "Should not execute" }
             }
         }
