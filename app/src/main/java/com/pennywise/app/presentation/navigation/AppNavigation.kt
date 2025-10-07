@@ -34,6 +34,7 @@ import com.pennywise.app.presentation.viewmodel.DeviceAuthPromptViewModel
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
+    val homeViewModel: HomeViewModel = hiltViewModel() // Shared across all screens
     
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
     val shouldRequireDeviceAuth by authViewModel.shouldRequireDeviceAuth.collectAsState(initial = false)
@@ -165,11 +166,8 @@ fun AppNavigation() {
             }
             
             println("🖼️ Screen: HomeScreen composing")
-            val homeViewModel = hiltViewModel<HomeViewModel>()
             
-            // HomeViewModel now automatically observes the authenticated user
-            // No need to manually set user ID anymore
-            
+            // HomeScreen uses shared HomeViewModel with actual transaction data
             HomeScreen(
                 onAddExpense = {
                     navController.navigate(ADD_EXPENSE_ROUTE)
@@ -184,7 +182,11 @@ fun AppNavigation() {
         // Add Expense screen
         composable(ADD_EXPENSE_ROUTE) {
             AddExpenseScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { 
+                    // Refresh home data before navigating back using shared ViewModel
+                    homeViewModel.refreshData()
+                    navController.popBackStack() 
+                }
             )
         }
         

@@ -186,7 +186,7 @@ class SettingsViewModel @Inject constructor(
                 
                 authManager.currentUser.collect { currentUser ->
                     if (currentUser != null) {
-                        val defaultCurrency = currentUser.defaultCurrency ?: "USD"
+                        val defaultCurrency = currentUser.defaultCurrency
                         _defaultCurrencyState.value = DefaultCurrencyState.Success(defaultCurrency)
                         _needsAuthentication.value = false
                     } else {
@@ -426,6 +426,7 @@ class SettingsViewModel @Inject constructor(
                     paymentMethodConfigRepository.deletePaymentMethodConfig(configId)
                     
                     // If we deleted the default payment method, set a new default
+                    @Suppress("UNUSED_VARIABLE")
                     val remainingConfigs = paymentMethodConfigRepository.getPaymentMethodConfigs()
                     // Note: This would need to be handled in the UI layer by calling setDefaultPaymentMethodConfig
                     

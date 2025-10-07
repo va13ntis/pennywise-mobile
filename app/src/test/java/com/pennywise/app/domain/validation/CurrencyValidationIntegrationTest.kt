@@ -150,6 +150,7 @@ class CurrencyValidationIntegrationTest {
         // When & Then
         edgeCases.forEach { (code, description) ->
             val result = currencyValidator.validateCurrencyCode(code)
+            @Suppress("USELESS_IS_CHECK")
             assertTrue(result is ValidationResult, "Validation should handle $description")
             
             val fallback = currencyValidator.getValidCurrencyCodeOrFallback(code)

@@ -29,9 +29,9 @@ object CurrencyFormatter {
     fun formatAmount(
         amount: Double, 
         currencyCode: String, 
-        context: Context,
+        @Suppress("UNUSED_PARAMETER") context: Context,
         locale: Locale? = null,
-        forceRTL: Boolean = false
+        @Suppress("UNUSED_PARAMETER") forceRTL: Boolean = false
     ): String {
         val formattingLocale = locale ?: Locale.getDefault()
         val format = NumberFormat.getCurrencyInstance(formattingLocale)
@@ -53,10 +53,11 @@ object CurrencyFormatter {
             val positiveFormatted = format.format(absoluteAmount)
             
             // Remove the currency symbol from the positive formatted amount
-            val cleanAmount = positiveFormatted.replace(format.currency.symbol, "").trim()
+            val currencySymbol = format.currency?.symbol ?: "$"
+            val cleanAmount = positiveFormatted.replace(currencySymbol, "").trim()
             
             // Reconstruct with minus sign on the far left, before currency symbol
-            return "-${format.currency.symbol}$cleanAmount"
+            return "-$currencySymbol$cleanAmount"
         } else {
             return formattedAmount
         }
@@ -178,7 +179,7 @@ object CurrencyFormatter {
     fun formatAmountWithSeparateSymbol(
         amount: Double,
         currencyCode: String,
-        context: Context
+        @Suppress("UNUSED_PARAMETER") context: Context
     ): Pair<String, String> {
         val locale = Locale.getDefault()
         val symbol = getCurrencySymbol(currencyCode, locale)
@@ -291,7 +292,7 @@ object CurrencyFormatter {
     fun formatAmountForRTL(
         amount: Double,
         currencyCode: String,
-        context: Context,
+        @Suppress("UNUSED_PARAMETER") context: Context,
         locale: Locale? = null
     ): String {
         val formattingLocale = locale ?: Locale.getDefault()

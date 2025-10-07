@@ -2,36 +2,36 @@ package com.pennywise.app.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Theme Colors
-val md_theme_light_primary = Color(0xFF1976D2)
+// Light Theme Colors - Material You Design
+val md_theme_light_primary = Color(0xFF3949AB) // Navy blue
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)
-val md_theme_light_primaryContainer = Color(0xFFBBDEFB)
-val md_theme_light_onPrimaryContainer = Color(0xFF0D47A1)
-val md_theme_light_secondary = Color(0xFFFF9800)
+val md_theme_light_primaryContainer = Color(0xFFE8EAF6)
+val md_theme_light_onPrimaryContainer = Color(0xFF1A237E)
+val md_theme_light_secondary = Color(0xFFE53935) // Red accent
 val md_theme_light_onSecondary = Color(0xFFFFFFFF)
-val md_theme_light_secondaryContainer = Color(0xFFFFE0B2)
-val md_theme_light_onSecondaryContainer = Color(0xFFE65100)
+val md_theme_light_secondaryContainer = Color(0xFFFFEBEE)
+val md_theme_light_onSecondaryContainer = Color(0xFFB71C1C)
 val md_theme_light_tertiary = Color(0xFF4CAF50)
 val md_theme_light_onTertiary = Color(0xFFFFFFFF)
 val md_theme_light_tertiaryContainer = Color(0xFFC8E6C9)
 val md_theme_light_onTertiaryContainer = Color(0xFF1B5E20)
-val md_theme_light_error = Color(0xFFF44336)
+val md_theme_light_error = Color(0xFFE53935)
 val md_theme_light_errorContainer = Color(0xFFFFEBEE)
 val md_theme_light_onError = Color(0xFFFFFFFF)
 val md_theme_light_onErrorContainer = Color(0xFFB71C1C)
-val md_theme_light_background = Color(0xFFFAFAFA)
-val md_theme_light_onBackground = Color(0xFF212121)
+val md_theme_light_background = Color(0xFFF8F7FC) // Soft background
+val md_theme_light_onBackground = Color(0xFF1C1B1F)
 val md_theme_light_surface = Color(0xFFFFFFFF)
-val md_theme_light_onSurface = Color(0xFF212121)
-val md_theme_light_surfaceVariant = Color(0xFFF5F5F5)
-val md_theme_light_onSurfaceVariant = Color(0xFF757575)
-val md_theme_light_outline = Color(0xFFBDBDBD)
-val md_theme_light_inverseOnSurface = Color(0xFFFAFAFA)
-val md_theme_light_inverseSurface = Color(0xFF424242)
-val md_theme_light_inversePrimary = Color(0xFF90CAF9)
+val md_theme_light_onSurface = Color(0xFF1C1B1F)
+val md_theme_light_surfaceVariant = Color(0xFFF3F0F4)
+val md_theme_light_onSurfaceVariant = Color(0xFF49454F)
+val md_theme_light_outline = Color(0xFF79747E)
+val md_theme_light_inverseOnSurface = Color(0xFFF4EFF4)
+val md_theme_light_inverseSurface = Color(0xFF313033)
+val md_theme_light_inversePrimary = Color(0xFFC5CAE9)
 val md_theme_light_shadow = Color(0xFF000000)
-val md_theme_light_surfaceTint = Color(0xFF1976D2)
-val md_theme_light_outlineVariant = Color(0xFFE0E0E0)
+val md_theme_light_surfaceTint = Color(0xFF3949AB)
+val md_theme_light_outlineVariant = Color(0xFFCAC4D0)
 val md_theme_light_scrim = Color(0xFF000000)
 
 // Dark Theme Colors

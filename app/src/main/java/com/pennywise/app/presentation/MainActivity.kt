@@ -109,9 +109,11 @@ class MainActivity : FragmentActivity() {
         val displayMetrics = updatedContext.resources.displayMetrics
         
         // Update the current context's configuration
+        @Suppress("DEPRECATION")
         resources.updateConfiguration(configuration, displayMetrics)
         
         // Also update the base context
+        @Suppress("DEPRECATION")
         baseContext.resources.updateConfiguration(configuration, displayMetrics)
     }
     

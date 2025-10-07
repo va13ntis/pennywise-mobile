@@ -33,6 +33,7 @@ class AddExpenseViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val bankCardRepository: BankCardRepository,
     private val splitPaymentInstallmentRepository: SplitPaymentInstallmentRepository,
+    private val paymentMethodConfigRepository: com.pennywise.app.domain.repository.PaymentMethodConfigRepository,
     private val authManager: AuthManager,
     private val currencyValidator: CurrencyValidator,
     private val currencyErrorHandler: CurrencyErrorHandler,
@@ -61,6 +62,10 @@ class AddExpenseViewModel @Inject constructor(
     private val _bankCards = MutableStateFlow<List<BankCard>>(emptyList())
     val bankCards: StateFlow<List<BankCard>> = _bankCards
     
+    // Default payment method from user settings
+    private val _defaultPaymentMethod = MutableStateFlow<com.pennywise.app.domain.model.PaymentMethod>(com.pennywise.app.domain.model.PaymentMethod.CASH)
+    val defaultPaymentMethod: StateFlow<com.pennywise.app.domain.model.PaymentMethod> = _defaultPaymentMethod
+    
     // Current user
     val currentUser = authManager.currentUser
     
@@ -87,6 +92,9 @@ class AddExpenseViewModel @Inject constructor(
                     
                     // Load bank cards
                     loadBankCards()
+                    
+                    // Load default payment method
+                    loadDefaultPaymentMethod()
                 }
             }
         }
@@ -127,6 +135,24 @@ class AddExpenseViewModel @Inject constructor(
                 // For now, just set empty list
                 _bankCards.value = emptyList()
                 _needsAuthentication.value = false
+            }
+        }
+    }
+    
+    /**
+     * Load default payment method from user settings
+     */
+    private fun loadDefaultPaymentMethod() {
+        viewModelScope.launch {
+            try {
+                val defaultConfig = paymentMethodConfigRepository.getDefaultPaymentMethodConfig()
+                if (defaultConfig != null) {
+                    _defaultPaymentMethod.value = defaultConfig.paymentMethod
+                }
+                // If no default found, keep CASH as fallback
+            } catch (e: Exception) {
+                // Handle error - keep CASH as fallback
+                _defaultPaymentMethod.value = com.pennywise.app.domain.model.PaymentMethod.CASH
             }
         }
     }
