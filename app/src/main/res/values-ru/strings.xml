@@ -52,11 +52,15 @@
     
     <!-- Expense Form -->
     <string name="new_expense">Новый расход</string>
+    <string name="transaction_details">Детали транзакции</string>
     <string name="merchant">Продавец</string>
     <string name="merchant_required">Название продавца обязательно</string>
     <string name="amount_required">Сумма обязательна</string>
     <string name="invalid_amount">Пожалуйста, введите действительную сумму</string>
     <string name="payment_type">Тип платежа</string>
+    <string name="payment_method">Способ оплаты</string>
+    <string name="payment_details">Детали платежа</string>
+    <string name="select_category">Выберите категорию</string>
     <!-- Payment Method Configuration -->
     <string name="payment_method_configuration">Настройка способа платежа</string>
     <string name="set_as_default">Установить по умолчанию</string>
@@ -94,6 +98,7 @@
     <string name="category_entertainment">Развлечения</string>
     <string name="category_utilities">Коммунальные услуги</string>
     <string name="category_health">Здравоохранение</string>
+    <string name="category_education">Образование</string>
     <string name="category_other">Другое</string>
     
     <!-- Bank Cards -->
@@ -151,6 +156,7 @@
     <string name="currency_required">Пожалуйста, выберите валюту</string>
     <string name="most_popular_currencies">Самые популярные</string>
     <string name="all_currencies">Все валюты</string>
+    <string name="more_currencies">Больше валют…</string>
     <string name="currency_usd">Доллар США ($)</string>
     <string name="currency_eur">Евро (€)</string>
     <string name="currency_gbp">Фунт стерлингов (£)</string>

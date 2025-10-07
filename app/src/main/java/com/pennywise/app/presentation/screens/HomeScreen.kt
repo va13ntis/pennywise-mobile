@@ -64,6 +64,7 @@ import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.presentation.components.RecurringExpensesSection
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.util.CurrencyFormatter
+import com.pennywise.app.presentation.util.CategoryMapper
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -307,7 +308,7 @@ private fun MonthNavigationRow(
         ) {
             Icon(
                 imageVector = if (isRtl) Icons.Default.ChevronRight else Icons.Default.ChevronLeft,
-                contentDescription = "Previous month",
+                contentDescription = stringResource(R.string.previous_month),
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurface
             )
@@ -328,7 +329,7 @@ private fun MonthNavigationRow(
         ) {
             Icon(
                 imageVector = if (isRtl) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
-                contentDescription = "Next month",
+                contentDescription = stringResource(R.string.next_month),
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurface
             )
@@ -374,7 +375,7 @@ private fun WeeklySummaryCard(
             ) {
                 // Left: Week number
                 Text(
-                    text = "Week $weekNumber",
+                    text = stringResource(R.string.week_format, weekNumber),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -396,7 +397,7 @@ private fun WeeklySummaryCard(
                     // Expand/collapse triangle
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        contentDescription = stringResource(if (isExpanded) R.string.collapse else R.string.expand),
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -452,7 +453,7 @@ private fun TransactionItem(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = getCategoryEmoji(transaction.category),
+                    text = CategoryMapper.getCategoryEmoji(transaction.category),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -466,7 +467,7 @@ private fun TransactionItem(
                 )
                 if (transaction.category.isNotEmpty()) {
                     Text(
-                        text = transaction.category,
+                        text = CategoryMapper.getLocalizedCategory(transaction.category),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -484,21 +485,5 @@ private fun TransactionItem(
     }
 }
 
-/**
- * Map category names to emojis
- */
-private fun getCategoryEmoji(category: String): String {
-    return when (category.lowercase()) {
-        "food", "groceries", "restaurant" -> "🍔"
-        "transport", "gas", "parking", "uber" -> "🚗"
-        "bills", "utilities", "rent", "electric" -> "🧾"
-        "entertainment", "movies", "games" -> "🎬"
-        "shopping", "clothes", "electronics" -> "🛍️"
-        "health", "medical", "pharmacy" -> "🏥"
-        "education", "books", "courses" -> "📚"
-        "other", "notes" -> "🗒️"
-        else -> "💰"
-    }
-}
 
 

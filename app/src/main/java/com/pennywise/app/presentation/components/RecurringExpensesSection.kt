@@ -45,6 +45,7 @@ import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.theme.income_green
+import com.pennywise.app.presentation.util.CategoryMapper
 
 /**
  * Specialized section for recurring expenses that appears at the top of the home screen
@@ -111,7 +112,7 @@ fun RecurringExpensesSection(
                     // Expand/collapse triangle
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        contentDescription = stringResource(if (isExpanded) R.string.collapse else R.string.expand),
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -164,6 +165,7 @@ fun RecurringExpensesSection(
     }
 }
 
+
 /**
  * Specialized transaction item for recurring expenses
  * Aligned with regular transaction item style
@@ -207,7 +209,7 @@ private fun RecurringTransactionItem(
                 )
                 if (transaction.category.isNotEmpty()) {
                     Text(
-                        text = transaction.category,
+                        text = CategoryMapper.getLocalizedCategory(transaction.category),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -272,7 +274,7 @@ private fun SplitPaymentInstallmentItem(
                 ) {
                     if (installment.category.isNotEmpty()) {
                         Text(
-                            text = installment.category,
+                            text = CategoryMapper.getLocalizedCategory(installment.category),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
