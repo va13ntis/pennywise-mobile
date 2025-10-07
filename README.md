@@ -9,23 +9,44 @@ PennyWise is a modern Android application built with Kotlin and Jetpack Compose 
 
 ## Features
 
-- **Transaction Management**: Add, edit, and categorize income and expenses
-- **Budget Tracking**: Set up budgets for different categories and track spending
-- **Financial Reports**: View spending patterns and financial insights
+### Core Functionality
+- **Expense Tracking**: Add, categorize, and track your expenses with detailed information
+- **Recurring Expenses**: Mark and track subscription and recurring payments separately
+- **Split Payments**: Support for installment-based payments with automatic tracking
+- **Monthly Overview**: View current month's summary with weekly breakdowns
+- **Multi-Currency Support**: Track expenses in different currencies with smart currency sorting
+- **Payment Methods**: Support for Cash, Credit Card, and Cheque payments
+- **Bank Card Management**: Add and manage multiple bank cards for expense tracking
+
+### User Experience
+- **Device Security**: Biometric authentication (fingerprint/face) or PIN-based app lock
+- **First-Run Setup**: Guided setup process for new users
+- **Month Navigation**: Easily navigate between months to view historical data
+- **Collapsible Sections**: Weekly expenses and recurring expenses are collapsible for better organization
 - **Modern UI**: Beautiful Material 3 design with light/dark theme support
-- **Local Storage**: Secure local database using Room
-- **Offline First**: Works completely offline with local data storage
+- **Offline First**: Works completely offline with local data storage using Room
+
+### Technical Features
+- **Clean Architecture**: Proper separation of concerns with Data, Domain, and Presentation layers
+- **Localization**: Partial multi-language support (Russian currently implemented)
+- **Type-Safe Navigation**: Compose Navigation with proper state management
+- **Secure Storage**: Local SQLite database with Room persistence
+- **Dependency Injection**: Hilt for clean and testable code
 
 ## Tech Stack
 
 - **Language**: Kotlin
-- **UI Framework**: Jetpack Compose
+- **UI Framework**: Jetpack Compose with Material 3
 - **Architecture**: Clean Architecture (MVVM)
-- **Database**: Room with Kotlin Coroutines
-- **Dependency Injection**: Hilt (planned)
-- **Navigation**: Navigation Compose
-- **Theme**: Material 3 with dynamic colors
-- **Build System**: Gradle with Kotlin DSL
+- **Database**: Room with Kotlin Coroutines and Flow
+- **Dependency Injection**: Hilt
+- **Navigation**: Jetpack Navigation Compose
+- **Authentication**: AndroidX Biometric API
+- **Data Persistence**: DataStore Preferences
+- **Theme**: Material 3 with dynamic colors and dark mode
+- **Build System**: Gradle with Kotlin DSL and KSP
+- **Testing**: JUnit, Mockk, Espresso, Robolectric
+- **Code Coverage**: JaCoCo
 
 ## Project Structure
 
@@ -40,21 +61,27 @@ app/src/main/java/com/pennywise/app/
 │   │   └── converter/     # Type converters
 │   └── repository/        # Repository implementations
 ├── domain/                 # Domain layer
-│   ├── model/             # Domain models
+│   ├── model/             # Domain models (Transaction, User, BankCard, etc.)
 │   ├── repository/        # Repository interfaces
-│   └── usecase/           # Business logic use cases
-└── presentation/          # Presentation layer
-    ├── screens/           # UI screens
-    ├── components/        # Reusable UI components
-    ├── viewmodel/         # ViewModels
-    └── theme/             # Theme and styling
+│   ├── usecase/           # Business logic use cases
+│   └── validation/        # Input validation and error handling
+├── presentation/          # Presentation layer
+│   ├── screens/           # UI screens (Home, AddExpense, Settings, etc.)
+│   ├── components/        # Reusable UI components
+│   ├── viewmodel/         # ViewModels with Hilt injection
+│   ├── navigation/        # Navigation setup
+│   ├── auth/              # Authentication management
+│   ├── util/              # Utilities (CurrencyFormatter, etc.)
+│   └── theme/             # Theme and styling
+└── di/                     # Dependency injection modules (Hilt)
 ```
 
 ## Prerequisites
 
 - Android Studio Hedgehog (2023.1.1) or later
 - Android SDK 34
-- Minimum SDK: API 24 (Android 7.0)
+- Minimum SDK: API 26 (Android 8.0)
+- Target SDK: API 34 (Android 14)
 - JDK 17 or later
 
 ## Build Instructions
@@ -100,20 +127,24 @@ cd pennywise-mobile
 The project is configured with the following default settings:
 
 - **Application ID**: `com.pennywise.app`
-- **Minimum SDK**: API 24 (Android 7.0)
+- **Minimum SDK**: API 26 (Android 8.0)
 - **Target SDK**: API 34 (Android 14)
 - **Compile SDK**: API 34
+- **Kotlin**: 1.9.22
+- **Compose Compiler**: 1.5.8
 
-### Dependencies
+### Key Dependencies
 
-Key dependencies include:
-
-- **Jetpack Compose**: 2024.02.00
-- **Material 3**: Latest stable version
+- **Jetpack Compose BOM**: 2024.02.00
+- **Material 3**: Latest from BOM
 - **Room**: 2.6.1 with KSP
 - **Navigation Compose**: 2.7.7
+- **Hilt**: 2.48
 - **Lifecycle**: 2.7.0
 - **Coroutines**: 1.7.3
+- **DataStore**: 1.0.0
+- **Biometric**: 1.2.0-alpha05
+- **Retrofit**: 2.9.0 (for future cloud sync)
 
 ## Architecture Overview
 
@@ -121,18 +152,111 @@ Key dependencies include:
 
 The app follows Clean Architecture principles with three main layers:
 
-1. **Presentation Layer**: Contains UI components, ViewModels, and user interactions
-2. **Domain Layer**: Contains business logic, use cases, and domain models
-3. **Data Layer**: Contains data sources, repositories, and external interfaces
+1. **Presentation Layer**: Contains UI components (Composables), ViewModels, and user interactions
+2. **Domain Layer**: Contains business logic, use cases, domain models, and validation
+3. **Data Layer**: Contains data sources (Room), repositories, and database entities
 
-PennyWise is designed as a personal finance manager where each installation manages one user's financial data. Authentication is used for device security (app lock/unlock) and future cloud sync capabilities.
+### Single-User Approach
+
+PennyWise is designed as a **personal finance manager** where each installation manages one user's financial data:
+
+- **No Multi-Tenancy**: Database schema does NOT include userId fields or user-based data filtering
+- **Single User Per Device**: All data belongs to the authenticated user on that device
+- **Authentication Purpose**: Device security (biometric/PIN lock) and future cloud sync capabilities
+- **Data Isolation**: Achieved at the device level, not database level
 
 ### Key Components
 
+- **Hilt Dependency Injection**: All components use constructor injection with Hilt
 - **Use Cases**: Implement business logic and coordinate between repositories
-- **Repositories**: Abstract data sources and provide a clean API
-- **ViewModels**: Manage UI state and handle user interactions
-- **Composables**: UI components built with Jetpack Compose
+- **Repositories**: Abstract data sources and provide clean APIs with authentication validation
+- **ViewModels**: Manage UI state with StateFlow and handle user interactions
+- **Composables**: Modern UI components built with Jetpack Compose and Material 3
+- **Currency System**: Smart currency sorting based on usage frequency
+- **Validation Layer**: Input validation and error handling with proper error messages
+
+## Implemented Screens
+
+### 1. First-Run Setup Screen
+- Initial app setup flow for new users
+- Currency selection with smart sorting
+- Locale/language selection
+- Device authentication setup (biometric or PIN)
+
+### 2. Home Screen
+- Monthly expense summary with total amount
+- Previous/Next month navigation
+- Recurring expenses section (collapsible)
+- Weekly expense breakdown (collapsible)
+- Split payment installments display
+- Floating action button to add new expenses
+- Settings navigation
+
+### 3. Add Expense Screen
+- Date picker with calendar dialog
+- Merchant/vendor name input
+- Amount input with currency display
+- Category selection
+- Payment method selector (Cash, Credit Card, Cheque)
+- Bank card selection (for card payments)
+- Split payment configuration (installments)
+- Recurring expense toggle
+- Notes field
+- Form validation with error messages
+
+### 4. Settings Screen
+- User preferences management
+- Currency settings
+- Language settings
+- Authentication settings
+- Future: Cloud backup configuration
+
+### 5. Bank Cards Screen (Work in Progress)
+- Manage bank cards
+- Add/edit/delete cards
+- Card-based expense filtering
+
+## User Flow
+
+1. **First Launch**: User sets up currency, locale, and device authentication
+2. **Authentication**: User unlocks app with biometric or PIN (if enabled)
+3. **Home Dashboard**: View current month's expenses organized by week
+4. **Add Expense**: Quick expense entry with all necessary details
+5. **Review**: View historical data by navigating between months
+
+## Data Models
+
+### Transaction
+- Amount and currency
+- Description and category
+- Transaction type (Income/Expense)
+- Date and timestamps
+- Payment method (Cash, Credit Card, Cheque)
+- Recurring configuration (daily, weekly, monthly, yearly)
+- Split payment support (installments)
+- Optional notes
+
+### User
+- Username and authentication
+- Preferred currency
+- Locale settings
+- Device authentication preferences
+
+### Bank Card
+- Card name and last 4 digits
+- Associated bank
+- Card type
+- Active status
+
+### Payment Method Configuration
+- Default payment method
+- Custom payment method settings
+
+### Split Payment Installment
+- Linked to parent transaction
+- Installment number and total count
+- Individual installment amount
+- Payment tracking
 
 ## Development Guidelines
 
@@ -147,13 +271,39 @@ PennyWise is designed as a personal finance manager where each installation mana
 
 - Write unit tests for use cases and repositories
 - Write UI tests for critical user flows
-- Maintain high test coverage
+- Use Mockk for mocking in Kotlin tests
+- Use Espresso for UI testing
+- Maintain high test coverage with JaCoCo
 
 ### Git Workflow
 
 - Use feature branches for new development
 - Write descriptive commit messages
 - Review code before merging
+
+## Roadmap
+
+### Current Status (v1.0)
+✅ Core expense tracking functionality  
+✅ Multi-currency support  
+✅ Recurring expenses  
+✅ Split payments  
+✅ Device authentication  
+✅ Monthly and weekly views  
+✅ Material 3 UI  
+✅ Offline-first architecture  
+
+### Planned Features
+- 🔲 Complete multi-language support (Hebrew with RTL, more languages)
+- 🔲 Budget tracking and alerts
+- 🔲 Financial reports and charts
+- 🔲 Cloud backup (Google Drive/OneDrive)
+- 🔲 Data export (CSV, PDF)
+- 🔲 Category customization
+- 🔲 Search and filtering
+- 🔲 Widgets for home screen
+- 🔲 Income tracking
+- 🔲 Balance calculations
 
 ## CI/CD Pipeline
 
