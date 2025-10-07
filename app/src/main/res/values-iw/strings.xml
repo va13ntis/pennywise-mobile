@@ -52,11 +52,15 @@
     
     <!-- Expense Form -->
     <string name="new_expense">הוצאה חדשה</string>
+    <string name="transaction_details">פרטי העסקה</string>
     <string name="merchant">בית עסק</string>
     <string name="merchant_required">שם בית העסק נדרש</string>
     <string name="amount_required">הסכום נדרש</string>
     <string name="invalid_amount">אנא הכנס סכום תקין</string>
     <string name="payment_type">סוג תשלום</string>
+    <string name="payment_method">אמצעי תשלום</string>
+    <string name="payment_details">פרטי תשלום</string>
+    <string name="select_category">בחר קטגוריה</string>
     <!-- Payment Method Configuration -->
     <string name="payment_method_configuration">הגדרת שיטת תשלום</string>
     <string name="set_as_default">הגדר כברירת מחדל</string>
@@ -94,6 +98,7 @@
     <string name="category_entertainment">בידור</string>
     <string name="category_utilities">חשבונות</string>
     <string name="category_health">בריאות</string>
+    <string name="category_education">חינוך</string>
     <string name="category_other">אחר</string>
     
     <!-- Bank Cards -->
@@ -151,6 +156,7 @@
     <string name="currency_required">אנא בחר מטבע</string>
     <string name="most_popular_currencies">הפופולריים ביותר</string>
     <string name="all_currencies">כל המטבעות</string>
+    <string name="more_currencies">מטבעות נוספים…</string>
     <string name="currency_usd">דולר אמריקאי ($)</string>
     <string name="currency_eur">אירו (€)</string>
     <string name="currency_gbp">לירה שטרלינג (£)</string>

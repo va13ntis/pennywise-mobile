@@ -1,101 +1,62 @@
 package com.pennywise.app.presentation.screens
 
+import android.content.res.Configuration
 import android.util.Log
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Notes
-import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Add
-
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.BankCard
-import com.pennywise.app.presentation.components.CurrencySelectionDropdown
 import com.pennywise.app.presentation.components.CurrencyAdapter
-import com.pennywise.app.presentation.components.CompactCircularCurrencyButton
+import com.pennywise.app.presentation.util.LocaleFormatter
+import com.pennywise.app.presentation.util.CategoryMapper
 import com.pennywise.app.presentation.viewmodel.AddExpenseUiState
 import com.pennywise.app.presentation.viewmodel.AddExpenseViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import com.pennywise.app.presentation.util.LocaleFormatter
-import java.text.SimpleDateFormat
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.*
 
 /**
@@ -105,12 +66,13 @@ fun validateAndFormatAmount(
     input: String,
     currency: Currency?
 ): String {
-    if (currency == null) return input
-    
     // Only allow digits and decimal point
     val filtered = input.filter { char -> char.isDigit() || char == '.' }
     
-    return when (currency.decimalPlaces) {
+    // Determine decimal places to use (default to 2 if no currency selected)
+    val allowedDecimalPlaces = currency?.decimalPlaces ?: 2
+    
+    return when (allowedDecimalPlaces) {
         0 -> {
             // For currencies with no decimal places (JPY, KRW), only allow digits
             filtered.filter { char -> char.isDigit() }
@@ -119,7 +81,8 @@ fun validateAndFormatAmount(
             // For currencies with decimal places, limit to the specified number
             val parts = filtered.split(".")
             if (parts.size > 1) {
-                parts[0] + "." + parts[1].take(currency.decimalPlaces)
+                // Only allow one decimal point and limit decimal digits
+                parts[0] + "." + parts[1].take(allowedDecimalPlaces)
             } else {
                 filtered
             }
@@ -175,41 +138,47 @@ fun updateAmountFieldForCurrency(
 }
 
 /**
- * Modern card container for form sections
+ * Modern Material 3 card container for form sections
  */
 @Composable
-fun FormSectionCard(
-    title: String,
-    icon: ImageVector,
-    content: @Composable () -> Unit
+fun SectionCard(
+    title: String? = null,
+    icon: ImageVector? = null,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            if (title != null || icon != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    icon?.let {
+                        Icon(
+                            imageVector = it,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    title?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
             }
             content()
         }
@@ -217,128 +186,95 @@ fun FormSectionCard(
 }
 
 /**
- * Modern pill-shaped toggle button with enhanced visual feedback
+ * Material 3 Filled text field with icon
  */
 @Composable
-fun PillToggleButton(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Animation for selection state
-    val elevation by animateFloatAsState(
-        targetValue = if (isSelected) 8f else 2f,
-        animationSpec = spring(dampingRatio = 0.6f),
-        label = "elevation"
-    )
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1f,
-        animationSpec = spring(dampingRatio = 0.8f),
-        label = "scale"
-    )
-
-    Card(
-        modifier = modifier
-            .selectable(
-                selected = isSelected,
-                onClick = onClick
-            )
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
-        border = if (!isSelected) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-        } else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation.dp),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-    }
-}
-
-/**
- * Modern input field with icon and error handling
- */
-@Composable
-fun ModernTextField(
+fun FilledTextFieldWithIcon(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     icon: ImageVector,
     isError: Boolean = false,
-    errorMessage: String? = null,
     supportingText: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = 1,
+    placeholder: String? = null
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        leadingIcon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+        },
+        placeholder = placeholder?.let { { Text(it) } },
+        isError = isError,
+        supportingText = supportingText?.let { { Text(it) } },
+        modifier = modifier.fillMaxWidth(),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        shape = RoundedCornerShape(12.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent
+        )
+    )
+}
+
+/**
+ * Currency Selector Chip - Pill-shaped surface for trailing icon in Amount field
+ */
+@Composable
+fun CurrencySelectorChip(
+    selectedCurrency: Currency?,
+    onCurrencyClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label) },
-            leadingIcon = {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isError) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            },
-            isError = isError,
-            supportingText = {
-                if (errorMessage != null) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else if (supportingText != null) {
-                    Text(
-                        text = supportingText,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp)
-        )
+    val contentDesc = stringResource(R.string.select_currency)
+    
+    Surface(
+        onClick = onCurrencyClick,
+        modifier = modifier.semantics { contentDescription = contentDesc },
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = selectedCurrency?.symbol ?: "¤",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
@@ -355,7 +291,7 @@ private fun getLocalizedPaymentMethodName(paymentMethod: com.pennywise.app.domai
 }
 
 /**
- * Modern redesigned Add Expense Screen with card-based layout and improved UX
+ * Modern Material 3 Add Expense Screen with card-based layout
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -363,21 +299,18 @@ fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
-    // Get the current user from the ViewModel (for display purposes only)
+    // Collect state from ViewModel
     val currentUser by viewModel.currentUser.collectAsState()
-    
-    // Collect state from ViewModel first (before using in remember blocks)
     val uiState by viewModel.uiState.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val bankCards by viewModel.bankCards.collectAsState()
     val defaultPaymentMethod by viewModel.defaultPaymentMethod.collectAsState()
     
-    // Debug logging for current user
     LaunchedEffect(currentUser) {
         Log.d("AddExpenseScreen", "Current user: $currentUser")
     }
     
-    // Form state management using remember and mutableStateOf
+    // Form state management
     var merchant by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
@@ -390,6 +323,11 @@ fun AddExpenseScreen(
     var installments by remember { mutableStateOf(1) }
     var showInstallmentOptions by remember { mutableStateOf(false) }
     var selectedBankCardId by remember { mutableStateOf<Long?>(null) }
+    
+    // Dialog states
+    var currencyExpanded by remember { mutableStateOf(false) }
+    var showCurrencyBottomSheet by remember { mutableStateOf(false) }
+    var categoryExpanded by remember { mutableStateOf(false) }
     
     // Initialize payment method from user's default preference
     LaunchedEffect(defaultPaymentMethod) {
@@ -427,32 +365,22 @@ fun AddExpenseScreen(
     // Date formatter - use LocaleFormatter for consistent region detection
     val context = LocalContext.current
     
-    // Category options - pre-fetch string resources
-    val categoryFood = stringResource(R.string.category_food)
-    val categoryTransport = stringResource(R.string.category_transport)
-    val categoryShopping = stringResource(R.string.category_shopping)
-    val categoryEntertainment = stringResource(R.string.category_entertainment)
-    val categoryUtilities = stringResource(R.string.category_utilities)
-    val categoryHealth = stringResource(R.string.category_health)
-    val categoryOther = stringResource(R.string.category_other)
-    
-    val categories = remember {
-        listOf(
-            categoryFood,
-            categoryTransport,
-            categoryShopping,
-            categoryEntertainment,
-            categoryUtilities,
-            categoryHealth,
-            categoryOther
-        )
-    }
+    // Category options - use CategoryMapper for consistent handling
+    val categories = CategoryMapper.getAllCategoryOptions()
     
     // Set default category
-    LaunchedEffect(categoryFood) {
-        if (category.isEmpty()) {
-            category = categoryFood
+    LaunchedEffect(categories) {
+        if (category.isEmpty() && categories.isNotEmpty()) {
+            category = categories.first()
         }
+    }
+    
+    // Currency adapter and lists
+    val currencyAdapter = remember { CurrencyAdapter() }
+    val allCurrencies = remember { currencyAdapter.getSortedCurrencies() }
+    val commonCurrencyCodes = listOf("USD", "EUR", "GBP", "ILS")
+    val commonCurrencies = remember(allCurrencies) {
+        allCurrencies.filter { it.code in commonCurrencyCodes }
     }
     
     // Validation function
@@ -532,92 +460,87 @@ fun AddExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.new_expense)) }
+                title = { Text(stringResource(R.string.new_expense)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
             )
         },
         bottomBar = {
-            // Sticky Save and Cancel Buttons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Surface(
+                shadowElevation = 8.dp,
+                tonalElevation = 0.dp
             ) {
-                // Cancel Button
-                OutlinedButton(
-                    onClick = onNavigateBack,
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(64.dp),
-                    shape = RoundedCornerShape(16.dp)
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.cancel),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                
-                // Save Button
-                Button(
-                    onClick = {
-                        Log.d("AddExpenseScreen", "=== SAVE BUTTON CLICKED ===")
-                        Log.d("AddExpenseScreen", "Save button clicked")
-                        Log.d("AddExpenseScreen", "Form valid: $isFormValid, Currency: ${selectedCurrency?.code}")
-                        Log.d("AddExpenseScreen", "Merchant: '$merchant', Amount: '$amount', Category: '$category'")
-                        
-                        // Final validation before submission
-                        validateForm()
-                        
-                        Log.d("AddExpenseScreen", "After validation - Form valid: $isFormValid")
-                        
-                        // Only proceed if form is valid and currency is selected
-                        if (isFormValid && selectedCurrency != null) {
-                            Log.d("AddExpenseScreen", "Proceeding with save...")
-                            val totalAmount = amount.toDouble()
-                            val installmentAmount = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) {
-                                viewModel.calculateInstallmentAmount(totalAmount, installments)
-                            } else null
-                            
-                            val expenseData = ExpenseFormData(
-                                merchant = merchant,
-                                amount = totalAmount,
-                                currency = selectedCurrency!!.code,
-                                category = category,
-                                isRecurring = isRecurring,
-                                recurringPeriod = if (isRecurring) selectedRecurringPeriod else null,
-                                notes = notes.ifBlank { null },
-                                date = selectedDate,
-                                paymentMethod = selectedPaymentMethod,
-                                installments = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) installments else null,
-                                installmentAmount = installmentAmount,
-                                selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedBankCardId else null
-                            )
-                            Log.d("AddExpenseScreen", "Calling viewModel.saveExpense with data: $expenseData")
-                            viewModel.saveExpense(expenseData)
-                        } else {
-                            Log.d("AddExpenseScreen", "Form validation failed - not saving")
-                        }
-                    },
-                    enabled = run {
-                        val enabled = isFormValid && selectedCurrency != null && uiState !is AddExpenseUiState.Loading
-                        Log.d("AddExpenseScreen", "Save button enabled: $enabled (formValid: $isFormValid, currency: ${selectedCurrency?.code}, uiState: $uiState)")
-                        enabled
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(64.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    if (uiState is AddExpenseUiState.Loading) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    } else {
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
                         Text(
-                            text = stringResource(R.string.save),
-                            style = MaterialTheme.typography.titleMedium
+                            text = stringResource(R.string.cancel),
+                            style = MaterialTheme.typography.labelLarge
                         )
+                    }
+                    
+                    Button(
+                        onClick = {
+                            Log.d("AddExpenseScreen", "=== SAVE BUTTON CLICKED ===")
+                            validateForm()
+                            
+                            if (isFormValid && selectedCurrency != null) {
+                                Log.d("AddExpenseScreen", "Proceeding with save...")
+                                val totalAmount = amount.toDouble()
+                                val installmentAmount = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) {
+                                    viewModel.calculateInstallmentAmount(totalAmount, installments)
+                                } else null
+                                
+                                val expenseData = ExpenseFormData(
+                                    merchant = merchant,
+                                    amount = totalAmount,
+                                    currency = selectedCurrency!!.code,
+                                    category = CategoryMapper.getCategoryKey(category), // Store canonical key
+                                    isRecurring = isRecurring,
+                                    recurringPeriod = if (isRecurring) selectedRecurringPeriod else null,
+                                    notes = notes.ifBlank { null },
+                                    date = selectedDate,
+                                    paymentMethod = selectedPaymentMethod,
+                                    installments = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) installments else null,
+                                    installmentAmount = installmentAmount,
+                                    selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedBankCardId else null
+                                )
+                                viewModel.saveExpense(expenseData)
+                            }
+                        },
+                        enabled = isFormValid && selectedCurrency != null && uiState !is AddExpenseUiState.Loading,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (uiState is AddExpenseUiState.Loading) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.save),
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
                     }
                 }
             }
@@ -627,125 +550,184 @@ fun AddExpenseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp)
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            
-            // Date Picker - Custom clickable field
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showDatePicker = true }
-            ) {
-                // Label
-                Text(
-                    text = stringResource(R.string.select_date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                
-                // Custom field that looks like OutlinedTextField
-                Box(
+            // Date Selection Card
+            SectionCard {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .background(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
+                        .clickable { showDatePicker = true }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.CalendarToday,
-                            contentDescription = stringResource(R.string.content_desc_calendar),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    Icon(
+                        Icons.Default.CalendarToday,
+                        contentDescription = stringResource(R.string.content_desc_calendar),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.select_date),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = try {
-                                // Try LocaleFormatter first
                                 LocaleFormatter.formatTransactionDate(selectedDate, context)
                             } catch (e: Exception) {
-                                // Fallback to system default date format
                                 try {
                                     DateFormat.getDateInstance(DateFormat.SHORT).format(selectedDate)
                                 } catch (e2: Exception) {
-                                    // Final fallback to simple format
                                     SimpleDateFormat("MM/dd/yyyy", Locale.US).format(selectedDate)
                                 }
                             },
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
             
-            // Merchant field
-            OutlinedTextField(
-                value = merchant,
-                onValueChange = { 
-                    merchant = it 
-                    merchantError = if (it.isBlank()) merchantRequiredText else null
-                },
-                label = { Text(stringResource(R.string.merchant)) },
-                isError = merchantError != null,
-                supportingText = { merchantError?.let { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next,
-                    capitalization = KeyboardCapitalization.Words
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                ),
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp)
-            )
-            
-            // Currency selection dialog state (declared early to avoid reference issues)
-            var currencyExpanded by remember { mutableStateOf(false) }
-            val currencyAdapter = remember { CurrencyAdapter() }
-            val currencies = remember { currencyAdapter.getSortedCurrencies() }
-            
-            // Amount field with inline currency selection
-            Column {
-                // Row containing amount field and currency button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically // Align centers for perfect alignment
-                ) {
-                    // Amount field (takes most of the space)
-                    OutlinedTextField(
+            // Merchant & Amount Card
+            SectionCard(
+                title = stringResource(R.string.transaction_details),
+                icon = Icons.Default.Store
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextField(
+                        value = merchant,
+                        onValueChange = { 
+                            merchant = it 
+                            merchantError = if (it.isBlank()) merchantRequiredText else null
+                        },
+                        label = { Text(stringResource(R.string.merchant)) },
+                        isError = merchantError != null,
+                        supportingText = merchantError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next,
+                            capitalization = KeyboardCapitalization.Words
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent
+                        )
+                    )
+                    
+                    TextField(
                         value = amount,
                         onValueChange = { newValue ->
-                            // Apply currency-specific validation and formatting
+                            // Always validate and format the amount input
                             val formattedAmount = validateAndFormatAmount(newValue, selectedCurrency)
-                            
                             amount = formattedAmount
+                            
+                            // Validate the formatted amount
                             amountError = when {
                                 formattedAmount.isBlank() -> amountRequiredText
+                                formattedAmount == "." -> invalidAmountText // Just a decimal point
                                 formattedAmount.toDoubleOrNull() == null -> invalidAmountText
                                 formattedAmount.toDoubleOrNull()!! <= 0 -> invalidAmountText
                                 else -> null
                             }
                         },
                         label = { Text(stringResource(R.string.amount)) },
+                        trailingIcon = {
+                            Box {
+                                CurrencySelectorChip(
+                                    selectedCurrency = selectedCurrency,
+                                    onCurrencyClick = { currencyExpanded = !currencyExpanded }
+                                )
+                                
+                                // Dropdown menu for common currencies
+                                DropdownMenu(
+                                    expanded = currencyExpanded,
+                                    onDismissRequest = { currencyExpanded = false },
+                                    properties = PopupProperties(focusable = false)
+                                ) {
+                                    // Common currencies
+                                    commonCurrencies.forEach { currency ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${currency.symbol} ${currency.code}",
+                                                        style = MaterialTheme.typography.bodyLarge
+                                                    )
+                                                    Text(
+                                                        text = currency.displayName,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                viewModel.updateSelectedCurrency(currency)
+                                                currencyExpanded = false
+                                            },
+                                            leadingIcon = if (selectedCurrency?.code == currency.code) {
+                                                {
+                                                    Icon(
+                                                        Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            } else null
+                                        )
+                                    }
+                                    
+                                    // "More currencies..." option if there are more than common ones
+                                    if (allCurrencies.size > commonCurrencies.size) {
+                                        HorizontalDivider()
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.MoreHoriz,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    Text(
+                                                        text = stringResource(R.string.more_currencies),
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                currencyExpanded = false
+                                                showCurrencyBottomSheet = true
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        },
                         isError = amountError != null,
-                        modifier = Modifier.weight(1f),
+                        supportingText = (amountError ?: selectedCurrency?.let {
+                            stringResource(R.string.currency_decimal_places_info, it.displayName, it.decimalPlaces)
+                        })?.let { { Text(it) } },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
                             imeAction = ImeAction.Next
@@ -753,233 +735,153 @@ fun AddExpenseScreen(
                         keyboardActions = KeyboardActions(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         ),
+                        modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        textStyle = TextStyle(
-                            textDirection = TextDirection.Ltr
-                        ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent
+                        )
+                    )
+                }
+            }
+            
+            
+            // Category Selection Card
+            
+            SectionCard(
+                title = stringResource(R.string.category),
+                icon = Icons.Default.Category
+            ) {
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextField(
+                        value = category,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.select_category)) },
+                        isError = categoryError != null,
+                        supportingText = categoryError?.let { { Text(it) } },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        )
                     )
                     
-                    // Circular currency button matching text field height
-                    CompactCircularCurrencyButton(
-                        selectedCurrency = selectedCurrency,
-                        onCurrencyClick = { currencyExpanded = true },
-                        enabled = true,
-                        modifier = Modifier.size(56.dp) // Match the text field content height
-                    )
-                }
-                
-                // Supporting text for amount field
-                if (amountError != null) {
-                    Text(
-                        text = amountError!!,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                } else {
-                    selectedCurrency?.let { currency ->
-                        Text(
-                            text = stringResource(R.string.currency_decimal_places_info, currency.displayName, currency.decimalPlaces),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-            }
-            
-            if (currencyExpanded) {
-                AlertDialog(
-                    onDismissRequest = { currencyExpanded = false },
-                    title = { Text(stringResource(R.string.select_currency)) },
-                    text = {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 400.dp)
-                        ) {
-                            currencies.forEach { currency ->
-                                val isSelected = currency.code == selectedCurrency?.code
-                                
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            viewModel.updateSelectedCurrency(currency)
-                                            currencyExpanded = false
-                                        }
-                                        .padding(vertical = 8.dp, horizontal = 16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (isSelected) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                    } else {
-                                        Spacer(modifier = Modifier.width(28.dp))
-                                    }
-                                    
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "${currency.code} - ${currency.symbol}",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = if (isSelected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurface
-                                            }
-                                        )
-                                        Text(
-                                            text = currency.displayName,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                    ExposedDropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = { categoryExpanded = false }
+                    ) {
+                        categories.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    category = option
+                                    categoryError = if (option.isBlank()) categoryRequiredText else null
+                                    categoryExpanded = false
                                 }
-                                
-                                if (currency != currencies.last()) {
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { currencyExpanded = false }) {
-                            Text(stringResource(R.string.cancel))
+                            )
                         }
                     }
-                )
-            }
-            
-            // Category dropdown
-            var categoryExpanded by remember { mutableStateOf(false) }
-            
-            ExposedDropdownMenuBox(
-                expanded = categoryExpanded,
-                onExpandedChange = { categoryExpanded = it },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { },
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.category)) },
-                    isError = categoryError != null,
-                    supportingText = { categoryError?.let { Text(it) } },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                
-                ExposedDropdownMenu(
-                    expanded = categoryExpanded,
-                    onDismissRequest = { categoryExpanded = false }
-                ) {
-                    categories.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(option) },
-                            onClick = {
-                                category = option
-                                categoryError = if (option.isBlank()) categoryRequiredText else null
-                                categoryExpanded = false
-                                focusManager.moveFocus(FocusDirection.Down)
-                            }
-                        )
-                    }
                 }
             }
             
-            // Payment Method and Type Card
-            FormSectionCard(
-                title = stringResource(R.string.payment_method_and_type),
+            // Payment Details Card
+            SectionCard(
+                title = stringResource(R.string.payment_details),
                 icon = Icons.Default.Payment
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Payment Type Section
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectableGroup(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        PillToggleButton(
-                            text = stringResource(R.string.one_time),
-                            isSelected = !isRecurring,
-                            onClick = { isRecurring = false },
-                            modifier = Modifier.weight(1f)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Payment Type
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.payment_type),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        PillToggleButton(
-                            text = stringResource(R.string.recurring),
-                            isSelected = isRecurring,
-                            onClick = { isRecurring = true },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // Payment Method Section
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectableGroup(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        PaymentMethod.values().forEach { paymentMethod ->
-                            PillToggleButton(
-                                text = getLocalizedPaymentMethodName(paymentMethod, LocalContext.current),
-                                isSelected = selectedPaymentMethod == paymentMethod,
-                                onClick = { selectedPaymentMethod = paymentMethod },
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = !isRecurring,
+                                onClick = { isRecurring = false },
+                                label = { Text(stringResource(R.string.one_time)) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = isRecurring,
+                                onClick = { isRecurring = true },
+                                label = { Text(stringResource(R.string.recurring)) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
 
-                    // Recurring Period Selection (only shown when recurring is selected)
+                    // Payment Method
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.payment_method),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            PaymentMethod.values().forEach { paymentMethod ->
+                                FilterChip(
+                                    selected = selectedPaymentMethod == paymentMethod,
+                                    onClick = { selectedPaymentMethod = paymentMethod },
+                                    label = { Text(getLocalizedPaymentMethodName(paymentMethod, LocalContext.current)) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    // Recurring Period
                     AnimatedVisibility(
                         visible = isRecurring,
-                        enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
-                        exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
                     ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = stringResource(R.string.recurring_period),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .selectableGroup(),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 RecurringPeriod.values().forEach { period ->
-                                    PillToggleButton(
-                                        text = when (period) {
-                                            RecurringPeriod.DAILY -> stringResource(R.string.daily)
-                                            RecurringPeriod.WEEKLY -> stringResource(R.string.weekly)
-                                            RecurringPeriod.MONTHLY -> stringResource(R.string.monthly)
-                                            RecurringPeriod.YEARLY -> stringResource(R.string.yearly)
-                                        },
-                                        isSelected = selectedRecurringPeriod == period,
+                                    FilterChip(
+                                        selected = selectedRecurringPeriod == period,
                                         onClick = { selectedRecurringPeriod = period },
+                                        label = { 
+                                            Text(when (period) {
+                                                RecurringPeriod.DAILY -> stringResource(R.string.daily)
+                                                RecurringPeriod.WEEKLY -> stringResource(R.string.weekly)
+                                                RecurringPeriod.MONTHLY -> stringResource(R.string.monthly)
+                                                RecurringPeriod.YEARLY -> stringResource(R.string.yearly)
+                                            })
+                                        },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -989,37 +891,39 @@ fun AddExpenseScreen(
                 }
             }
             
-            // Bank Card Selection (only shown when Credit card is selected)
+            // Bank Card Selection
             AnimatedVisibility(
                 visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD && bankCards.isNotEmpty(),
-                enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
-                exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
-                FormSectionCard(
+                SectionCard(
                     title = stringResource(R.string.select_bank_card),
                     icon = Icons.Default.CreditCard
                 ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         bankCards.forEach { card ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
                                     .selectable(
                                         selected = selectedBankCardId == card.id,
                                         onClick = { selectedBankCardId = card.id }
                                     )
-                                    .padding(vertical = 8.dp),
+                                    .background(
+                                        if (selectedBankCardId == card.id) 
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                        else Color.Transparent
+                                    )
+                                    .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
                                     selected = selectedBankCardId == card.id,
                                     onClick = { selectedBankCardId = card.id }
                                 )
-                                
                                 Spacer(modifier = Modifier.width(12.dp))
-                                
                                 Column {
                                     Text(
                                         text = card.alias,
@@ -1042,20 +946,17 @@ fun AddExpenseScreen(
                 }
             }
             
-            // Split Payment Options (only shown when Credit card or Cheque is selected)
+            // Split Payment Options
             AnimatedVisibility(
-                visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE,
-                enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
-                exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(200))
+                visible = !isRecurring && (selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
-                FormSectionCard(
+                SectionCard(
                     title = stringResource(R.string.payments_layout),
                     icon = Icons.Default.Repeat
                 ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Installment selection
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1063,76 +964,50 @@ fun AddExpenseScreen(
                         ) {
                             Text(
                                 text = stringResource(R.string.number_of_payments),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Decrease button
-                                IconButton(
-                                    onClick = { 
-                                        if (installments > 1) {
-                                            installments--
-                                        }
-                                    },
-                                    enabled = installments > 1
+                                FilledIconButton(
+                                    onClick = { if (installments > 1) installments-- },
+                                    enabled = installments > 1,
+                                    modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Remove,
-                                        contentDescription = stringResource(R.string.content_desc_decrease_installments),
-                                        tint = if (installments > 1) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
+                                    Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.content_desc_decrease_installments))
                                 }
                                 
-                                // Installment count display
                                 Text(
                                     text = installments.toString(),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier
                                         .width(40.dp)
-                                        .clickable { showInstallmentOptions = true }
+                                        .clickable { showInstallmentOptions = true },
+                                    textAlign = TextAlign.Center
                                 )
                                 
-                                // Increase button
-                                IconButton(
-                                    onClick = { 
-                                        if (installments < 36) {
-                                            installments++
-                                        }
-                                    },
-                                    enabled = installments < 36
+                                FilledIconButton(
+                                    onClick = { if (installments < 36) installments++ },
+                                    enabled = installments < 36,
+                                    modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Add,
-                                        contentDescription = stringResource(R.string.content_desc_increase_installments),
-                                        tint = if (installments < 36) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
+                                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.content_desc_increase_installments))
                                 }
                             }
                         }
                         
-                        // Monthly payment amount display
                         if (installments > 1 && amount.isNotEmpty() && amount.toDoubleOrNull() != null) {
                             val monthlyAmount = viewModel.calculateInstallmentAmount(amount.toDouble(), installments)
                             val currencySymbol = selectedCurrency?.symbol ?: "$"
                             
-                            Card(
+                            Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Column(
                                     modifier = Modifier.padding(16.dp),
@@ -1140,7 +1015,7 @@ fun AddExpenseScreen(
                                 ) {
                                     Text(
                                         text = stringResource(R.string.monthly_payment),
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                     Text(
@@ -1160,42 +1035,52 @@ fun AddExpenseScreen(
                 }
             }
             
-            // Notes field
-            OutlinedTextField(
-                value = notes,
-                onValueChange = { notes = it },
-                label = { Text(stringResource(R.string.notes)) },
-                placeholder = { Text(stringResource(R.string.notes_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 5,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done,
-                    capitalization = KeyboardCapitalization.Sentences
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = { focusManager.clearFocus() }
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
+            // Notes Card
+            SectionCard(
+                title = stringResource(R.string.notes),
+                icon = Icons.AutoMirrored.Filled.Notes
+            ) {
+                FilledTextFieldWithIcon(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = stringResource(R.string.notes),
+                    icon = Icons.AutoMirrored.Filled.Notes,
+                    placeholder = stringResource(R.string.notes_hint),
+                    singleLine = false,
+                    minLines = 3,
+                    maxLines = 5,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done,
+                        capitalization = KeyboardCapitalization.Sentences
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() }
+                    )
+                )
+            }
             
             // Add bottom padding to account for sticky save button
             Spacer(modifier = Modifier.height(80.dp))
             
             // Display error messages from ViewModel
             if (uiState is AddExpenseUiState.Error) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = (uiState as AddExpenseUiState.Error).message,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                SectionCard {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = (uiState as AddExpenseUiState.Error).message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         }
@@ -1208,38 +1093,33 @@ fun AddExpenseScreen(
             title = { Text(stringResource(R.string.select_number_of_installments)) },
             text = {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 300.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.choose_installment_months),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     
-                    // Quick selection buttons for common installment counts
+                    // Quick selection chips
                     val commonInstallments = listOf(1, 3, 6, 12, 18, 24, 36)
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(commonInstallments) { installmentCount ->
-                            PillToggleButton(
-                                text = "${installmentCount}x",
-                                isSelected = installments == installmentCount,
+                            FilterChip(
+                                selected = installments == installmentCount,
                                 onClick = { 
                                     installments = installmentCount
                                     showInstallmentOptions = false
                                 },
-                                modifier = Modifier.width(60.dp)
+                                label = { Text("${installmentCount}x") }
                             )
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
                     // Custom input
-                    OutlinedTextField(
+                    TextField(
                         value = installments.toString(),
                         onValueChange = { newValue ->
                             val newInstallments = newValue.toIntOrNull()
@@ -1249,7 +1129,8 @@ fun AddExpenseScreen(
                         },
                         label = { Text(stringResource(R.string.custom_installments)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
             },
@@ -1290,6 +1171,85 @@ fun AddExpenseScreen(
             DatePicker(state = datePickerState)
         }
     }
+    
+    // Currency Bottom Sheet for all currencies
+    if (showCurrencyBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showCurrencyBottomSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.select_currency),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 500.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    allCurrencies.forEach { currency ->
+                        val isSelected = currency.code == selectedCurrency?.code
+                        
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.updateSelectedCurrency(currency)
+                                    showCurrencyBottomSheet = false
+                                }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                            } else {
+                                Spacer(modifier = Modifier.width(36.dp))
+                            }
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${currency.symbol} ${currency.code}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
+                                )
+                                Text(
+                                    text = currency.displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        
+                        if (currency != allCurrencies.last()) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -1301,11 +1261,46 @@ data class ExpenseFormData(
     val currency: String,
     val category: String,
     val isRecurring: Boolean,
-    val recurringPeriod: RecurringPeriod? = null, // Recurring period when isRecurring is true
+    val recurringPeriod: RecurringPeriod? = null,
     val notes: String?,
     val date: Date,
     val paymentMethod: PaymentMethod,
-    val installments: Int? = null, // Only used for split payments
-    val installmentAmount: Double? = null, // Calculated monthly payment amount
-    val selectedBankCardId: Long? = null // Selected bank card ID when payment method is CREDIT_CARD
+    val installments: Int? = null,
+    val installmentAmount: Double? = null,
+    val selectedBankCardId: Long? = null
 )
+
+/**
+ * Preview for light mode
+ */
+@Preview(
+    name = "Add Expense Screen - Light",
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+private fun AddExpenseScreenPreviewLight() {
+    MaterialTheme {
+        AddExpenseScreen(
+            onNavigateBack = {}
+        )
+    }
+}
+
+/**
+ * Preview for dark mode
+ */
+@Preview(
+    name = "Add Expense Screen - Dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+private fun AddExpenseScreenPreviewDark() {
+    MaterialTheme {
+        AddExpenseScreen(
+            onNavigateBack = {}
+        )
+    }
+}

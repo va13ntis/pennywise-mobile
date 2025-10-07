@@ -74,11 +74,15 @@
     
     <!-- Expense Form -->
     <string name="new_expense">New Expense</string>
+    <string name="transaction_details">Transaction Details</string>
     <string name="merchant">Merchant</string>
     <string name="merchant_required">Merchant name is required</string>
     <string name="amount_required">Amount is required</string>
     <string name="invalid_amount">Please enter a valid amount</string>
     <string name="payment_type">Payment Type</string>
+    <string name="payment_method">Payment Method</string>
+    <string name="payment_details">Payment Details</string>
+    <string name="select_category">Select Category</string>
     <string name="one_time">One-time</string>
     <string name="recurring">Recurring</string>
     <string name="recurring_period">Recurring Period</string>
@@ -106,6 +110,7 @@
     <string name="category_entertainment">Entertainment</string>
     <string name="category_utilities">Utilities</string>
     <string name="category_health">Healthcare</string>
+    <string name="category_education">Education</string>
     <string name="category_other">Other</string>
     
     <!-- Authentication -->
@@ -178,6 +183,7 @@
     <string name="currency_required">Please select a currency</string>
     <string name="most_popular_currencies">Most Popular</string>
     <string name="all_currencies">All Currencies</string>
+    <string name="more_currencies">More currencies…</string>
     <string name="currency_usd">US Dollar ($)</string>
     <string name="currency_eur">Euro (€)</string>
     <string name="currency_gbp">British Pound (£)</string>
