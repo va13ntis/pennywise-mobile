@@ -59,7 +59,7 @@ class HomeViewModel @Inject constructor(
         filterRecurringTransactionsForMonth(allRecurring, currentMonth)
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = emptyList()
     )
     
@@ -71,7 +71,7 @@ class HomeViewModel @Inject constructor(
         filterSplitPaymentInstallmentsForMonth(allInstallments, currentMonth)
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = emptyList()
     )
     
@@ -100,7 +100,7 @@ class HomeViewModel @Inject constructor(
             .toSortedMap()
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = emptyMap()
     )
     
@@ -110,35 +110,52 @@ class HomeViewModel @Inject constructor(
             .sumOf { it.amount }
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = 0.0
     )
     
     val totalExpenses: StateFlow<Double> = combine(
         _transactions.asStateFlow(),
+        recurringTransactions,
         _selectedPaymentMethod.asStateFlow()
-    ) { transactions, selectedPaymentMethod ->
-        transactions
-            .filter { it.type == TransactionType.EXPENSE }
+    ) { transactions, recurringTransactions, selectedPaymentMethod ->
+        // Only include NON-recurring expenses from monthly transactions
+        val regularExpenses = transactions
+            .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
             .filter { transaction ->
                 selectedPaymentMethod?.let { method ->
                     transaction.paymentMethod == method
                 } ?: true // Show all if no filter selected
             }
             .sumOf { it.amount }
+        
+        val recurringExpenses = recurringTransactions
+            .filter { transaction ->
+                selectedPaymentMethod?.let { method ->
+                    transaction.paymentMethod == method
+                } ?: true // Show all if no filter selected
+            }
+            .sumOf { it.amount }
+        
+        regularExpenses + recurringExpenses
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = 0.0
     )
     
-    val netBalance: StateFlow<Double> = _transactions.map { transactions ->
+    val netBalance: StateFlow<Double> = combine(
+        _transactions.asStateFlow(),
+        recurringTransactions
+    ) { transactions, recurringTransactions ->
         val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-        val expenses = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-        income - expenses
+        // Only include NON-recurring expenses from monthly transactions
+        val regularExpenses = transactions.filter { it.type == TransactionType.EXPENSE && !it.isRecurring }.sumOf { it.amount }
+        val recurringExpenses = recurringTransactions.sumOf { it.amount }
+        income - (regularExpenses + recurringExpenses)
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = 0.0
     )
     
@@ -158,7 +175,7 @@ class HomeViewModel @Inject constructor(
         user?.defaultCurrency ?: "USD"
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = "USD"
     )
     
@@ -167,7 +184,7 @@ class HomeViewModel @Inject constructor(
      */
     val currencyConversionEnabled: StateFlow<Boolean> = settingsDataStore.currencyConversionEnabled.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = false
     )
     
@@ -176,7 +193,7 @@ class HomeViewModel @Inject constructor(
      */
     val originalCurrency: StateFlow<String> = settingsDataStore.originalCurrency.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = ""
     )
     
@@ -205,7 +222,7 @@ class HomeViewModel @Inject constructor(
     
     /**
      * Filter recurring transactions to show only those relevant for the current month
-     * This includes transactions that have a date within the current month
+     * Based on the recurrence pattern (DAILY, WEEKLY, MONTHLY, YEARLY)
      */
     private fun filterRecurringTransactionsForMonth(
         allRecurring: List<Transaction>,
@@ -213,24 +230,49 @@ class HomeViewModel @Inject constructor(
     ): List<Transaction> {
         if (allRecurring.isEmpty()) return emptyList()
         
-        val startOfMonth = currentMonth.atDay(1).atStartOfDay()
-        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
-        
         println("🔍 HomeViewModel: Filtering recurring transactions for month: $currentMonth")
-        println("🔍 HomeViewModel: Date range: $startOfMonth to $endOfMonth")
         println("🔍 HomeViewModel: Total recurring transactions to filter: ${allRecurring.size}")
         
         val filtered = allRecurring.filter { transaction ->
-            val transactionDate = transaction.date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+            val transactionDate = transaction.date.toInstant()
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDate()
+            val transactionYearMonth = YearMonth.from(transactionDate)
             
-            // Only include if the transaction date falls within the current month
-            val isInCurrentMonth = !transactionDate.isBefore(startOfMonth) && !transactionDate.isAfter(endOfMonth)
-            
-            if (isInCurrentMonth) {
-                println("✅ HomeViewModel: Including recurring transaction: ${transaction.description} - ${transactionDate.toLocalDate()}")
+            // Only show recurring transactions that started on or before the current month
+            if (transactionYearMonth.isAfter(currentMonth)) {
+                return@filter false
             }
             
-            isInCurrentMonth
+            // Check if this recurring transaction should appear in the current month
+            val shouldAppear = when (transaction.recurringPeriod) {
+                com.pennywise.app.domain.model.RecurringPeriod.DAILY -> {
+                    // Daily recurring: appears every month after start date
+                    true
+                }
+                com.pennywise.app.domain.model.RecurringPeriod.WEEKLY -> {
+                    // Weekly recurring: appears every month after start date
+                    true
+                }
+                com.pennywise.app.domain.model.RecurringPeriod.MONTHLY -> {
+                    // Monthly recurring: appears every month after start date
+                    true
+                }
+                com.pennywise.app.domain.model.RecurringPeriod.YEARLY -> {
+                    // Yearly recurring: appears only in the same month each year
+                    transactionDate.month == currentMonth.month
+                }
+                null -> {
+                    // Shouldn't happen for recurring transactions, but fall back to date check
+                    transactionYearMonth == currentMonth
+                }
+            }
+            
+            if (shouldAppear) {
+                println("✅ HomeViewModel: Including recurring transaction: ${transaction.description} (${transaction.recurringPeriod}) - started: ${transactionDate}")
+            }
+            
+            shouldAppear
         }
         
         println("🔍 HomeViewModel: Filtered to ${filtered.size} recurring transactions for $currentMonth")
@@ -481,8 +523,31 @@ class HomeViewModel @Inject constructor(
         val user = authManager.currentUser.value
         if (user != null) {
             println("🔄 HomeViewModel: Manual refresh requested")
-            // The continuous observations will automatically pick up any new data
-            // This method is mainly for debugging or future use
+            // Force refresh by triggering the current month change
+            val currentMonth = _currentMonth.value
+            _currentMonth.value = currentMonth.plusMonths(0) // This will trigger the flow to refresh
+            
+            // Also force refresh the recurring transactions and split payments
+            viewModelScope.launch {
+                try {
+                    // Force reload monthly transactions
+                    val transactions = transactionRepository.getTransactionsByMonth(currentMonth).first()
+                    _transactions.value = transactions
+                    println("✅ HomeViewModel: Refreshed ${transactions.size} monthly transactions")
+                    
+                    // Force reload recurring transactions
+                    val recurringTransactions = transactionRepository.getRecurringTransactions().first()
+                    _allRecurringTransactions.value = recurringTransactions
+                    println("✅ HomeViewModel: Refreshed ${recurringTransactions.size} recurring transactions")
+                    
+                    // Force reload split payment installments
+                    val installments = splitPaymentInstallmentRepository.getInstallments().first()
+                    _splitPaymentInstallments.value = installments
+                    println("✅ HomeViewModel: Refreshed ${installments.size} split payment installments")
+                } catch (e: Exception) {
+                    println("❌ HomeViewModel: Error during manual refresh: ${e.message}")
+                }
+            }
         }
     }
     
