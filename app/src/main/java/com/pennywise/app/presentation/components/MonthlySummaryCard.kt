@@ -78,7 +78,7 @@ private fun getLocalizedPaymentMethodName(paymentMethod: PaymentMethod, context:
     return when (paymentMethod) {
         PaymentMethod.CASH -> context.getString(R.string.payment_method_cash)
         PaymentMethod.CHEQUE -> context.getString(R.string.payment_method_cheque)
-        PaymentMethod.CREDIT_CARD -> "Credit Card"
+        PaymentMethod.CREDIT_CARD -> context.getString(R.string.payment_method_credit_card)
     }
 }
 
@@ -169,10 +169,6 @@ fun MonthlySummaryCard(
     totalExpenses: Double,
     currentMonth: YearMonth,
     currency: String = "",
-    currencyConversionEnabled: Boolean = false,
-    originalCurrency: String = "",
-    conversionState: HomeViewModel.ConversionState = HomeViewModel.ConversionState.Idle,
-    onConvertAmount: (Double) -> Unit = {},
     onPaymentMethodFilterChanged: (PaymentMethod?) -> Unit = {},
     onPreviousMonth: () -> Unit = {},
     onNextMonth: () -> Unit = {},
@@ -369,61 +365,6 @@ fun MonthlySummaryCard(
                 }
             }
             
-            // Currency conversion display
-            if (currencyConversionEnabled && originalCurrency.isNotEmpty() && originalCurrency != currency) {
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Trigger conversion for total expenses
-                LaunchedEffect(totalExpenses, originalCurrency, currency) {
-                    if (totalExpenses > 0) {
-                        onConvertAmount(totalExpenses)
-                    }
-                }
-                
-                when (conversionState) {
-                    is HomeViewModel.ConversionState.Loading -> {
-                        Text(
-                            text = stringResource(R.string.loading),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    is HomeViewModel.ConversionState.Success -> {
-                        val originalFormatted = CurrencyFormatter.formatAmount(
-                            conversionState.originalAmount, 
-                            originalCurrency,
-                            context
-                        )
-                        val convertedFormatted = CurrencyFormatter.formatAmount(
-                            conversionState.convertedAmount, 
-                            currency,
-                            context
-                        )
-                        
-                        Text(
-                            text = "$originalFormatted → $convertedFormatted",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        
-                        if (conversionState.isUsingCachedRate) {
-                            Text(
-                                text = stringResource(R.string.using_cached_rate),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    is HomeViewModel.ConversionState.Error -> {
-                        Text(
-                            text = stringResource(R.string.conversion_unavailable),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                    else -> { /* Idle state, do nothing */ }
-                }
-            }
             
             // Payment Method Filter (at bottom)
             Spacer(modifier = Modifier.height(16.dp))

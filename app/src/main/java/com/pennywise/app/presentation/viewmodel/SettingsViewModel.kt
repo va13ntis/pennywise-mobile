@@ -43,13 +43,6 @@ class SettingsViewModel @Inject constructor(
     private val _language = MutableStateFlow("")
     val language: StateFlow<String> = _language
 
-    // Currency conversion state
-    private val _currencyConversionEnabled = MutableStateFlow(false)
-    val currencyConversionEnabled: StateFlow<Boolean> = _currencyConversionEnabled
-
-    // Original currency state
-    private val _originalCurrency = MutableStateFlow("")
-    val originalCurrency: StateFlow<String> = _originalCurrency
 
     // Default currency state
     private val _defaultCurrencyState = MutableStateFlow<DefaultCurrencyState>(DefaultCurrencyState.Loading)
@@ -166,17 +159,6 @@ class SettingsViewModel @Inject constructor(
             _language.value = language
         }
 
-        viewModelScope.launch {
-            // Load currency conversion settings
-            val enabled = settingsDataStore.getCurrencyConversionEnabled()
-            _currencyConversionEnabled.value = enabled
-        }
-
-        viewModelScope.launch {
-            // Load original currency
-            val currency = settingsDataStore.getOriginalCurrency()
-            _originalCurrency.value = currency
-        }
     }
 
     private fun loadDefaultCurrency() {
@@ -305,19 +287,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setCurrencyConversionEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsDataStore.setCurrencyConversionEnabled(enabled)
-            _currencyConversionEnabled.value = enabled
-        }
-    }
-
-    fun setOriginalCurrency(currency: String) {
-        viewModelScope.launch {
-            settingsDataStore.setOriginalCurrency(currency)
-            _originalCurrency.value = currency
-        }
-    }
 
     fun updateDefaultCurrency(newCurrency: String) {
         viewModelScope.launch {

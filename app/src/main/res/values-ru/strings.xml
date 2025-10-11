@@ -34,7 +34,7 @@
     
     <!-- Payment Methods -->
     <string name="payment_method_cash">Наличные</string>
-    <string name="payment_method_credit_card">Кредитная карта</string>
+    <string name="payment_method_credit_card">Кредит</string>
     <string name="payment_method_cheque">Чек</string>
     <string name="recurring_expenses">Регулярные расходы</string>
     <string name="week_format">Неделя %d</string>
@@ -49,12 +49,14 @@
     <string name="add_expense">Добавить расход</string>
     <string name="no_transactions_yet">Пока нет транзакций</string>
     <string name="add_your_first_expense">Добавьте свой первый расход, чтобы начать</string>
+    <string name="no_transactions_message">Нет транзакций за этот месяц</string>
     
     <!-- Expense Form -->
     <string name="new_expense">Новый расход</string>
     <string name="transaction_details">Детали транзакции</string>
     <string name="merchant">Продавец</string>
     <string name="merchant_required">Название продавца обязательно</string>
+    <string name="frequent_merchants">Наиболее часто используемые</string>
     <string name="amount_required">Сумма обязательна</string>
     <string name="invalid_amount">Пожалуйста, введите действительную сумму</string>
     <string name="payment_type">Тип платежа</string>
@@ -137,10 +139,6 @@
     <string name="light_theme">Светлая тема</string>
     <string name="dark_theme">Темная тема</string>
     <string name="system_theme">Системная по умолчанию</string>
-    <string name="backup">Резервная копия</string>
-    <string name="cloud_backup">Облачное резервное копирование</string>
-    <string name="coming_soon">Скоро</string>
-    <string name="setup_backup">Настроить резервное копирование</string>
     <string name="back">Назад</string>
     
     <!-- Language -->
@@ -175,17 +173,6 @@
     <string name="recurring_monthly">Ежемесячно</string>
     <string name="recurring_yearly">Ежегодно</string>
     
-    <!-- Currency Conversion -->
-    <string name="currency_conversion">Конвертация валют</string>
-    <string name="enable_currency_conversion">Включить конвертацию валют</string>
-    <string name="original_currency">Исходная валюта</string>
-    <string name="converted_amount">Конвертированная сумма</string>
-    <string name="conversion_rate">Курс конвертации</string>
-    <string name="last_updated">Последнее обновление</string>
-    <string name="conversion_unavailable">Конвертация недоступна</string>
-    <string name="using_cached_rate">Используется кэшированный курс</string>
-    <string name="clear_conversion_cache">Очистить кэш конвертации</string>
-    <string name="cache_cleared">Кэш очищен</string>
     
     <!-- Default Currency Settings -->
     <string name="default_currency">Валюта по умолчанию</string>

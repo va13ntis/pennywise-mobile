@@ -209,7 +209,6 @@ PennyWise is designed as a **personal finance manager** where each installation 
 - Currency settings
 - Language settings
 - Authentication settings
-- Future: Cloud backup configuration
 
 ### 5. Bank Cards Screen (Work in Progress)
 - Manage bank cards
@@ -297,7 +296,6 @@ PennyWise is designed as a **personal finance manager** where each installation 
 - 🔲 Complete multi-language support (Hebrew with RTL, more languages)
 - 🔲 Budget tracking and alerts
 - 🔲 Financial reports and charts
-- 🔲 Cloud backup (Google Drive/OneDrive)
 - 🔲 Data export (CSV, PDF)
 - 🔲 Category customization
 - 🔲 Search and filtering

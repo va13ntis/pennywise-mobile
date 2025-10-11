@@ -367,4 +367,33 @@ object LocaleFormatter {
         
         return "$originalSymbol$originalFormatted ($targetSymbol$convertedFormatted)"
     }
+    
+    /**
+     * Format month and year using nominative case for month names
+     * This is especially important for Russian where DateTimeFormatter uses genitive case by default
+     * @param month The month number (1-12)
+     * @param year The year
+     * @param context The context for accessing string resources
+     * @return Formatted string like "Октябрь 2025" (nominative) instead of "октября 2025" (genitive)
+     */
+    fun formatMonthYear(month: Int, year: Int, context: Context): String {
+        val monthStringId = when (month) {
+            1 -> com.pennywise.app.R.string.month_january
+            2 -> com.pennywise.app.R.string.month_february
+            3 -> com.pennywise.app.R.string.month_march
+            4 -> com.pennywise.app.R.string.month_april
+            5 -> com.pennywise.app.R.string.month_may
+            6 -> com.pennywise.app.R.string.month_june
+            7 -> com.pennywise.app.R.string.month_july
+            8 -> com.pennywise.app.R.string.month_august
+            9 -> com.pennywise.app.R.string.month_september
+            10 -> com.pennywise.app.R.string.month_october
+            11 -> com.pennywise.app.R.string.month_november
+            12 -> com.pennywise.app.R.string.month_december
+            else -> throw IllegalArgumentException("Invalid month: $month")
+        }
+        
+        val monthName = context.getString(monthStringId)
+        return "$monthName $year"
+    }
 }

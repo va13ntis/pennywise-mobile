@@ -137,20 +137,10 @@ class DataSeeder @Inject constructor(
         return listOf(
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = 3500.0,
-                description = "Salary - ${getMonthName(month)} ${year}",
-                category = "Salary",
-                type = TransactionType.INCOME,
-                date = calendar.time,
-                isRecurring = true,
-                recurringPeriod = RecurringPeriod.MONTHLY,
-                createdAt = Date()
-            ),
-            TransactionEntity(
-                id = 0, // Let Room auto-generate the ID
                 amount = 500.0,
+                currency = "USD",
                 description = "Freelance Project",
-                category = "Freelance",
+                category = "freelance",
                 type = TransactionType.INCOME,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
                 isRecurring = false,
@@ -160,8 +150,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = 250.0,
+                currency = "USD",
                 description = "Investment Dividend",
-                category = "Investment",
+                category = "investment",
                 type = TransactionType.INCOME,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 20) }.time,
                 isRecurring = false,
@@ -171,8 +162,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = 100.0,
+                currency = "USD",
                 description = "Cash Gift",
-                category = "Gift",
+                category = "gift",
                 type = TransactionType.INCOME,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 25) }.time,
                 isRecurring = false,
@@ -193,9 +185,10 @@ class DataSeeder @Inject constructor(
             // Week 1 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -120.0,
+                amount = 120.0,
+                currency = "USD",
                 description = "Grocery Shopping",
-                category = "Groceries",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 2) }.time,
                 isRecurring = false,
@@ -204,9 +197,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -45.0,
+                amount = 45.0,
+                currency = "USD",
                 description = "Gas Station",
-                category = "Transportation",
+                category = "transport",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 3) }.time,
                 isRecurring = false,
@@ -215,9 +209,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -35.0,
+                amount = 35.0,
+                currency = "USD",
                 description = "Pharmacy",
-                category = "Healthcare",
+                category = "health",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 4) }.time,
                 isRecurring = false,
@@ -228,9 +223,10 @@ class DataSeeder @Inject constructor(
             // Week 2 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -85.0,
+                amount = 85.0,
+                currency = "USD",
                 description = "Restaurant Dinner",
-                category = "Dining Out",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 8) }.time,
                 isRecurring = false,
@@ -239,9 +235,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -200.0,
+                amount = 200.0,
+                currency = "USD",
                 description = "Shopping Mall",
-                category = "Clothing",
+                category = "shopping",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
                 isRecurring = false,
@@ -250,9 +247,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -20.0,
+                amount = 20.0,
+                currency = "USD",
                 description = "Mobile App Purchase",
-                category = "Software",
+                category = "shopping",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 12) }.time,
                 isRecurring = false,
@@ -263,9 +261,10 @@ class DataSeeder @Inject constructor(
             // Week 3 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -60.0,
+                amount = 60.0,
+                currency = "USD",
                 description = "Movie Tickets",
-                category = "Entertainment",
+                category = "entertainment",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 16) }.time,
                 isRecurring = false,
@@ -274,9 +273,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -95.0,
+                amount = 95.0,
+                currency = "USD",
                 description = "Gym Membership",
-                category = "Fitness",
+                category = "health",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 18) }.time,
                 isRecurring = false,
@@ -285,9 +285,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -50.0,
+                amount = 50.0,
+                currency = "USD",
                 description = "Bookstore",
-                category = "Education",
+                category = "education",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 19) }.time,
                 isRecurring = false,
@@ -298,9 +299,10 @@ class DataSeeder @Inject constructor(
             // Week 4 expenses
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -150.0,
+                amount = 150.0,
+                currency = "USD",
                 description = "Home Supplies",
-                category = "Household",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 22) }.time,
                 isRecurring = false,
@@ -309,9 +311,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -75.0,
+                amount = 75.0,
+                currency = "USD",
                 description = "Coffee Shop",
-                category = "Coffee",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 25) }.time,
                 isRecurring = false,
@@ -320,9 +323,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -120.0,
+                amount = 120.0,
+                currency = "USD",
                 description = "Pet Supplies",
-                category = "Pets",
+                category = "other",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 27) }.time,
                 isRecurring = false,
@@ -342,9 +346,10 @@ class DataSeeder @Inject constructor(
         return listOf(
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -1200.0,
+                amount = 1200.0,
+                currency = "USD",
                 description = "Rent Payment - ${getMonthName(month)} ${year}",
-                category = "Rent",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 1) }.time,
                 isRecurring = true,
@@ -353,9 +358,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -150.0,
+                amount = 150.0,
+                currency = "USD",
                 description = "Electricity Bill",
-                category = "Electricity",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 5) }.time,
                 isRecurring = true,
@@ -364,9 +370,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -80.0,
+                amount = 80.0,
+                currency = "USD",
                 description = "Internet Bill",
-                category = "Internet",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 7) }.time,
                 isRecurring = true,
@@ -375,9 +382,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0, // Let Room auto-generate the ID
-                amount = -25.0,
+                amount = 25.0,
+                currency = "USD",
                 description = "Netflix Subscription",
-                category = "Streaming",
+                category = "entertainment",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
                 isRecurring = true,
@@ -386,9 +394,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -60.0,
+                amount = 60.0,
+                currency = "USD",
                 description = "Phone Plan",
-                category = "Mobile",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
                 isRecurring = true,
@@ -397,9 +406,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -35.0,
+                amount = 35.0,
+                currency = "USD",
                 description = "Cloud Storage",
-                category = "Subscription",
+                category = "other",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 20) }.time,
                 isRecurring = true,
@@ -408,9 +418,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -15.0,
+                amount = 15.0,
+                currency = "USD",
                 description = "Music Streaming",
-                category = "Subscription",
+                category = "entertainment",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 23) }.time,
                 isRecurring = true,
@@ -515,9 +526,10 @@ class DataSeeder @Inject constructor(
         val recurringTransactions = mutableListOf(
             TransactionEntity(
                 id = 0,
-                amount = -1200.0, // Rent stays the same
+                amount = 1200.0, // Rent stays the same
+                currency = "USD",
                 description = "Rent Payment - ${getMonthName(month)} ${year}",
-                category = "Rent",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 1) }.time,
                 isRecurring = true,
@@ -526,9 +538,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -60.0, // Phone plan stays the same
+                amount = 60.0, // Phone plan stays the same
+                currency = "USD",
                 description = "Phone Plan",
-                category = "Mobile",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
                 isRecurring = true,
@@ -543,9 +556,10 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 // Electricity varies by season
-                amount = -130.0 * seasonalFactor,
+                amount = 130.0 * seasonalFactor,
+                currency = "USD",
                 description = "Electricity Bill",
-                category = "Electricity",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 5) }.time,
                 isRecurring = true,
@@ -558,9 +572,10 @@ class DataSeeder @Inject constructor(
         recurringTransactions.addAll(listOf(
             TransactionEntity(
                 id = 0,
-                amount = -80.0,
+                amount = 80.0,
+                currency = "USD",
                 description = "Internet Bill",
-                category = "Internet",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 7) }.time,
                 isRecurring = true,
@@ -569,9 +584,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -25.0,
+                amount = 25.0,
+                currency = "USD",
                 description = "Netflix Subscription",
-                category = "Streaming",
+                category = "entertainment",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
                 isRecurring = true,
@@ -580,9 +596,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -15.0,
+                amount = 15.0,
+                currency = "USD",
                 description = "Music Streaming",
-                category = "Subscription",
+                category = "entertainment",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 23) }.time,
                 isRecurring = true,
@@ -601,20 +618,7 @@ class DataSeeder @Inject constructor(
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
-        val incomeTransactions = mutableListOf<TransactionEntity>(
-            // Regular salary - consistent each month
-            TransactionEntity(
-                id = 0,
-                amount = 3500.0,
-                description = "Salary - ${getMonthName(month)} ${year}",
-                category = "Salary",
-                type = TransactionType.INCOME,
-                date = calendar.time,
-                isRecurring = true,
-                recurringPeriod = RecurringPeriod.MONTHLY,
-                createdAt = getHistoricalCreatedDate(calendar.time)
-            )
-        )
+        val incomeTransactions = mutableListOf<TransactionEntity>()
         
         // Add variable freelance income - not every month
         if (monthsAgo % 2 == 0) { // Every other month
@@ -622,8 +626,9 @@ class DataSeeder @Inject constructor(
                 TransactionEntity(
                     id = 0,
                     amount = 400.0 + (monthsAgo * 20), // Slightly variable amount
+                    currency = "USD",
                     description = "Freelance Project",
-                    category = "Freelance",
+                    category = "freelance",
                     type = TransactionType.INCOME,
                     date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
                     isRecurring = false,
@@ -639,8 +644,9 @@ class DataSeeder @Inject constructor(
                 TransactionEntity(
                     id = 0,
                     amount = 250.0,
+                    currency = "USD",
                     description = "Investment Dividend",
-                    category = "Investment",
+                    category = "investment",
                     type = TransactionType.INCOME,
                     date = calendar.apply { set(Calendar.DAY_OF_MONTH, 20) }.time,
                     isRecurring = false,
@@ -656,8 +662,9 @@ class DataSeeder @Inject constructor(
                 TransactionEntity(
                     id = 0,
                     amount = 150.0,
+                    currency = "USD",
                     description = "Holiday Gift",
-                    category = "Gift",
+                    category = "gift",
                     type = TransactionType.INCOME,
                     date = calendar.apply { 
                         set(Calendar.DAY_OF_MONTH, if (month == 11) 25 else 5) 
@@ -688,9 +695,10 @@ class DataSeeder @Inject constructor(
                 regularExpenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -(100.0 + (Math.random() * 40)), // Variable grocery expenses
+                        amount = (100.0 + (Math.random() * 40)), // Variable grocery expenses
+                        currency = "USD",
                         description = "Grocery Shopping",
-                        category = "Groceries",
+                        category = "food",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { set(Calendar.DAY_OF_MONTH, groceryDay) }.time,
                         isRecurring = false,
@@ -706,9 +714,10 @@ class DataSeeder @Inject constructor(
             regularExpenses.add(
                 TransactionEntity(
                     id = 0,
-                    amount = -45.0,
+                    amount = 45.0,
+                    currency = "USD",
                     description = "Gas Station",
-                    category = "Transportation",
+                    category = "transport",
                     type = TransactionType.EXPENSE,
                     date = calendar.apply { set(Calendar.DAY_OF_MONTH, 3 + (week * 14)) }.time,
                     isRecurring = false,
@@ -726,9 +735,10 @@ class DataSeeder @Inject constructor(
                 regularExpenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -(40.0 + (Math.random() * 60)), // Variable dining expenses
+                        amount = (40.0 + (Math.random() * 60)), // Variable dining expenses
+                        currency = "USD",
                         description = "Restaurant Dinner",
-                        category = "Dining Out",
+                        category = "food",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { set(Calendar.DAY_OF_MONTH, diningDay) }.time,
                         isRecurring = false,
@@ -747,9 +757,10 @@ class DataSeeder @Inject constructor(
             regularExpenses.add(
                 TransactionEntity(
                     id = 0,
-                    amount = -35.0,
+                    amount = 35.0,
+                    currency = "USD",
                     description = "Pharmacy",
-                    category = "Healthcare",
+                    category = "health",
                     type = TransactionType.EXPENSE,
                     date = calendar.apply { set(Calendar.DAY_OF_MONTH, 14) }.time,
                     isRecurring = false,
@@ -764,9 +775,10 @@ class DataSeeder @Inject constructor(
             regularExpenses.add(
                 TransactionEntity(
                     id = 0,
-                    amount = -60.0,
+                    amount = 60.0,
+                    currency = "USD",
                     description = "Movie Tickets",
-                    category = "Entertainment",
+                    category = "entertainment",
                     type = TransactionType.EXPENSE,
                     date = calendar.apply { set(Calendar.DAY_OF_MONTH, 16) }.time,
                     isRecurring = false,
@@ -792,9 +804,10 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -150.0,
+                        amount = 150.0,
+                        currency = "USD",
                         description = "Post-Holiday Sales Shopping",
-                        category = "Clothing",
+                        category = "shopping",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
                         isRecurring = false,
@@ -807,9 +820,10 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -120.0,
+                        amount = 120.0,
+                        currency = "USD",
                         description = "Valentine's Day Dinner",
-                        category = "Dining Out",
+                        category = "food",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { set(Calendar.DAY_OF_MONTH, 14) }.time,
                         isRecurring = false,
@@ -822,9 +836,10 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -180.0,
+                        amount = 180.0,
+                        currency = "USD",
                         description = "Spring Wardrobe Update",
-                        category = "Clothing",
+                        category = "shopping",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { set(Calendar.DAY_OF_MONTH, 12) }.time,
                         isRecurring = false,
@@ -837,9 +852,10 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -95.0,
+                        amount = 95.0,
+                        currency = "USD",
                         description = "Beach Day Trip",
-                        category = "Entertainment",
+                        category = "entertainment",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { set(Calendar.DAY_OF_MONTH, 18) }.time,
                         isRecurring = false,
@@ -852,9 +868,10 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -210.0,
+                        amount = 210.0,
+                        currency = "USD",
                         description = "Fall Shopping",
-                        category = "Clothing",
+                        category = "shopping",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
                         isRecurring = false,
@@ -867,9 +884,10 @@ class DataSeeder @Inject constructor(
                 expenses.add(
                     TransactionEntity(
                         id = 0,
-                        amount = -350.0,
+                        amount = 350.0,
+                        currency = "USD",
                         description = "Holiday Gift Shopping",
-                        category = "Gifts",
+                        category = "shopping",
                         type = TransactionType.EXPENSE,
                         date = calendar.apply { 
                             set(Calendar.DAY_OF_MONTH, if (month == 10) 28 else 15) 
@@ -948,9 +966,10 @@ class DataSeeder @Inject constructor(
         return listOf(
             TransactionEntity(
                 id = 0,
-                amount = -1200.0, // Rent stays the same
+                amount = 1200.0, // Rent stays the same
+                currency = "USD",
                 description = "Rent Payment - ${getMonthName(month)} ${year}",
-                category = "Rent",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 1) }.time,
                 isRecurring = true,
@@ -959,9 +978,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -150.0, // Electricity varies slightly
+                amount = 150.0, // Electricity varies slightly
+                currency = "USD",
                 description = "Electricity Bill",
-                category = "Electricity",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 5) }.time,
                 isRecurring = true,
@@ -970,9 +990,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -80.0,
+                amount = 80.0,
+                currency = "USD",
                 description = "Internet Bill",
-                category = "Internet",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 7) }.time,
                 isRecurring = true,
@@ -981,9 +1002,10 @@ class DataSeeder @Inject constructor(
             ),
             TransactionEntity(
                 id = 0,
-                amount = -25.0,
+                amount = 25.0,
+                currency = "USD",
                 description = "Netflix Subscription",
-                category = "Streaming",
+                category = "entertainment",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 10) }.time,
                 isRecurring = true,
@@ -993,8 +1015,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -60.0,
+                currency = "USD",
                 description = "Phone Plan",
-                category = "Mobile",
+                category = "utilities",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
                 isRecurring = true,
@@ -1011,19 +1034,7 @@ class DataSeeder @Inject constructor(
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
         
-        val incomeTransactions = mutableListOf(
-            TransactionEntity(
-                id = 0,
-                amount = 3500.0,
-                description = "Salary - ${getMonthName(month)} ${year}",
-                category = "Salary",
-                type = TransactionType.INCOME,
-                date = calendar.time,
-                isRecurring = true,
-                recurringPeriod = RecurringPeriod.MONTHLY,
-                createdAt = getHistoricalCreatedDate(calendar.time)
-            )
-        )
+        val incomeTransactions = mutableListOf<TransactionEntity>()
         
         // Add occasional freelance income
         if (monthsAhead % 2 == 0) {
@@ -1031,8 +1042,9 @@ class DataSeeder @Inject constructor(
                 TransactionEntity(
                     id = 0,
                     amount = 450.0,
+                    currency = "USD",
                     description = "Freelance Project",
-                    category = "Freelance",
+                    category = "freelance",
                     type = TransactionType.INCOME,
                     date = calendar.apply { set(Calendar.DAY_OF_MONTH, 15) }.time,
                     isRecurring = false,
@@ -1057,8 +1069,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -110.0,
+                currency = "USD",
                 description = "Grocery Shopping",
-                category = "Groceries",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 2) }.time,
                 isRecurring = false,
@@ -1068,8 +1081,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -125.0,
+                currency = "USD",
                 description = "Grocery Shopping",
-                category = "Groceries",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 16) }.time,
                 isRecurring = false,
@@ -1079,8 +1093,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -95.0,
+                currency = "USD",
                 description = "Grocery Shopping",
-                category = "Groceries",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 28) }.time,
                 isRecurring = false,
@@ -1092,8 +1107,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -50.0,
+                currency = "USD",
                 description = "Gas Station",
-                category = "Transportation",
+                category = "transport",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 5) }.time,
                 isRecurring = false,
@@ -1103,8 +1119,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -45.0,
+                currency = "USD",
                 description = "Gas Station",
-                category = "Transportation",
+                category = "transport",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 20) }.time,
                 isRecurring = false,
@@ -1116,8 +1133,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -75.0,
+                currency = "USD",
                 description = "Restaurant Dinner",
-                category = "Dining Out",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 8) }.time,
                 isRecurring = false,
@@ -1127,8 +1145,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -55.0,
+                currency = "USD",
                 description = "Coffee Shop",
-                category = "Coffee",
+                category = "food",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 22) }.time,
                 isRecurring = false,
@@ -1140,8 +1159,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -65.0,
+                currency = "USD",
                 description = "Movie Tickets",
-                category = "Entertainment",
+                category = "entertainment",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 12) }.time,
                 isRecurring = false,
@@ -1153,8 +1173,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -180.0,
+                currency = "USD",
                 description = "Shopping Mall",
-                category = "Clothing",
+                category = "shopping",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 18) }.time,
                 isRecurring = false,
@@ -1164,8 +1185,9 @@ class DataSeeder @Inject constructor(
             TransactionEntity(
                 id = 0,
                 amount = -40.0,
+                currency = "USD",
                 description = "Pharmacy",
-                category = "Healthcare",
+                category = "health",
                 type = TransactionType.EXPENSE,
                 date = calendar.apply { set(Calendar.DAY_OF_MONTH, 25) }.time,
                 isRecurring = false,

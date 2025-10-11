@@ -66,6 +66,13 @@ class AddExpenseViewModel @Inject constructor(
     private val _defaultPaymentMethod = MutableStateFlow<com.pennywise.app.domain.model.PaymentMethod>(com.pennywise.app.domain.model.PaymentMethod.CASH)
     val defaultPaymentMethod: StateFlow<com.pennywise.app.domain.model.PaymentMethod> = _defaultPaymentMethod
     
+    // Merchant suggestions
+    private val _merchantSuggestions = MutableStateFlow<List<String>>(emptyList())
+    val merchantSuggestions: StateFlow<List<String>> = _merchantSuggestions
+    
+    private val _topMerchants = MutableStateFlow<List<String>>(emptyList())
+    val topMerchants: StateFlow<List<String>> = _topMerchants
+    
     // Current user
     val currentUser = authManager.currentUser
     
@@ -153,6 +160,26 @@ class AddExpenseViewModel @Inject constructor(
             } catch (e: Exception) {
                 // Handle error - keep CASH as fallback
                 _defaultPaymentMethod.value = com.pennywise.app.domain.model.PaymentMethod.CASH
+            }
+        }
+    }
+    
+    /**
+     * Load merchant suggestions based on category
+     */
+    fun loadMerchantSuggestions(category: String) {
+        viewModelScope.launch {
+            try {
+                val merchants = transactionRepository.getFrequentMerchantsByCategory(
+                    category = category,
+                    limit = 20
+                )
+                _merchantSuggestions.value = merchants
+                _topMerchants.value = merchants.take(5) // Top 5 for chips
+            } catch (e: Exception) {
+                // Silently fail - suggestions are optional
+                _merchantSuggestions.value = emptyList()
+                _topMerchants.value = emptyList()
             }
         }
     }

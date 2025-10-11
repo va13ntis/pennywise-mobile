@@ -8,7 +8,6 @@ import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.data.util.SettingsDataStore
-import com.pennywise.app.data.service.CurrencyConversionService
 import com.pennywise.app.presentation.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +36,6 @@ class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val splitPaymentInstallmentRepository: SplitPaymentInstallmentRepository,
     private val settingsDataStore: SettingsDataStore,
-    private val currencyConversionService: CurrencyConversionService,
     private val authManager: AuthManager
 ) : ViewModel() {
     
@@ -179,46 +177,7 @@ class HomeViewModel @Inject constructor(
         initialValue = "USD"
     )
     
-    /**
-     * Flow of the currency conversion enabled state
-     */
-    val currencyConversionEnabled: StateFlow<Boolean> = settingsDataStore.currencyConversionEnabled.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = false
-    )
     
-    /**
-     * Flow of the original currency preference
-     */
-    val originalCurrency: StateFlow<String> = settingsDataStore.originalCurrency.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = ""
-    )
-    
-    /**
-     * State for currency conversion operations
-     */
-    private val _conversionState = MutableStateFlow<ConversionState>(ConversionState.Idle)
-    val conversionState: StateFlow<ConversionState> = _conversionState.asStateFlow()
-    
-    /**
-     * Sealed class representing different conversion states
-     */
-    sealed class ConversionState {
-        object Idle : ConversionState()
-        object Loading : ConversionState()
-        data class Success(
-            val originalAmount: Double,
-            val convertedAmount: Double,
-            val originalCurrency: String,
-            val targetCurrency: String,
-            val conversionRate: Double,
-            val isUsingCachedRate: Boolean = false
-        ) : ConversionState()
-        data class Error(val message: String) : ConversionState()
-    }
     
     /**
      * Filter recurring transactions to show only those relevant for the current month
@@ -551,49 +510,6 @@ class HomeViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Convert an amount from original currency to target currency
-     */
-    fun convertAmount(amount: Double) {
-        val enabled = currencyConversionEnabled.value
-        val original = originalCurrency.value
-        val target = currency.value
-        
-        if (!enabled || original.isEmpty() || target.isEmpty() || original == target) {
-            _conversionState.value = ConversionState.Idle
-            return
-        }
-        
-        viewModelScope.launch {
-            try {
-                _conversionState.value = ConversionState.Loading
-                
-                val convertedAmount = currencyConversionService.convertCurrency(amount, original, target)
-                
-                if (convertedAmount != null) {
-                    val conversionRate = convertedAmount / amount
-                    _conversionState.value = ConversionState.Success(
-                        originalAmount = amount,
-                        convertedAmount = convertedAmount,
-                        originalCurrency = original,
-                        targetCurrency = target,
-                        conversionRate = conversionRate
-                    )
-                } else {
-                    _conversionState.value = ConversionState.Error("Conversion failed")
-                }
-            } catch (e: Exception) {
-                _conversionState.value = ConversionState.Error("Conversion error: ${e.message}")
-            }
-        }
-    }
-    
-    /**
-     * Clear conversion state
-     */
-    fun clearConversionState() {
-        _conversionState.value = ConversionState.Idle
-    }
     
     /**
      * Clean up resources when ViewModel is cleared

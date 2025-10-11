@@ -34,7 +34,7 @@
     
     <!-- Payment Methods -->
     <string name="payment_method_cash">מזומן</string>
-    <string name="payment_method_credit_card">כרטיס אשראי</string>
+    <string name="payment_method_credit_card">אשראי</string>
     <string name="payment_method_cheque">צ\'ק</string>
     <string name="recurring_expenses">הוצאות קבועות</string>
     <string name="week_format">שבוע %d</string>
@@ -49,12 +49,14 @@
     <string name="add_expense">הוסף הוצאה</string>
     <string name="no_transactions_yet">אין עסקאות עדיין</string>
     <string name="add_your_first_expense">הוסף את ההוצאה הראשונה שלך כדי להתחיל</string>
+    <string name="no_transactions_message">אין עסקאות לחודש זה</string>
     
     <!-- Expense Form -->
     <string name="new_expense">הוצאה חדשה</string>
     <string name="transaction_details">פרטי העסקה</string>
     <string name="merchant">בית עסק</string>
     <string name="merchant_required">שם בית העסק נדרש</string>
+    <string name="frequent_merchants">הנפוצים ביותר</string>
     <string name="amount_required">הסכום נדרש</string>
     <string name="invalid_amount">אנא הכנס סכום תקין</string>
     <string name="payment_type">סוג תשלום</string>
@@ -137,10 +139,6 @@
     <string name="light_theme">ערכת נושא בהירה</string>
     <string name="dark_theme">ערכת נושא כהה</string>
     <string name="system_theme">ברירת מחדל של המערכת</string>
-    <string name="backup">גיבוי</string>
-    <string name="cloud_backup">גיבוי ענן</string>
-    <string name="coming_soon">בקרוב</string>
-    <string name="setup_backup">הגדר גיבוי</string>
     <string name="back">חזור</string>
     
     <!-- Language -->
@@ -175,17 +173,6 @@
     <string name="recurring_monthly">חודשי</string>
     <string name="recurring_yearly">שנתי</string>
     
-    <!-- Currency Conversion -->
-    <string name="currency_conversion">המרת מטבע</string>
-    <string name="enable_currency_conversion">הפעל המרת מטבע</string>
-    <string name="original_currency">מטבע מקורי</string>
-    <string name="converted_amount">סכום מומר</string>
-    <string name="conversion_rate">שער המרה</string>
-    <string name="last_updated">עודכן לאחרונה</string>
-    <string name="conversion_unavailable">המרה לא זמינה</string>
-    <string name="using_cached_rate">משתמש בשער שמור</string>
-    <string name="clear_conversion_cache">נקה שמירת המרה</string>
-    <string name="cache_cleared">השמירה נוקתה</string>
     
     <!-- Default Currency Settings -->
     <string name="default_currency">מטבע ברירת מחדל</string>

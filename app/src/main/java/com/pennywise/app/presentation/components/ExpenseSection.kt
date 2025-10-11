@@ -52,10 +52,6 @@ fun ExpenseSection(
     title: String,
     transactions: List<Transaction>,
     currency: String = "",
-    currencyConversionEnabled: Boolean = false,
-    originalCurrency: String = "",
-    conversionState: HomeViewModel.ConversionState = HomeViewModel.ConversionState.Idle,
-    onConvertAmount: (Double) -> Unit = {},
     modifier: Modifier = Modifier,
     isRecurring: Boolean = false
 ) {
@@ -112,53 +108,6 @@ fun ExpenseSection(
                         textAlign = TextAlign.Start
                     )
                     
-                    // Currency conversion display
-                    if (currencyConversionEnabled && originalCurrency.isNotEmpty() && originalCurrency != currency) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        
-                        // Trigger conversion for total amount
-                        LaunchedEffect(totalAmount, originalCurrency, currency) {
-                            if (totalAmount > 0) {
-                                onConvertAmount(totalAmount)
-                            }
-                        }
-                        
-                        when (conversionState) {
-                            is HomeViewModel.ConversionState.Loading -> {
-                                Text(
-                                    text = stringResource(R.string.loading),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            is HomeViewModel.ConversionState.Success -> {
-                                val originalFormatted = CurrencyFormatter.formatAmount(
-                                    conversionState.originalAmount, 
-                                    originalCurrency,
-                                    context
-                                )
-                                val convertedFormatted = CurrencyFormatter.formatAmount(
-                                    conversionState.convertedAmount, 
-                                    currency,
-                                    context
-                                )
-                                
-                                Text(
-                                    text = "$originalFormatted → $convertedFormatted",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            is HomeViewModel.ConversionState.Error -> {
-                                Text(
-                                    text = stringResource(R.string.conversion_unavailable),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                            else -> { /* Idle state, do nothing */ }
-                        }
-                    }
                 }
                 
                 Spacer(modifier = Modifier.width(8.dp))

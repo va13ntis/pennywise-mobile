@@ -94,8 +94,6 @@ fun SettingsScreen(
 ) {
     val themeMode by viewModel.themeMode.collectAsState(initial = SettingsViewModel.ThemeMode.SYSTEM)
     val language by viewModel.language.collectAsState(initial = "")
-    val currencyConversionEnabled by viewModel.currencyConversionEnabled.collectAsState(initial = false)
-    val originalCurrency by viewModel.originalCurrency.collectAsState(initial = "")
     val defaultCurrencyState by viewModel.defaultCurrencyState.collectAsState(initial = SettingsViewModel.DefaultCurrencyState.Loading)
     val currencyUpdateState by viewModel.currencyUpdateState.collectAsState(initial = SettingsViewModel.CurrencyUpdateState.Idle)
     
@@ -114,9 +112,7 @@ fun SettingsScreen(
     var isAppearanceExpanded by remember { mutableStateOf(false) }
     var isLanguageExpanded by remember { mutableStateOf(false) }
     var isDefaultCurrencyExpanded by remember { mutableStateOf(false) }
-    var isCurrencyConversionExpanded by remember { mutableStateOf(false) }
     var isPaymentMethodsExpanded by remember { mutableStateOf(false) }
-    var isBackupExpanded by remember { mutableStateOf(false) }
     var isAccountExpanded by remember { mutableStateOf(false) }
     var isDeveloperOptionsExpanded by remember { mutableStateOf(false) }
     
@@ -417,121 +413,6 @@ fun SettingsScreen(
                 }
             }
             
-            // Currency conversion section
-            item {
-                CollapsibleSection(
-                    title = stringResource(R.string.currency_conversion),
-                    isExpanded = isCurrencyConversionExpanded,
-                    onToggle = { isCurrencyConversionExpanded = !isCurrencyConversionExpanded }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
-                        // Enable currency conversion toggle
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { viewModel.setCurrencyConversionEnabled(!currencyConversionEnabled) }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(R.string.enable_currency_conversion),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f)
-                            )
-                            
-                            Switch(
-                                checked = currencyConversionEnabled,
-                                onCheckedChange = { viewModel.setCurrencyConversionEnabled(it) },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            )
-                        }
-                        
-                        // Original currency selection (only show if conversion is enabled)
-                        if (currencyConversionEnabled) {
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                            
-                            Text(
-                                text = stringResource(R.string.original_currency),
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                            
-                            // Original currency options
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_usd),
-                                selected = originalCurrency.isEmpty() || originalCurrency == "USD",
-                                onClick = { viewModel.setOriginalCurrency("USD") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_eur),
-                                selected = originalCurrency == "EUR",
-                                onClick = { viewModel.setOriginalCurrency("EUR") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_gbp),
-                                selected = originalCurrency == "GBP",
-                                onClick = { viewModel.setOriginalCurrency("GBP") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_ils),
-                                selected = originalCurrency == "ILS",
-                                onClick = { viewModel.setOriginalCurrency("ILS") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_rub),
-                                selected = originalCurrency == "RUB",
-                                onClick = { viewModel.setOriginalCurrency("RUB") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_jpy),
-                                selected = originalCurrency == "JPY",
-                                onClick = { viewModel.setOriginalCurrency("JPY") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_cad),
-                                selected = originalCurrency == "CAD",
-                                onClick = { viewModel.setOriginalCurrency("CAD") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_aud),
-                                selected = originalCurrency == "AUD",
-                                onClick = { viewModel.setOriginalCurrency("AUD") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_chf),
-                                selected = originalCurrency == "CHF",
-                                onClick = { viewModel.setOriginalCurrency("CHF") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_cny),
-                                selected = originalCurrency == "CNY",
-                                onClick = { viewModel.setOriginalCurrency("CNY") }
-                            )
-                            
-                            CurrencyOption(
-                                title = stringResource(R.string.currency_inr),
-                                selected = originalCurrency == "INR",
-                                onClick = { viewModel.setOriginalCurrency("INR") }
-                            )
-                        }
-                    }
-                }
-            }
-            
             // Payment Methods section
             item {
                 CollapsibleSection(
@@ -709,53 +590,6 @@ fun SettingsScreen(
                                 )
                             }
                             else -> { /* Idle state, do nothing */ }
-                        }
-                    }
-                }
-            }
-            
-            // Cloud backup section
-            item {
-                CollapsibleSection(
-                    title = stringResource(R.string.backup),
-                    isExpanded = isBackupExpanded,
-                    onToggle = { isBackupExpanded = !isBackupExpanded }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CloudUpload,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = stringResource(R.string.cloud_backup),
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
-                        
-                        Text(
-                            text = stringResource(R.string.coming_soon),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                        
-                        Button(
-                            onClick = { /* To be implemented in future */ },
-                            enabled = false,
-                            modifier = Modifier.padding(top = 16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.setup_backup))
                         }
                     }
                 }

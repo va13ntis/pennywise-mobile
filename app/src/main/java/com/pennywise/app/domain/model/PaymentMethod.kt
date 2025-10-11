@@ -5,7 +5,7 @@ package com.pennywise.app.domain.model
  */
 enum class PaymentMethod(val displayName: String, val isCreditCard: Boolean = false) {
     CASH("Cash"),
-    CREDIT_CARD("Credit Card", isCreditCard = true),
+    CREDIT_CARD("Credit", isCreditCard = true),
     CHEQUE("Cheque");
     
     companion object {

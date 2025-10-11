@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -65,9 +66,9 @@ import com.pennywise.app.presentation.components.RecurringExpensesSection
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.util.CategoryMapper
+import com.pennywise.app.presentation.util.LocaleFormatter
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 
 /**
  * Modern home screen with Material 3 design
@@ -188,6 +189,33 @@ fun HomeScreen(
                 }
             }
             
+            // Empty state message when no transactions
+            if (transactionsByWeek.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_transactions_message),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+            
             // Weekly Summary Cards (sorted in descending order - most recent first)
             val sortedWeeks = transactionsByWeek.entries
                 .sortedByDescending { it.key }
@@ -296,6 +324,8 @@ private fun MonthNavigationRow(
     isRtl: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -314,9 +344,13 @@ private fun MonthNavigationRow(
             )
         }
         
-        // Month/year text
+        // Month/year text using LocaleFormatter to get nominative case for Russian
         Text(
-            text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+            text = LocaleFormatter.formatMonthYear(
+                month = currentMonth.monthValue,
+                year = currentMonth.year,
+                context = context
+            ),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface

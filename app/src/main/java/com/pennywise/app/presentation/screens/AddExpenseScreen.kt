@@ -305,6 +305,8 @@ fun AddExpenseScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val bankCards by viewModel.bankCards.collectAsState()
     val defaultPaymentMethod by viewModel.defaultPaymentMethod.collectAsState()
+    val merchantSuggestions by viewModel.merchantSuggestions.collectAsState()
+    val topMerchants by viewModel.topMerchants.collectAsState()
     
     LaunchedEffect(currentUser) {
         Log.d("AddExpenseScreen", "Current user: $currentUser")
@@ -328,6 +330,18 @@ fun AddExpenseScreen(
     var currencyExpanded by remember { mutableStateOf(false) }
     var showCurrencyBottomSheet by remember { mutableStateOf(false) }
     var categoryExpanded by remember { mutableStateOf(false) }
+    
+    // Merchant autocomplete states
+    var showMerchantSuggestions by remember { mutableStateOf(false) }
+    val filteredMerchantSuggestions = remember(merchant, merchantSuggestions) {
+        if (merchant.isBlank()) {
+            emptyList()
+        } else {
+            merchantSuggestions.filter { 
+                it.contains(merchant, ignoreCase = true) 
+            }.take(5)
+        }
+    }
     
     // Initialize payment method from user's default preference
     LaunchedEffect(defaultPaymentMethod) {
@@ -426,6 +440,14 @@ fun AddExpenseScreen(
     LaunchedEffect(selectedPaymentMethod) {
         if (selectedPaymentMethod != PaymentMethod.CREDIT_CARD) {
             selectedBankCardId = null
+        }
+    }
+    
+    // Load merchant suggestions when category changes
+    LaunchedEffect(category) {
+        if (category.isNotBlank()) {
+            val categoryKey = CategoryMapper.getCategoryKey(category)
+            viewModel.loadMerchantSuggestions(categoryKey)
         }
     }
     
@@ -599,35 +621,101 @@ fun AddExpenseScreen(
                 icon = Icons.Default.Store
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TextField(
-                        value = merchant,
-                        onValueChange = { 
-                            merchant = it 
-                            merchantError = if (it.isBlank()) merchantRequiredText else null
-                        },
-                        label = { Text(stringResource(R.string.merchant)) },
-                        isError = merchantError != null,
-                        supportingText = merchantError?.let { { Text(it) } },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next,
-                            capitalization = KeyboardCapitalization.Words
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                        ),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            errorIndicatorColor = Color.Transparent
-                        )
-                    )
+                    // Merchant field with suggestions
+                    Column {
+                        // Quick-select chips for top merchants
+                        AnimatedVisibility(
+                            visible = topMerchants.isNotEmpty() && merchant.isEmpty(),
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = stringResource(R.string.frequent_merchants),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(topMerchants) { merchantName ->
+                                        FilterChip(
+                                            selected = false,
+                                            onClick = { 
+                                                merchant = merchantName
+                                                merchantError = null
+                                            },
+                                            label = { Text(merchantName) }
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+                        }
+                        
+                        // Merchant text field with autocomplete
+                        Box {
+                            TextField(
+                                value = merchant,
+                                onValueChange = { 
+                                    merchant = it 
+                                    merchantError = if (it.isBlank()) merchantRequiredText else null
+                                    showMerchantSuggestions = it.isNotEmpty() && filteredMerchantSuggestions.isNotEmpty()
+                                },
+                                label = { Text(stringResource(R.string.merchant)) },
+                                isError = merchantError != null,
+                                supportingText = merchantError?.let { { Text(it) } },
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Next,
+                                    capitalization = KeyboardCapitalization.Words
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { 
+                                        showMerchantSuggestions = false
+                                        focusManager.moveFocus(FocusDirection.Down) 
+                                    }
+                                ),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    errorIndicatorColor = Color.Transparent
+                                )
+                            )
+                            
+                            // Autocomplete dropdown
+                            DropdownMenu(
+                                expanded = showMerchantSuggestions,
+                                onDismissRequest = { showMerchantSuggestions = false },
+                                properties = PopupProperties(focusable = false),
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
+                                filteredMerchantSuggestions.forEach { suggestion ->
+                                    DropdownMenuItem(
+                                        text = { Text(suggestion) },
+                                        onClick = {
+                                            merchant = suggestion
+                                            merchantError = null
+                                            showMerchantSuggestions = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.History,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                     
                     TextField(
                         value = amount,

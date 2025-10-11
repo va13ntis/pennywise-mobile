@@ -14,6 +14,7 @@ object CategoryMapper {
      * Canonical category keys that are stored in the database
      */
     enum class CategoryKey(val key: String) {
+        // Expense categories
         FOOD("food"),
         TRANSPORT("transport"),
         SHOPPING("shopping"),
@@ -21,7 +22,13 @@ object CategoryMapper {
         UTILITIES("utilities"),
         HEALTH("health"),
         EDUCATION("education"),
-        OTHER("other")
+        OTHER("other"),
+        
+        // Income categories
+        SALARY("salary"),
+        FREELANCE("freelance"),
+        INVESTMENT("investment"),
+        GIFT("gift")
     }
     
     /**

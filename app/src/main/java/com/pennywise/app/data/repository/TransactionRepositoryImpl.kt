@@ -143,6 +143,14 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getTransactionCountByDateRange(startDate: Date, endDate: Date): Int = withAuthentication {
         transactionDao.getTransactionCountByDateRange(startDate, endDate)
     }
+    
+    // Merchant suggestions
+    override suspend fun getFrequentMerchantsByCategory(category: String, limit: Int): List<String> = 
+        withAuthentication {
+            transactionDao.getFrequentMerchantsByCategory(category, limit)
+                .map { it.description.trim() }
+                .distinct()
+        }
 }
 
 // Extension function to convert LocalDate to Date

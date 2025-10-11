@@ -34,7 +34,7 @@
     
     <!-- Payment Methods -->
     <string name="payment_method_cash">Cash</string>
-    <string name="payment_method_credit_card">Credit Card</string>
+    <string name="payment_method_credit_card">Credit</string>
     <string name="payment_method_cheque">Cheque</string>
     
     <!-- Payment Method Configuration -->
@@ -71,12 +71,14 @@
     <string name="add_expense">Add Expense</string>
     <string name="no_transactions_yet">No transactions yet</string>
     <string name="add_your_first_expense">Add your first expense to get started</string>
+    <string name="no_transactions_message">No transactions for this month</string>
     
     <!-- Expense Form -->
     <string name="new_expense">New Expense</string>
     <string name="transaction_details">Transaction Details</string>
     <string name="merchant">Merchant</string>
     <string name="merchant_required">Merchant name is required</string>
+    <string name="frequent_merchants">Most frequently used</string>
     <string name="amount_required">Amount is required</string>
     <string name="invalid_amount">Please enter a valid amount</string>
     <string name="payment_type">Payment Type</string>
@@ -163,10 +165,6 @@
     <string name="light_theme">Light Theme</string>
     <string name="dark_theme">Dark Theme</string>
     <string name="system_theme">System Default</string>
-    <string name="backup">Backup</string>
-    <string name="cloud_backup">Cloud Backup</string>
-    <string name="coming_soon">Coming soon</string>
-    <string name="setup_backup">Set Up Backup</string>
     <string name="back">Back</string>
     
     <!-- Language -->
@@ -202,17 +200,6 @@
     <string name="recurring_monthly">Monthly</string>
     <string name="recurring_yearly">Yearly</string>
     
-    <!-- Currency Conversion -->
-    <string name="currency_conversion">Currency Conversion</string>
-    <string name="enable_currency_conversion">Enable Currency Conversion</string>
-    <string name="original_currency">Original Currency</string>
-    <string name="converted_amount">Converted Amount</string>
-    <string name="conversion_rate">Conversion Rate</string>
-    <string name="last_updated">Last Updated</string>
-    <string name="conversion_unavailable">Conversion Unavailable</string>
-    <string name="using_cached_rate">Using Cached Rate</string>
-    <string name="clear_conversion_cache">Clear Conversion Cache</string>
-    <string name="cache_cleared">Cache Cleared</string>
     
     <!-- Currency Error Messages -->
     <string name="currency_error_empty_code">Please select a currency</string>

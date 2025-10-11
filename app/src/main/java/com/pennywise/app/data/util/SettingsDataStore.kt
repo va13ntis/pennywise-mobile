@@ -26,8 +26,6 @@ class SettingsDataStore @Inject constructor(
     private val themeKey = stringPreferencesKey("theme_mode")
     private val languageKey = stringPreferencesKey("language")
     private val currencyKey = stringPreferencesKey("currency")
-    private val currencyConversionEnabledKey = booleanPreferencesKey("currency_conversion_enabled")
-    private val originalCurrencyKey = stringPreferencesKey("original_currency")
     
     /**
      * Flow of the current theme mode from DataStore
@@ -124,53 +122,4 @@ class SettingsDataStore @Inject constructor(
         }
     }
     
-    /**
-     * Flow of the current currency conversion enabled state from DataStore
-     */
-    val currencyConversionEnabled: Flow<Boolean> = dataStore.data
-        .map { preferences ->
-            preferences[currencyConversionEnabledKey] ?: false
-        }
-    
-    /**
-     * Get the current currency conversion enabled state
-     */
-    suspend fun getCurrencyConversionEnabled(): Boolean {
-        val preferences = dataStore.data.first()
-        return preferences[currencyConversionEnabledKey] ?: false
-    }
-    
-    /**
-     * Set the currency conversion enabled state and save it to DataStore
-     */
-    suspend fun setCurrencyConversionEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[currencyConversionEnabledKey] = enabled
-        }
-    }
-    
-    /**
-     * Flow of the original currency from DataStore
-     */
-    val originalCurrency: Flow<String> = dataStore.data
-        .map { preferences ->
-            preferences[originalCurrencyKey] ?: ""
-        }
-    
-    /**
-     * Get the current original currency
-     */
-    suspend fun getOriginalCurrency(): String {
-        val preferences = dataStore.data.first()
-        return preferences[originalCurrencyKey] ?: ""
-    }
-    
-    /**
-     * Set the original currency and save it to DataStore
-     */
-    suspend fun setOriginalCurrency(currencyCode: String) {
-        dataStore.edit { preferences ->
-            preferences[originalCurrencyKey] = currencyCode
-        }
-    }
 }

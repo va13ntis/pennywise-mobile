@@ -35,5 +35,8 @@ interface TransactionRepository {
     // Count operations
     suspend fun getTransactionCount(): Int
     suspend fun getTransactionCountByDateRange(startDate: Date, endDate: Date): Int
+    
+    // Merchant suggestions
+    suspend fun getFrequentMerchantsByCategory(category: String, limit: Int = 10): List<String>
 }
 
