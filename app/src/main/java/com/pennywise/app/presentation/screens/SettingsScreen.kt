@@ -9,14 +9,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -29,6 +33,125 @@ import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.PaymentMethodConfig
 import androidx.hilt.navigation.compose.hiltViewModel
 import javax.inject.Inject
+
+/**
+ * Credit card add/edit dialog (only for credit cards)
+ */
+@Composable
+fun CreditCardDialog(
+    isEdit: Boolean,
+    config: PaymentMethodConfig?,
+    onDismiss: () -> Unit,
+    onSave: (String, Int?) -> Unit
+) {
+    var alias by remember { mutableStateOf(config?.alias ?: "") }
+    var withdrawDay by remember { mutableStateOf(config?.withdrawDay?.toString() ?: "") }
+    var aliasError by remember { mutableStateOf(false) }
+    var withdrawDayError by remember { mutableStateOf(false) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (isEdit) R.string.edit_credit_card else R.string.add_credit_card)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Alias field
+                OutlinedTextField(
+                    value = alias,
+                    onValueChange = { 
+                        alias = it
+                        aliasError = false
+                    },
+                    label = { Text(stringResource(R.string.payment_method_alias)) },
+                    placeholder = { Text(stringResource(R.string.alias_hint)) },
+                    isError = aliasError,
+                    supportingText = if (aliasError) {
+                        { Text(stringResource(R.string.payment_method_alias_required)) }
+                    } else null,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                // Withdraw day field
+                OutlinedTextField(
+                    value = withdrawDay,
+                    onValueChange = { 
+                        if (it.isEmpty() || it.toIntOrNull() != null) {
+                            withdrawDay = it
+                            withdrawDayError = false
+                        }
+                    },
+                    label = { Text(stringResource(R.string.withdraw_day)) },
+                    placeholder = { Text(stringResource(R.string.withdraw_day_hint)) },
+                    isError = withdrawDayError,
+                    supportingText = if (withdrawDayError) {
+                        { Text(stringResource(R.string.withdraw_day_required)) }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    // Validate
+                    if (alias.isBlank()) {
+                        aliasError = true
+                        return@Button
+                    }
+                    
+                    val day = withdrawDay.toIntOrNull()
+                    if (day == null || day !in 1..31) {
+                        withdrawDayError = true
+                        return@Button
+                    }
+                    
+                    onSave(alias, day)
+                }
+            ) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+/**
+ * Delete payment method confirmation dialog
+ */
+@Composable
+fun DeletePaymentMethodDialog(
+    config: PaymentMethodConfig,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.delete)) },
+        text = { Text(stringResource(R.string.delete_payment_method_confirmation)) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(stringResource(R.string.delete))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
 
 /**
  * Collapsible section composable for settings groups
@@ -101,6 +224,7 @@ fun SettingsScreen(
     val paymentMethodConfigs by viewModel.paymentMethodConfigs.collectAsState(initial = emptyList())
     val defaultPaymentMethodState by viewModel.defaultPaymentMethodState.collectAsState(initial = SettingsViewModel.DefaultPaymentMethodState.Loading)
     val paymentMethodUpdateState by viewModel.paymentMethodUpdateState.collectAsState(initial = SettingsViewModel.PaymentMethodUpdateState.Idle)
+    val defaultPaymentType by viewModel.defaultPaymentType.collectAsState(initial = PaymentMethod.CASH)
     
     // Authentication method states
     val currentAuthMethod by viewModel.currentAuthMethod.collectAsState(initial = null)
@@ -113,6 +237,7 @@ fun SettingsScreen(
     var isLanguageExpanded by remember { mutableStateOf(false) }
     var isDefaultCurrencyExpanded by remember { mutableStateOf(false) }
     var isPaymentMethodsExpanded by remember { mutableStateOf(false) }
+    var isCreditCardsExpanded by remember { mutableStateOf(false) }
     var isAccountExpanded by remember { mutableStateOf(false) }
     var isDeveloperOptionsExpanded by remember { mutableStateOf(false) }
     
@@ -127,6 +252,19 @@ fun SettingsScreen(
     // Tap counter for app version
     var tapCount by remember { mutableStateOf(0) }
     var lastTapTime by remember { mutableStateOf(0L) }
+    
+    // Dialog states for payment methods
+    var showAddPaymentMethodDialog by remember { mutableStateOf(false) }
+    var showEditPaymentMethodDialog by remember { mutableStateOf(false) }
+    var showDeletePaymentMethodDialog by remember { mutableStateOf(false) }
+    var selectedPaymentMethodConfig by remember { mutableStateOf<PaymentMethodConfig?>(null) }
+    
+    // Auto-expand credit cards when Credit Card is the default payment type
+    LaunchedEffect(defaultPaymentType) {
+        if (defaultPaymentType == PaymentMethod.CREDIT_CARD) {
+            isCreditCardsExpanded = true
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -413,7 +551,7 @@ fun SettingsScreen(
                 }
             }
             
-            // Payment Methods section
+            // Payment Methods section (Two-level hierarchy)
             item {
                 CollapsibleSection(
                     title = stringResource(R.string.payment_methods),
@@ -423,7 +561,78 @@ fun SettingsScreen(
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp)
                     ) {
-                        // Show current payment method configurations
+                        // Level 1: Default Payment Type Selection
+                        Text(
+                            text = stringResource(R.string.default_payment_type),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                        
+                        // Cash option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setDefaultPaymentType(PaymentMethod.CASH) }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = defaultPaymentType == PaymentMethod.CASH,
+                                onClick = { viewModel.setDefaultPaymentType(PaymentMethod.CASH) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.payment_method_cash),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                        
+                        // Credit Card option with inline expandable management
+                        Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.setDefaultPaymentType(PaymentMethod.CREDIT_CARD) }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = defaultPaymentType == PaymentMethod.CREDIT_CARD,
+                                    onClick = { viewModel.setDefaultPaymentType(PaymentMethod.CREDIT_CARD) }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.payment_method_credit_card),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                
+                                // Expand/collapse icon (only visible when Credit Card is selected)
+                                if (defaultPaymentType == PaymentMethod.CREDIT_CARD) {
+                                    IconButton(
+                                        onClick = { isCreditCardsExpanded = !isCreditCardsExpanded }
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isCreditCardsExpanded) 
+                                                Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = if (isCreditCardsExpanded) 
+                                                stringResource(R.string.collapse) else stringResource(R.string.expand),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Credit card management content (only when Credit Card is selected)
+                            AnimatedVisibility(
+                                visible = defaultPaymentType == PaymentMethod.CREDIT_CARD && isCreditCardsExpanded,
+                                enter = expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) + fadeIn(animationSpec = tween(300)),
+                                exit = shrinkVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) + fadeOut(animationSpec = tween(300))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(start = 48.dp, end = 16.dp, top = 8.dp, bottom = 16.dp)
+                                ) {
+                        // Show current credit card configurations
                         when (defaultPaymentMethodState) {
                             is SettingsViewModel.DefaultPaymentMethodState.Loading -> {
                                 Row(
@@ -472,7 +681,7 @@ fun SettingsScreen(
                                         )
                                         Spacer(modifier = Modifier.height(16.dp))
                                         Button(
-                                            onClick = { /* TODO: Open add payment method dialog */ }
+                                            onClick = { showAddPaymentMethodDialog = true }
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Add,
@@ -484,51 +693,28 @@ fun SettingsScreen(
                                         }
                                     }
                                 } else {
-                                    // Show current default payment method
-                                    if (defaultConfig != null) {
-                                        Text(
-                                            text = stringResource(R.string.current_default_payment_method),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                        )
-                                        
+                                    // Show all credit cards
+                                    paymentMethodConfigs.forEach { config ->
                                         PaymentMethodConfigItem(
-                                            config = defaultConfig,
-                                            isDefault = true,
-                                            onSetAsDefault = { /* Already default */ },
-                                            onEdit = { /* TODO: Open edit dialog */ },
-                                            onDelete = { /* TODO: Confirm delete */ }
+                                            config = config,
+                                            isDefault = config.id == defaultConfig?.id,
+                                            onSetAsDefault = { viewModel.setDefaultPaymentMethodConfig(config.id) },
+                                            onEdit = { 
+                                                selectedPaymentMethodConfig = config
+                                                showEditPaymentMethodDialog = true
+                                            },
+                                            onDelete = { 
+                                                selectedPaymentMethodConfig = config
+                                                showDeletePaymentMethodDialog = true
+                                            }
                                         )
-                                        
-                                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                                     }
                                     
-                                    // Show other payment methods
-                                    if (paymentMethodConfigs.size > 1) {
-                                        Text(
-                                            text = stringResource(R.string.other_payment_methods),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                        )
-                                        
-                                        paymentMethodConfigs.filter { it.id != defaultConfig?.id }.forEach { config ->
-                                            PaymentMethodConfigItem(
-                                                config = config,
-                                                isDefault = false,
-                                                onSetAsDefault = { viewModel.setDefaultPaymentMethodConfig(config.id) },
-                                                onEdit = { /* TODO: Open edit dialog */ },
-                                                onDelete = { /* TODO: Confirm delete */ }
-                                            )
-                                        }
-                                    }
-                                    
-                                    // Add new payment method button
-                                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                                    // Add new credit card button
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Button(
-                                        onClick = { /* TODO: Open add payment method dialog */ },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp)
+                                        onClick = { showAddPaymentMethodDialog = true },
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Add,
@@ -536,7 +722,7 @@ fun SettingsScreen(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(stringResource(R.string.add_payment_method))
+                                        Text(stringResource(R.string.add_credit_card))
                                     }
                                 }
                             }
@@ -590,6 +776,28 @@ fun SettingsScreen(
                                 )
                             }
                             else -> { /* Idle state, do nothing */ }
+                        }
+                                }
+                            }
+                        }
+                        
+                        // Cheque option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setDefaultPaymentType(PaymentMethod.CHEQUE) }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = defaultPaymentType == PaymentMethod.CHEQUE,
+                                onClick = { viewModel.setDefaultPaymentType(PaymentMethod.CHEQUE) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.payment_method_cheque),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         }
                     }
                 }
@@ -822,6 +1030,56 @@ fun SettingsScreen(
             }
         }
     }
+    
+    // Credit Card Dialogs
+    if (showAddPaymentMethodDialog) {
+        CreditCardDialog(
+            isEdit = false,
+            config = null,
+            onDismiss = { showAddPaymentMethodDialog = false },
+            onSave = { alias, withdrawDay ->
+                viewModel.addPaymentMethodConfig(PaymentMethod.CREDIT_CARD, alias, withdrawDay)
+                showAddPaymentMethodDialog = false
+            }
+        )
+    }
+
+    if (showEditPaymentMethodDialog && selectedPaymentMethodConfig != null) {
+        CreditCardDialog(
+            isEdit = true,
+            config = selectedPaymentMethodConfig,
+            onDismiss = { 
+                showEditPaymentMethodDialog = false
+                selectedPaymentMethodConfig = null
+            },
+            onSave = { alias, withdrawDay ->
+                val updated = selectedPaymentMethodConfig!!.copy(
+                    paymentMethod = PaymentMethod.CREDIT_CARD,
+                    alias = alias,
+                    withdrawDay = withdrawDay,
+                    updatedAt = System.currentTimeMillis()
+                )
+                viewModel.updatePaymentMethodConfig(updated)
+                showEditPaymentMethodDialog = false
+                selectedPaymentMethodConfig = null
+            }
+        )
+    }
+
+    if (showDeletePaymentMethodDialog && selectedPaymentMethodConfig != null) {
+        DeletePaymentMethodDialog(
+            config = selectedPaymentMethodConfig!!,
+            onDismiss = { 
+                showDeletePaymentMethodDialog = false
+                selectedPaymentMethodConfig = null
+            },
+            onConfirm = {
+                viewModel.deletePaymentMethodConfig(selectedPaymentMethodConfig!!.id)
+                showDeletePaymentMethodDialog = false
+                selectedPaymentMethodConfig = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -964,18 +1222,11 @@ fun PaymentMethodConfigItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = config.getDisplayName(),
+                        // Show only the alias for credit cards (payment type is implied)
+                        text = config.alias.ifBlank { config.paymentMethod.displayName },
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (isDefault) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
                     )
-                    
-                    if (isDefault) {
-                        Text(
-                            text = stringResource(R.string.default_payment_method),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
                     
                     if (config.withdrawDay != null) {
                         Text(
@@ -986,19 +1237,17 @@ fun PaymentMethodConfigItem(
                     }
                 }
                 
-                // Action buttons
-                if (!isDefault) {
-                    IconButton(
-                        onClick = onSetAsDefault,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.StarBorder,
-                            contentDescription = stringResource(R.string.set_as_default),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                // Star icon - filled for default, outline for non-default
+                IconButton(
+                    onClick = onSetAsDefault,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isDefault) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = stringResource(R.string.set_as_default),
+                        tint = if (isDefault) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
                 
                 IconButton(

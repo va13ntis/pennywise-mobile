@@ -207,11 +207,20 @@ class FirstRunSetupViewModel @Inject constructor(
                         // Apply payment method if selected
                         selectedPaymentMethod?.let { method ->
                             println("🔧 FirstRunSetupViewModel: Applying payment method ${method.displayName}")
-                            val configId = paymentMethodConfigRepository.insertPaymentMethodConfig(
-                                com.pennywise.app.domain.model.PaymentMethodConfig.createDefault(method)
-                            )
-                            val paymentMethodResult = paymentMethodConfigRepository.setDefaultPaymentMethodConfig(configId)
-                            println("🔧 FirstRunSetupViewModel: Payment method set result: $paymentMethodResult")
+                            
+                            // Update user's default payment method type
+                            userRepository.updateDefaultPaymentMethod(method)
+                            
+                            // If credit card, create a default config
+                            if (method == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD) {
+                                val configId = paymentMethodConfigRepository.insertPaymentMethodConfig(
+                                    com.pennywise.app.domain.model.PaymentMethodConfig.createDefault(method, "Default card")
+                                )
+                                paymentMethodConfigRepository.setDefaultPaymentMethodConfig(configId)
+                                println("🔧 FirstRunSetupViewModel: Default credit card created")
+                            }
+                            
+                            println("🔧 FirstRunSetupViewModel: Payment method ${method.displayName} set as default")
                         }
                         
                         // Verify user was created correctly

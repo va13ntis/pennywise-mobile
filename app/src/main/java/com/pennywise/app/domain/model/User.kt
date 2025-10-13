@@ -8,6 +8,7 @@ import java.util.Date
 data class User(
     val id: Long = 0,
     val defaultCurrency: String = "USD",
+    val defaultPaymentMethod: PaymentMethod = PaymentMethod.CASH,
     val locale: String = "en",
     val deviceAuthEnabled: Boolean = false,
     val createdAt: Date = Date(),

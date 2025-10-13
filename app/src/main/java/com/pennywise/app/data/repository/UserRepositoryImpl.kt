@@ -2,6 +2,7 @@ package com.pennywise.app.data.repository
 
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.entity.UserEntity
+import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.domain.model.UserStatus
 import com.pennywise.app.domain.repository.UserRepository
@@ -66,6 +67,10 @@ class UserRepositoryImpl @Inject constructor(
     
     override suspend fun updateDefaultCurrency(currency: String) {
         userDao.updateDefaultCurrency(currency, System.currentTimeMillis())
+    }
+    
+    override suspend fun updateDefaultPaymentMethod(paymentMethod: PaymentMethod) {
+        userDao.updateDefaultPaymentMethod(paymentMethod, System.currentTimeMillis())
     }
     
     override suspend fun updateDeviceAuthEnabled(enabled: Boolean) {

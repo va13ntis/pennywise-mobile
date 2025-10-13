@@ -2,6 +2,7 @@ package com.pennywise.app.data.local.dao
 
 import androidx.room.*
 import com.pennywise.app.data.local.entity.UserEntity
+import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.UserStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -36,6 +37,9 @@ interface UserDao {
     
     @Query("UPDATE users SET defaultCurrency = :currency, updatedAt = :updatedAt")
     suspend fun updateDefaultCurrency(currency: String, updatedAt: Long)
+    
+    @Query("UPDATE users SET defaultPaymentMethod = :paymentMethod, updatedAt = :updatedAt")
+    suspend fun updateDefaultPaymentMethod(paymentMethod: PaymentMethod, updatedAt: Long)
     
     @Query("UPDATE users SET deviceAuthEnabled = :enabled, updatedAt = :updatedAt")
     suspend fun updateDeviceAuthEnabled(enabled: Boolean, updatedAt: Long)

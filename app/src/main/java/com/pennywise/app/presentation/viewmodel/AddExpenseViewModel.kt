@@ -62,6 +62,10 @@ class AddExpenseViewModel @Inject constructor(
     private val _bankCards = MutableStateFlow<List<BankCard>>(emptyList())
     val bankCards: StateFlow<List<BankCard>> = _bankCards
     
+    // Payment method configurations (credit cards)
+    private val _paymentMethodConfigs = MutableStateFlow<List<com.pennywise.app.domain.model.PaymentMethodConfig>>(emptyList())
+    val paymentMethodConfigs: StateFlow<List<com.pennywise.app.domain.model.PaymentMethodConfig>> = _paymentMethodConfigs
+    
     // Default payment method from user settings
     private val _defaultPaymentMethod = MutableStateFlow<com.pennywise.app.domain.model.PaymentMethod>(com.pennywise.app.domain.model.PaymentMethod.CASH)
     val defaultPaymentMethod: StateFlow<com.pennywise.app.domain.model.PaymentMethod> = _defaultPaymentMethod
@@ -99,6 +103,9 @@ class AddExpenseViewModel @Inject constructor(
                     
                     // Load bank cards
                     loadBankCards()
+                    
+                    // Load payment method configurations
+                    loadPaymentMethodConfigs()
                     
                     // Load default payment method
                     loadDefaultPaymentMethod()
@@ -147,16 +154,41 @@ class AddExpenseViewModel @Inject constructor(
     }
     
     /**
+     * Load payment method configurations (credit cards)
+     */
+    private fun loadPaymentMethodConfigs() {
+        viewModelScope.launch {
+            try {
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        paymentMethodConfigRepository.getPaymentMethodConfigs().collect { configs ->
+                            _paymentMethodConfigs.value = configs
+                            _needsAuthentication.value = false
+                        }
+                    }
+                }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+                _paymentMethodConfigs.value = emptyList()
+            } catch (e: Exception) {
+                _paymentMethodConfigs.value = emptyList()
+                _needsAuthentication.value = false
+            }
+        }
+    }
+    
+    /**
      * Load default payment method from user settings
      */
     private fun loadDefaultPaymentMethod() {
         viewModelScope.launch {
             try {
-                val defaultConfig = paymentMethodConfigRepository.getDefaultPaymentMethodConfig()
-                if (defaultConfig != null) {
-                    _defaultPaymentMethod.value = defaultConfig.paymentMethod
+                authManager.currentUser.collect { user ->
+                    if (user != null) {
+                        _defaultPaymentMethod.value = user.defaultPaymentMethod
+                        _needsAuthentication.value = false
+                    }
                 }
-                // If no default found, keep CASH as fallback
             } catch (e: Exception) {
                 // Handle error - keep CASH as fallback
                 _defaultPaymentMethod.value = com.pennywise.app.domain.model.PaymentMethod.CASH

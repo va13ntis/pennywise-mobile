@@ -81,6 +81,16 @@
     <string name="manage_payment_methods">Управление способами платежа</string>
     <string name="current_default_payment_method">Текущий способ платежа по умолчанию</string>
     <string name="other_payment_methods">Другие способы платежа</string>
+    <string name="select_payment_method_type">Выберите тип способа платежа</string>
+    <string name="delete_payment_method_confirmation">Вы уверены, что хотите удалить этот способ платежа?</string>
+    <string name="cannot_delete_last">Невозможно удалить последний способ платежа</string>
+    <string name="payment_method_deleted">Способ платежа успешно удален</string>
+    <string name="default_payment_type">Тип платежа по умолчанию</string>
+    <string name="credit_cards_management">Управление кредитными картами</string>
+    <string name="default_card">Карта по умолчанию</string>
+    <string name="manage_credit_cards">Управление кредитными картами</string>
+    <string name="add_credit_card">Добавить кредитную карту</string>
+    <string name="edit_credit_card">Редактировать кредитную карту</string>
     <string name="updating">Обновление…</string>
     
     <string name="one_time">Однократно</string>
@@ -247,6 +257,8 @@
     <string name="payment_methods">Метод оплаты</string>
     <string name="payment_method_and_type">Способ и тип платежа</string>
     <string name="select_bank_card">Выберите банковскую карту</string>
+    <string name="choose_credit_card">Выберите кредитную карту</string>
+    <string name="pay_with">Оплатить с помощью</string>
     <string name="payments_layout">Схема платежей</string>
     <string name="number_of_payments">Количество платежей:</string>
     <string name="monthly_payment">Ежемесячный платеж</string>

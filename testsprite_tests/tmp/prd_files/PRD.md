@@ -1,6 +1,6 @@
 You are a senior Android developer. I want you to scaffold a native Android app in Kotlin using Jetpack Compose. The app is called "PennyWise" — a personal expense and budget manager.
 
-The app should work fully offline with a local SQLite database (using Room). Cloud backups (Google Drive or OneDrive) will be added later, so structure the code cleanly with good architecture.
+The app should work fully offline with a local SQLite database (using Room).
 
 App Requirements:
 
@@ -14,7 +14,7 @@ App Requirements:
    - Register
    - Home (current month summary view with collapsed weeks, recurring expenses pinned on top)
    - New Expense Form (fields listed below)
-   - Settings (for future cloud backup)
+   - Settings
 
 Data Model for Expenses:
 - id: Int
@@ -34,7 +34,7 @@ UI Form (New Expense):
 - Save button
 
 Other Features:
-- App starts on current month’s overview
+- App starts on current month's overview
 - Expenses grouped by week
 - Subscriptions (recurring) pinned at top, collapsed view by default
 - Simple Room DAO with methods for filtering by month, userId, and recurrence
@@ -46,4 +46,4 @@ Output:
 - Folder structure: ui, data, model, viewmodel, repository
 - build.gradle.kts for Material 3, Room, Compose, etc.
 
-This is a native Kotlin-only Android app with offline-first storage and designed for future sync and export.
+This is a native Kotlin-only Android app with offline-first storage.
