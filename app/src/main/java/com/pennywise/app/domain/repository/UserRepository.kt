@@ -1,5 +1,6 @@
 package com.pennywise.app.domain.repository
 
+import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.domain.model.UserStatus
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +16,7 @@ interface UserRepository {
     suspend fun deleteUser(user: User)
     suspend fun updateUserStatus(status: UserStatus)
     suspend fun updateDefaultCurrency(currency: String)
+    suspend fun updateDefaultPaymentMethod(paymentMethod: PaymentMethod)
     suspend fun updateDeviceAuthEnabled(enabled: Boolean)
     suspend fun getUserCount(): Int
 }

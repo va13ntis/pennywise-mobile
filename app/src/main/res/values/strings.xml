@@ -57,6 +57,16 @@
     <string name="manage_payment_methods">Manage Payment Methods</string>
     <string name="current_default_payment_method">Current Default Payment Method</string>
     <string name="other_payment_methods">Other Payment Methods</string>
+    <string name="select_payment_method_type">Select Payment Method Type</string>
+    <string name="delete_payment_method_confirmation">Are you sure you want to delete this payment method?</string>
+    <string name="cannot_delete_last">Cannot delete the last payment method</string>
+    <string name="payment_method_deleted">Payment method deleted successfully</string>
+    <string name="default_payment_type">Default Payment Type</string>
+    <string name="credit_cards_management">Credit Cards Management</string>
+    <string name="default_card">Default card</string>
+    <string name="manage_credit_cards">Manage Credit Cards</string>
+    <string name="add_credit_card">Add Credit Card</string>
+    <string name="edit_credit_card">Edit Credit Card</string>
     <string name="updating">Updating…</string>
     <string name="recurring_expenses">Recurring Expenses</string>
     <string name="week_format">Week %d</string>
@@ -262,6 +272,8 @@
     <!-- Payment Method and Type -->
     <string name="payment_method_and_type">Payment method and type</string>
     <string name="select_bank_card">Select Bank Card</string>
+    <string name="choose_credit_card">Choose Credit Card</string>
+    <string name="pay_with">Pay with</string>
     <string name="payments_layout">Payments layout</string>
     <string name="number_of_payments">Number of payments:</string>
     <string name="monthly_payment">Monthly Payment</string>

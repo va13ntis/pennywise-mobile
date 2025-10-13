@@ -81,6 +81,16 @@
     <string name="manage_payment_methods">נהל שיטות תשלום</string>
     <string name="current_default_payment_method">שיטת תשלום ברירת מחדל נוכחית</string>
     <string name="other_payment_methods">שיטות תשלום אחרות</string>
+    <string name="select_payment_method_type">בחר סוג שיטת תשלום</string>
+    <string name="delete_payment_method_confirmation">האם אתה בטוח שברצונך למחוק שיטת תשלום זו?</string>
+    <string name="cannot_delete_last">לא ניתן למחוק את שיטת התשלום האחרונה</string>
+    <string name="payment_method_deleted">שיטת תשלום נמחקה בהצלחה</string>
+    <string name="default_payment_type">סוג תשלום ברירת מחדל</string>
+    <string name="credit_cards_management">ניהול כרטיסי אשראי</string>
+    <string name="default_card">כרטיס ברירת מחדל</string>
+    <string name="manage_credit_cards">נהל כרטיסי אשראי</string>
+    <string name="add_credit_card">הוסף כרטיס אשראי</string>
+    <string name="edit_credit_card">ערוך כרטיס אשראי</string>
     <string name="updating">מעדכן…</string>
     
     <string name="one_time">פעם אחת</string>
@@ -247,6 +257,8 @@
     <string name="payment_methods">שיטות התשלום</string>
     <string name="payment_method_and_type">שיטת תשלום וסוג</string>
     <string name="select_bank_card">בחר כרטיס אשראי</string>
+    <string name="choose_credit_card">בחר כרטיס אשראי</string>
+    <string name="pay_with">שלם באמצעות</string>
     <string name="payments_layout">פריסת תשלומים</string>
     <string name="number_of_payments">מספר תשלומים:</string>
     <string name="monthly_payment">תשלום חודשי</string>

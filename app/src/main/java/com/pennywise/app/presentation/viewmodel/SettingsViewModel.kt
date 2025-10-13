@@ -72,6 +72,10 @@ class SettingsViewModel @Inject constructor(
     private val _paymentMethodUpdateState = MutableStateFlow<PaymentMethodUpdateState>(PaymentMethodUpdateState.Idle)
     val paymentMethodUpdateState: StateFlow<PaymentMethodUpdateState> = _paymentMethodUpdateState
     
+    // Default payment type state (Cash, Credit Card, or Cheque)
+    private val _defaultPaymentType = MutableStateFlow<PaymentMethod>(PaymentMethod.CASH)
+    val defaultPaymentType: StateFlow<PaymentMethod> = _defaultPaymentType
+    
     // Developer options state
     private val _developerOptionsEnabled = MutableStateFlow(false)
     val developerOptionsEnabled: StateFlow<Boolean> = _developerOptionsEnabled
@@ -94,6 +98,7 @@ class SettingsViewModel @Inject constructor(
     init {
         loadSettings()
         loadDefaultCurrency()
+        loadDefaultPaymentType()
         loadSortedCurrencies()
         loadPaymentMethodConfigs()
         loadDefaultPaymentMethod()
@@ -181,6 +186,25 @@ class SettingsViewModel @Inject constructor(
                 _needsAuthentication.value = true
             } catch (e: Exception) {
                 _defaultCurrencyState.value = DefaultCurrencyState.Error("Failed to load default currency: ${e.message}")
+                _needsAuthentication.value = false
+            }
+        }
+    }
+    
+    private fun loadDefaultPaymentType() {
+        viewModelScope.launch {
+            try {
+                authManager.currentUser.collect { currentUser ->
+                    if (currentUser != null) {
+                        _defaultPaymentType.value = currentUser.defaultPaymentMethod
+                        _needsAuthentication.value = false
+                    } else {
+                        _needsAuthentication.value = true
+                    }
+                }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
                 _needsAuthentication.value = false
             }
         }
@@ -322,6 +346,32 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+    
+    fun setDefaultPaymentType(paymentType: PaymentMethod) {
+        viewModelScope.launch {
+            try {
+                val currentUser = authManager.currentUser.value
+                if (currentUser != null) {
+                    // Update the user's default payment method
+                    userRepository.updateDefaultPaymentMethod(paymentType)
+                    
+                    // Update the current user in auth manager
+                    val updatedUser = currentUser.copy(defaultPaymentMethod = paymentType)
+                    authManager.updateCurrentUser(updatedUser)
+                    
+                    // Update the default payment type state
+                    _defaultPaymentType.value = paymentType
+                    _needsAuthentication.value = false
+                } else {
+                    _needsAuthentication.value = true
+                }
+            } catch (e: SecurityException) {
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _needsAuthentication.value = false
+            }
+        }
+    }
 
     fun resetCurrencyUpdateState() {
         _currencyUpdateState.value = CurrencyUpdateState.Idle
@@ -336,9 +386,20 @@ class SettingsViewModel @Inject constructor(
                 
                 val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
+                    // Check if this will be the first credit card (for "Default card" alias)
+                    val existingCreditCards = paymentMethodConfigRepository.getPaymentMethodConfigs().first()
+                        .filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
+                    
+                    // Use "Default card" alias if this is the first credit card, otherwise use provided alias
+                    val finalAlias = if (paymentMethod == PaymentMethod.CREDIT_CARD && existingCreditCards.isEmpty()) {
+                        "Default card" // TODO: This should be localized using string resources
+                    } else {
+                        alias
+                    }
+                    
                     val config = PaymentMethodConfig.createDefault(
                         paymentMethod = paymentMethod,
-                        alias = alias
+                        alias = finalAlias
                     ).copy(withdrawDay = withdrawDay)
                     
                     val configId = paymentMethodConfigRepository.insertPaymentMethodConfig(config)
@@ -392,12 +453,20 @@ class SettingsViewModel @Inject constructor(
                 
                 val currentUser = authManager.currentUser.value
                 if (currentUser != null) {
+                    // Check if this is the default
+                    val defaultConfig = paymentMethodConfigRepository.getDefaultPaymentMethodConfig()
+                    val isDefault = defaultConfig?.id == configId
+                    
+                    // Delete (soft delete)
                     paymentMethodConfigRepository.deletePaymentMethodConfig(configId)
                     
-                    // If we deleted the default payment method, set a new default
-                    @Suppress("UNUSED_VARIABLE")
-                    val remainingConfigs = paymentMethodConfigRepository.getPaymentMethodConfigs()
-                    // Note: This would need to be handled in the UI layer by calling setDefaultPaymentMethodConfig
+                    // If we deleted the default, set a new default
+                    if (isDefault) {
+                        val remainingConfigs = paymentMethodConfigRepository.getPaymentMethodConfigs().first()
+                        if (remainingConfigs.isNotEmpty()) {
+                            paymentMethodConfigRepository.setDefaultPaymentMethodConfig(remainingConfigs.first().id)
+                        }
+                    }
                     
                     _paymentMethodUpdateState.value = PaymentMethodUpdateState.Success("Payment method deleted successfully")
                     _needsAuthentication.value = false

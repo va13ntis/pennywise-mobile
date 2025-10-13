@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -254,25 +255,25 @@ fun CurrencySelectorChip(
     Surface(
         onClick = onCurrencyClick,
         modifier = modifier.semantics { contentDescription = contentDesc },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.primaryContainer,
         tonalElevation = 2.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = selectedCurrency?.symbol ?: "¤",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
     }
@@ -304,6 +305,7 @@ fun AddExpenseScreen(
     val uiState by viewModel.uiState.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val bankCards by viewModel.bankCards.collectAsState()
+    val paymentMethodConfigs by viewModel.paymentMethodConfigs.collectAsState()
     val defaultPaymentMethod by viewModel.defaultPaymentMethod.collectAsState()
     val merchantSuggestions by viewModel.merchantSuggestions.collectAsState()
     val topMerchants by viewModel.topMerchants.collectAsState()
@@ -325,6 +327,7 @@ fun AddExpenseScreen(
     var installments by remember { mutableStateOf(1) }
     var showInstallmentOptions by remember { mutableStateOf(false) }
     var selectedBankCardId by remember { mutableStateOf<Long?>(null) }
+    var selectedPaymentMethodConfigId by remember { mutableStateOf<Long?>(null) }
     
     // Dialog states
     var currencyExpanded by remember { mutableStateOf(false) }
@@ -440,6 +443,18 @@ fun AddExpenseScreen(
     LaunchedEffect(selectedPaymentMethod) {
         if (selectedPaymentMethod != PaymentMethod.CREDIT_CARD) {
             selectedBankCardId = null
+            selectedPaymentMethodConfigId = null
+        }
+    }
+    
+    // Auto-select default credit card when credit card payment method is selected
+    LaunchedEffect(selectedPaymentMethod, paymentMethodConfigs) {
+        if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD && paymentMethodConfigs.isNotEmpty()) {
+            if (selectedPaymentMethodConfigId == null) {
+                // Select the default credit card if available
+                val defaultCard = paymentMethodConfigs.find { it.isDefault }
+                selectedPaymentMethodConfigId = defaultCard?.id ?: paymentMethodConfigs.first().id
+            }
         }
     }
     
@@ -541,7 +556,8 @@ fun AddExpenseScreen(
                                     paymentMethod = selectedPaymentMethod,
                                     installments = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) installments else null,
                                     installmentAmount = installmentAmount,
-                                    selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedBankCardId else null
+                                    selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedBankCardId else null,
+                                    selectedPaymentMethodConfigId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentMethodConfigId else null
                                 )
                                 viewModel.saveExpense(expenseData)
                             }
@@ -629,24 +645,32 @@ fun AddExpenseScreen(
                             enter = expandVertically() + fadeIn(),
                             exit = shrinkVertically() + fadeOut()
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
                                     text = stringResource(R.string.frequent_merchants),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     items(topMerchants) { merchantName ->
-                                        FilterChip(
-                                            selected = false,
+                                        Surface(
                                             onClick = { 
                                                 merchant = merchantName
                                                 merchantError = null
                                             },
-                                            label = { Text(merchantName) }
-                                        )
+                                            shape = RoundedCornerShape(50),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                            color = Color.Transparent
+                                        ) {
+                                            Text(
+                                                text = merchantName,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            )
+                                        }
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -940,6 +964,104 @@ fun AddExpenseScreen(
                                 )
                             }
                         }
+                        
+                        // Credit card selector (inline, compact)
+                        AnimatedVisibility(
+                            visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD && paymentMethodConfigs.isNotEmpty(),
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            var creditCardDropdownExpanded by remember { mutableStateOf(false) }
+                            val selectedCard = paymentMethodConfigs.find { it.id == selectedPaymentMethodConfigId }
+                            
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                
+                                Text(
+                                    text = stringResource(R.string.pay_with),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                Box {
+                                    Surface(
+                                        onClick = { creditCardDropdownExpanded = true },
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        tonalElevation = 2.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = selectedCard?.alias ?: stringResource(R.string.select_bank_card),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowDropDown,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Dropdown menu for credit cards
+                                    DropdownMenu(
+                                        expanded = creditCardDropdownExpanded,
+                                        onDismissRequest = { creditCardDropdownExpanded = false },
+                                        properties = PopupProperties(focusable = false)
+                                    ) {
+                                        paymentMethodConfigs.forEach { config ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Column {
+                                                        Text(
+                                                            text = config.alias.ifBlank { config.paymentMethod.displayName },
+                                                            style = MaterialTheme.typography.bodyMedium
+                                                        )
+                                                        if (config.withdrawDay != null) {
+                                                            Text(
+                                                                text = stringResource(R.string.payment_day_label, config.withdrawDay),
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                onClick = {
+                                                    selectedPaymentMethodConfigId = config.id
+                                                    creditCardDropdownExpanded = false
+                                                },
+                                                trailingIcon = if (selectedPaymentMethodConfigId == config.id) {
+                                                    {
+                                                        Icon(
+                                                            Icons.Default.Check,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                } else null
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // Recurring Period
@@ -971,61 +1093,6 @@ fun AddExpenseScreen(
                                             })
                                         },
                                         modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Bank Card Selection
-            AnimatedVisibility(
-                visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD && bankCards.isNotEmpty(),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                SectionCard(
-                    title = stringResource(R.string.select_bank_card),
-                    icon = Icons.Default.CreditCard
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        bankCards.forEach { card ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .selectable(
-                                        selected = selectedBankCardId == card.id,
-                                        onClick = { selectedBankCardId = card.id }
-                                    )
-                                    .background(
-                                        if (selectedBankCardId == card.id) 
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                        else Color.Transparent
-                                    )
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = selectedBankCardId == card.id,
-                                    onClick = { selectedBankCardId = card.id }
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = card.alias,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.card_number_masked, card.lastFourDigits),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.payment_day_label, card.paymentDay),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -1128,12 +1195,12 @@ fun AddExpenseScreen(
                 title = stringResource(R.string.notes),
                 icon = Icons.AutoMirrored.Filled.Notes
             ) {
-                FilledTextFieldWithIcon(
+                TextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = stringResource(R.string.notes),
-                    icon = Icons.AutoMirrored.Filled.Notes,
-                    placeholder = stringResource(R.string.notes_hint),
+                    label = { Text(stringResource(R.string.notes)) },
+                    placeholder = { Text(stringResource(R.string.notes_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
                     singleLine = false,
                     minLines = 3,
                     maxLines = 5,
@@ -1144,6 +1211,13 @@ fun AddExpenseScreen(
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = { focusManager.clearFocus() }
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
                     )
                 )
             }
@@ -1355,7 +1429,8 @@ data class ExpenseFormData(
     val paymentMethod: PaymentMethod,
     val installments: Int? = null,
     val installmentAmount: Double? = null,
-    val selectedBankCardId: Long? = null
+    val selectedBankCardId: Long? = null,
+    val selectedPaymentMethodConfigId: Long? = null
 )
 
 /**
