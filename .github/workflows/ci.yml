@@ -232,11 +232,14 @@ jobs:
     - name: Build debug APK
       run: ./gradlew assembleDebug
       
-    - name: Pre-warm emulator (optional)
+    - name: Verify Android SDK setup
       run: |
-        echo "Pre-warming emulator to improve boot time..."
-        # This step helps prepare the emulator environment
-        echo "Emulator pre-warm completed"
+        echo "Verifying Android SDK and available devices..."
+        $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list avd
+        echo "Available system images:"
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list | grep "system-images;android-29"
+        echo "Available devices:"
+        $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list device
       
     - name: Run UI tests
       uses: reactivecircus/android-emulator-runner@v2
@@ -244,7 +247,7 @@ jobs:
         api-level: 29
         target: google_apis
         arch: x86_64
-        profile: Pixel_4
+        profile: Nexus_6
         ram-size: 2048M
         heap-size: 512M
         emulator-boot-timeout: 600
@@ -297,11 +300,14 @@ jobs:
     - name: Build debug APK
       run: ./gradlew assembleDebug
       
-    - name: Pre-warm emulator (optional)
+    - name: Verify Android SDK setup
       run: |
-        echo "Pre-warming emulator to improve boot time..."
-        # This step helps prepare the emulator environment
-        echo "Emulator pre-warm completed"
+        echo "Verifying Android SDK and available devices..."
+        $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list avd
+        echo "Available system images:"
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list | grep "system-images;android-29"
+        echo "Available devices:"
+        $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list device
       
     - name: Run accessibility tests
       uses: reactivecircus/android-emulator-runner@v2
@@ -309,7 +315,7 @@ jobs:
         api-level: 29
         target: google_apis
         arch: x86_64
-        profile: Pixel_4
+        profile: Nexus_6
         ram-size: 2048M
         heap-size: 512M
         emulator-boot-timeout: 600
