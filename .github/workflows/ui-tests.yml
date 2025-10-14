@@ -1,0 +1,79 @@
+name: UI Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  ui-tests:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Make scripts executable
+      run: chmod +x scripts/*.sh
+      
+    - name: Setup Android Emulator
+      run: |
+        echo "Setting up Android emulator..."
+        ./scripts/setup-emulator.sh
+        
+    - name: Start Android Emulator
+      run: |
+        echo "Starting Android emulator..."
+        ./scripts/start-emulator.sh &
+        
+    - name: Wait for Emulator
+      run: |
+        echo "Waiting for emulator to be ready..."
+        $ANDROID_SDK_ROOT/platform-tools/adb wait-for-device
+        $ANDROID_SDK_ROOT/platform-tools/adb -s emulator-5554 shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
+        echo "Emulator is ready!"
+        
+    - name: Run UI Tests
+      run: |
+        echo "Running UI tests..."
+        ./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pennywise.app.CurrencyUiTestSuite
+        
+    - name: Stop Emulator
+      if: always()
+      run: |
+        echo "Stopping emulator..."
+        ./scripts/stop-emulator.sh
+        
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: app/build/reports/tests/
+        
+    - name: Upload emulator logs
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: emulator-logs
+        path: emulator.log

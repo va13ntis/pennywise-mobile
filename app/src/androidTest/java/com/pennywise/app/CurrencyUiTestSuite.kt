@@ -32,14 +32,14 @@ import org.junit.runners.Suite
  */
 @RunWith(Suite::class)
 @Suite.SuiteClasses(
-    // Temporarily disabled complex UI tests that require emulator setup
-    // CurrencySelectionDropdownTest::class,
-    // CurrencySearchTest::class,
-    // CurrencySymbolUpdateTest::class,
-    // CurrencyValidationTest::class,
-    // AddExpenseScreenCurrencyTest::class,
-    // SettingsScreenCurrencyTest::class,
-    // TransactionListCurrencyTest::class
+    // UI tests re-enabled with emulator compatibility fixes
+    CurrencySelectionDropdownTest::class,
+    CurrencySearchTest::class,
+    CurrencySymbolUpdateTest::class,
+    CurrencyValidationTest::class,
+    AddExpenseScreenCurrencyTest::class,
+    SettingsScreenCurrencyTest::class,
+    TransactionListCurrencyTest::class
 )
 @LargeTest
 @SdkSuppress(minSdkVersion = 26)
