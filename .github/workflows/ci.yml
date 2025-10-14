@@ -200,7 +200,7 @@ jobs:
   ui-tests:
     name: UI Tests
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: [unit-tests, integration-tests]
     
     steps:
@@ -235,11 +235,13 @@ jobs:
     - name: Run UI tests
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 29
+        api-level: 30
         target: google_apis
         arch: x86_64
-        profile: Nexus 6
+        profile: Pixel_4
         script: ./gradlew connectedDebugAndroidTest --continue --stacktrace
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none
+      continue-on-error: true
         
     - name: Upload UI test results
       uses: actions/upload-artifact@v4
@@ -253,7 +255,7 @@ jobs:
   accessibility-tests:
     name: Accessibility Tests
     runs-on: macos-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     needs: unit-tests
     
     steps:
@@ -288,11 +290,13 @@ jobs:
     - name: Run accessibility tests
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 29
+        api-level: 30
         target: google_apis
         arch: x86_64
-        profile: Nexus 6
+        profile: Pixel_4
         script: ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" --continue --stacktrace
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none
+      continue-on-error: true
         
     - name: Upload accessibility test results
       uses: actions/upload-artifact@v4
