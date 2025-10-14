@@ -62,9 +62,6 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
-        // Configure instrumented tests for emulator compatibility
-        animationsDisabled = true
-        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 }
 
@@ -147,9 +144,6 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation("com.google.dagger:hilt-android-testing:2.48")
     kaptAndroidTest("com.google.dagger:hilt-android-compiler:2.48")
-    
-    // Test Orchestrator for better test isolation
-    androidTestUtil("androidx.test:orchestrator:1.4.2")
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling")
