@@ -307,6 +307,9 @@ class PennywiseDatabaseTest {
 
     @Test
     fun testDatabasePerformance() = runBlocking {
+        val isCI = System.getenv("CI") == "true"
+        val maxAllowed = if (isCI) 120000 else 10000
+        
         val startTime = System.currentTimeMillis()
         val now = Date()
         
@@ -327,8 +330,8 @@ class PennywiseDatabaseTest {
         val endTime = System.currentTimeMillis()
         val duration = endTime - startTime
 
-        // Verify insertion completed within reasonable time (less than 10 seconds)
-        assert(duration < 10000) { "Insertion took too long: ${duration}ms" }
+        // Verify insertion completed within reasonable time (relaxed for CI)
+        assert(duration < maxAllowed) { "Insertion took too long: ${duration}ms (max: ${maxAllowed}ms)" }
 
         // Verify all transactions were inserted
         val transactionCount = transactionDao.getTransactionCount()

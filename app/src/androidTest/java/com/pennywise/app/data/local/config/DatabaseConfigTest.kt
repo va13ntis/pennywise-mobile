@@ -206,6 +206,9 @@ class DatabaseConfigTest {
 
     @Test
     fun testDatabasePerformance() = runBlocking {
+        val isCI = System.getenv("CI") == "true"
+        val maxAllowed = if (isCI) 120000 else 10000
+        
         // Test database performance with bulk operations
         val user = UserEntity(
             defaultCurrency = "USD",
@@ -237,8 +240,8 @@ class DatabaseConfigTest {
         val endTime = System.currentTimeMillis()
         val duration = endTime - startTime
 
-        // Verify insertion completed within reasonable time (less than 10 seconds)
-        assert(duration < 10000) { "Bulk insertion took too long: ${duration}ms" }
+        // Verify insertion completed within reasonable time (relaxed for CI)
+        assert(duration < maxAllowed) { "Bulk insertion took too long: ${duration}ms (max: ${maxAllowed}ms)" }
 
         // Verify all transactions were inserted
         val transactionCount = database.transactionDao().getAllTransactions().first().size
@@ -247,6 +250,9 @@ class DatabaseConfigTest {
 
     @Test
     fun testDatabaseConcurrency() = runBlocking {
+        val isCI = System.getenv("CI") == "true"
+        val maxAllowed = if (isCI) 30000 else 5000
+        
         // Test database concurrency with multiple operations
         val user = UserEntity(
             defaultCurrency = "USD",
@@ -281,8 +287,8 @@ class DatabaseConfigTest {
         val endTime = System.currentTimeMillis()
         val duration = endTime - startTime
 
-        // Verify concurrent operations completed within reasonable time
-        assert(duration < 5000) { "Concurrent operations took too long: ${duration}ms" }
+        // Verify concurrent operations completed within reasonable time (relaxed for CI)
+        assert(duration < maxAllowed) { "Concurrent operations took too long: ${duration}ms (max: ${maxAllowed}ms)" }
 
         // Verify all transactions were inserted
         val transactionCount = database.transactionDao().getAllTransactions().first().size

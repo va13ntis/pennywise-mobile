@@ -1,6 +1,9 @@
 package com.pennywise.app.testutils
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -10,6 +13,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import com.pennywise.app.presentation.MainActivity
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.User
@@ -45,6 +49,43 @@ abstract class BaseCurrencyUiTest {
         hiltRule.inject()
         context = ApplicationProvider.getApplicationContext()
         instrumentationContext = InstrumentationRegistry.getInstrumentation().context
+        
+        // Grant permissions for CI environment
+        grantPermissions()
+    }
+    
+    /**
+     * Grant runtime permissions for CI environment
+     * This prevents "Failed to grant permissions" errors on emulator
+     */
+    private fun grantPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            val uiAutomation = instrumentation.uiAutomation
+            
+            // List of permissions that may be needed by the app
+            val permissions = listOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_AUDIO
+            )
+            
+            // Grant all permissions using UiAutomation
+            permissions.forEach { permission ->
+                try {
+                    uiAutomation.grantRuntimePermission(
+                        context.packageName,
+                        permission
+                    )
+                } catch (e: Exception) {
+                    // Permission may not be declared in manifest or already granted
+                    // This is expected and safe to ignore
+                }
+            }
+        }
     }
     
     /**
