@@ -223,22 +223,46 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
           
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Install required SDK packages
+      run: |
+        sdkmanager --install "platform-tools" "platforms;android-30" "build-tools;30.0.3" "system-images;android-30;google_apis;x86_64" "emulator"
+        yes | sdkmanager --licenses
+      
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
     - name: Build debug APK
       run: ./gradlew assembleDebug
       
-    - name: Run UI tests
-      uses: williamyeh/action-android/emulator-runner@v1
+    - name: Create AVD and generate snapshot
+      uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 29
-        target: default
+        api-level: 30
+        target: google_apis
         arch: x86_64
-        force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+        ram-size: 2048M
+        heap-size: 512M
+        emulator-boot-timeout: 900
+        disable-animations: true
+        script: echo "AVD created successfully"
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048
+      continue-on-error: false
+        
+    - name: Run UI tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 30
+        target: google_apis
+        arch: x86_64
+        ram-size: 2048M
+        heap-size: 512M
+        emulator-boot-timeout: 600
         disable-animations: true
         script: ./gradlew connectedDebugAndroidTest --continue --stacktrace
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot-list default_boot
       continue-on-error: true
         
     - name: Upload UI test results
@@ -276,22 +300,46 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
           
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Install required SDK packages
+      run: |
+        sdkmanager --install "platform-tools" "platforms;android-30" "build-tools;30.0.3" "system-images;android-30;google_apis;x86_64" "emulator"
+        yes | sdkmanager --licenses
+      
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
     - name: Build debug APK
       run: ./gradlew assembleDebug
       
-    - name: Run accessibility tests
-      uses: williamyeh/action-android/emulator-runner@v1
+    - name: Create AVD and generate snapshot
+      uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 29
-        target: default
+        api-level: 30
+        target: google_apis
         arch: x86_64
-        force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+        ram-size: 2048M
+        heap-size: 512M
+        emulator-boot-timeout: 900
+        disable-animations: true
+        script: echo "AVD created successfully"
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048
+      continue-on-error: false
+      
+    - name: Run accessibility tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 30
+        target: google_apis
+        arch: x86_64
+        ram-size: 2048M
+        heap-size: 512M
+        emulator-boot-timeout: 600
         disable-animations: true
         script: ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" --continue --stacktrace
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot-list default_boot
       continue-on-error: true
         
     - name: Upload accessibility test results
