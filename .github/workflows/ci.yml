@@ -199,7 +199,7 @@ jobs:
   # UI tests job - runs on Android emulator
   ui-tests:
     name: UI Tests
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [unit-tests, integration-tests]
     
@@ -226,6 +226,11 @@ jobs:
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
       
+    - name: Install required SDK packages
+      run: |
+        sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "system-images;android-34;google_apis;x86_64" "emulator"
+        yes | sdkmanager --licenses
+      
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
@@ -237,22 +242,22 @@ jobs:
         echo "Verifying Android SDK and available devices..."
         $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list avd
         echo "Available system images:"
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list | grep "system-images;android-29"
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list | grep "system-images;android-34"
         echo "Available devices:"
         $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list device
       
     - name: Run UI tests
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 29
+        api-level: 34
         target: google_apis
-        arch: arm64-v8a
+        arch: x86_64
         ram-size: 2048M
         heap-size: 512M
-        emulator-boot-timeout: 600
+        emulator-boot-timeout: 900
         disable-animations: true
         script: ./gradlew connectedDebugAndroidTest --continue --stacktrace
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -accel off -no-snapshot
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -accel on -no-snapshot
       continue-on-error: true
         
     - name: Upload UI test results
@@ -266,7 +271,7 @@ jobs:
   # Accessibility tests job
   accessibility-tests:
     name: Accessibility Tests
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 50
     needs: unit-tests
     
@@ -293,6 +298,11 @@ jobs:
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
       
+    - name: Install required SDK packages
+      run: |
+        sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "system-images;android-34;google_apis;x86_64" "emulator"
+        yes | sdkmanager --licenses
+      
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
@@ -304,22 +314,22 @@ jobs:
         echo "Verifying Android SDK and available devices..."
         $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list avd
         echo "Available system images:"
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list | grep "system-images;android-29"
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list | grep "system-images;android-34"
         echo "Available devices:"
         $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list device
       
     - name: Run accessibility tests
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 29
+        api-level: 34
         target: google_apis
-        arch: arm64-v8a
+        arch: x86_64
         ram-size: 2048M
         heap-size: 512M
-        emulator-boot-timeout: 600
+        emulator-boot-timeout: 900
         disable-animations: true
         script: ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" --continue --stacktrace
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -accel off -no-snapshot
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -accel on -no-snapshot
       continue-on-error: true
         
     - name: Upload accessibility test results
