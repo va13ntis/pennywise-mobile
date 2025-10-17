@@ -269,7 +269,7 @@ jobs:
         emulator-boot-timeout: 600
         disable-animations: true
         script: ./gradlew connectedDebugAndroidTest --continue --stacktrace
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot-list default_boot
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot default_boot
       continue-on-error: true
         
     - name: Upload UI test results
@@ -353,7 +353,7 @@ jobs:
         emulator-boot-timeout: 600
         disable-animations: true
         script: ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" --continue --stacktrace
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot-list default_boot
+        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot default_boot
       continue-on-error: true
         
     - name: Upload accessibility test results
