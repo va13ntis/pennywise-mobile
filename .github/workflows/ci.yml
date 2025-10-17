@@ -7,417 +7,222 @@ on:
     branches: [ main, master, develop ]
 
 jobs:
-  # Fast feedback job - runs unit tests first
+  # --------------------
+  # 🧪 Unit Tests
+  # --------------------
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Check Java and Gradle configuration
-      run: |
-        echo "Java version:"
-        java -version
-        echo "Gradle version:"
-        ./gradlew --version
-        echo "Available tasks:"
-        ./gradlew tasks --all | grep -E "(test|jacoco)" || echo "No test/jacoco tasks found"
-      
-    - name: Run test configuration verification
-      run: ./gradlew testDebugUnitTest --tests "*TestConfigurationTest*" --stacktrace --info
-      continue-on-error: false
-      
-    - name: Check for common test issues
-      run: |
-        echo "Checking for common test issues..."
-        # Check if test classes exist
-        if [ -d "app/src/test" ]; then
-          echo "✅ Test source directory exists"
-          test_count=$(find app/src/test -name "*Test*.kt" | wc -l)
-          echo "Found $test_count test files"
-        else
-          echo "❌ Test source directory not found"
-          exit 1
-        fi
-        
-        # Check if test dependencies are available
-        if [ -f "app/build.gradle.kts" ]; then
-          echo "✅ Build file exists"
-        else
-          echo "❌ Build file not found"
-          exit 1
-        fi
-      
-    - name: Run unit tests
-      run: ./gradlew testDebugUnitTest --continue --stacktrace --info
-      continue-on-error: false
-      
-    - name: Check test results
-      run: |
-        if [ -f "app/build/reports/tests/testDebugUnitTest/index.html" ]; then
-          echo "✅ Unit test reports generated successfully"
-          # Check for test failures in the report
-          if grep -q "FAILED" app/build/reports/tests/testDebugUnitTest/index.html; then
-            echo "❌ Some unit tests failed - check the test report"
-            exit 1
-          else
-            echo "✅ All unit tests passed"
-          fi
-        else
-          echo "❌ Unit test reports not found - tests may have failed"
-          exit 1
-        fi
-      
-    - name: Generate test coverage report
-      run: ./gradlew jacocoTestReport --stacktrace
-      continue-on-error: false
-      
-    - name: Upload unit test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: unit-test-results
-        path: |
-          app/build/reports/tests/testDebugUnitTest/
-          app/build/reports/jacoco/jacocoTestReport/
-        retention-days: 7
-        
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      if: success()
-      with:
-        file: app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
-        flags: unit-tests
-        name: unit-test-coverage
 
-  # Integration tests job
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: unit-tests
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Run integration tests
-      run: ./gradlew testDebugUnitTest --tests "*IntegrationTest*" --continue --stacktrace --info
-      continue-on-error: false
-      
-    - name: Upload integration test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: integration-test-results
-        path: app/build/reports/tests/testDebugUnitTest/
-        retention-days: 7
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  # Performance tests job
-  performance-tests:
-    name: Performance Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    needs: unit-tests
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Run performance tests
-      run: ./gradlew testDebugUnitTest --tests "*PerformanceTest*" --continue --stacktrace --info
-      continue-on-error: false
-      
-    - name: Upload performance test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: performance-test-results
-        path: app/build/reports/tests/testDebugUnitTest/
-        retention-days: 7
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
 
-  # UI tests job - runs on Android emulator
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --stacktrace --info
+
+      - name: Upload Unit Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: app/build/reports/tests/testDebugUnitTest/
+          retention-days: 7
+
+  # --------------------
+  # 📱 UI Tests on Emulator
+  # --------------------
   ui-tests:
-    name: UI Tests
-    runs-on: ubuntu-latest
+    name: UI Tests (Emulator)
+    runs-on: macos-latest
     timeout-minutes: 60
-    needs: [unit-tests, integration-tests]
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Set up Android SDK
-      uses: android-actions/setup-android@v3
-      
-    - name: Install required SDK packages
-      run: |
-        sdkmanager --install "platform-tools" "platforms;android-30" "build-tools;30.0.3" "system-images;android-30;google_apis;x86_64" "emulator"
-        yes | sdkmanager --licenses
-      
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Build debug APK
-      run: ./gradlew assembleDebug
-      
-    - name: Create AVD and generate snapshot
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 30
-        target: google_apis
-        arch: x86_64
-        ram-size: 2048M
-        heap-size: 512M
-        emulator-boot-timeout: 900
-        disable-animations: true
-        script: echo "AVD created successfully"
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048
-      continue-on-error: false
-        
-    - name: Run UI tests
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 30
-        target: google_apis
-        arch: x86_64
-        ram-size: 2048M
-        heap-size: 512M
-        emulator-boot-timeout: 600
-        disable-animations: true
-        script: ./gradlew connectedDebugAndroidTest --continue --stacktrace
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot-list default_boot
-      continue-on-error: true
-        
-    - name: Upload UI test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: ui-test-results
-        path: app/build/reports/androidTests/connected/
-        retention-days: 7
+    needs: [unit-tests]
 
-  # Accessibility tests job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug assembleAndroidTest
+
+      # 🧩 Pre-warm the Gradle daemon for emulator performance
+      - name: Warm up Gradle
+        run: ./gradlew help
+
+      # ✅ Run tests in stable headless emulator environment
+      - name: Run Instrumented Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: google_apis
+          arch: x86_64
+          ram-size: 4096M
+          heap-size: 1024M
+          disk-size: 4096M
+          emulator-boot-timeout: 800
+          disable-animations: true
+          emulator-options: >-
+            -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect
+            -camera-back none -camera-front none -accel auto
+            -memory 4096 -partition-size 8192
+          script: |
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
+
+            echo "Granting permissions..."
+            adb shell pm grant com.pennywise.app android.permission.INTERNET || true
+            adb shell pm grant com.pennywise.app android.permission.ACCESS_NETWORK_STATE || true
+            adb shell pm grant com.pennywise.app android.permission.READ_EXTERNAL_STORAGE || true
+            adb shell pm grant com.pennywise.app android.permission.WRITE_EXTERNAL_STORAGE || true
+
+            echo "Running connected tests..."
+            ./gradlew connectedDebugAndroidTest -Pci=true --no-daemon --stacktrace --info
+        continue-on-error: true
+
+      - name: Upload UI Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: app/build/reports/androidTests/connected/
+          retention-days: 7
+
+  # --------------------
+  # 🧰 Accessibility Tests (optional)
+  # --------------------
   accessibility-tests:
     name: Accessibility Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 50
-    needs: unit-tests
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Set up Android SDK
-      uses: android-actions/setup-android@v3
-      
-    - name: Install required SDK packages
-      run: |
-        sdkmanager --install "platform-tools" "platforms;android-30" "build-tools;30.0.3" "system-images;android-30;google_apis;x86_64" "emulator"
-        yes | sdkmanager --licenses
-      
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Build debug APK
-      run: ./gradlew assembleDebug
-      
-    - name: Create AVD and generate snapshot
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 30
-        target: google_apis
-        arch: x86_64
-        ram-size: 2048M
-        heap-size: 512M
-        emulator-boot-timeout: 900
-        disable-animations: true
-        script: echo "AVD created successfully"
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048
-      continue-on-error: false
-      
-    - name: Run accessibility tests
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 30
-        target: google_apis
-        arch: x86_64
-        ram-size: 2048M
-        heap-size: 512M
-        emulator-boot-timeout: 600
-        disable-animations: true
-        script: ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" --continue --stacktrace
-        emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none -memory 2048 -partition-size 2048 -snapshot-list default_boot
-      continue-on-error: true
-        
-    - name: Upload accessibility test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: accessibility-test-results
-        path: app/build/reports/androidTests/connected/
-        retention-days: 7
+    runs-on: macos-latest
+    timeout-minutes: 40
+    needs: [unit-tests]
 
-  # Build and deploy job - only runs on main branch
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build for Accessibility Tests
+        run: ./gradlew assembleDebug assembleAndroidTest
+
+      - name: Run Accessibility Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: google_apis
+          arch: x86_64
+          ram-size: 4096M
+          heap-size: 1024M
+          disable-animations: true
+          emulator-options: >-
+            -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect
+            -camera-back none -camera-front none -accel auto
+            -memory 4096 -partition-size 8192
+          script: |
+            adb shell pm grant com.pennywise.app android.permission.INTERNET || true
+            adb shell pm grant com.pennywise.app android.permission.ACCESS_NETWORK_STATE || true
+            ./gradlew connectedDebugAndroidTest --tests "*AccessibilityTest*" -Pci=true --stacktrace
+        continue-on-error: true
+
+      - name: Upload Accessibility Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-test-results
+          path: app/build/reports/androidTests/connected/
+          retention-days: 7
+
+  # --------------------
+  # 🚀 Build & Deploy (main/master only)
+  # --------------------
   build-and-deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [unit-tests, integration-tests, performance-tests, ui-tests, accessibility-tests]
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Build release APK
-      run: ./gradlew assembleRelease
-      
-    - name: Generate currency-specific coverage report
-      run: ./gradlew jacocoCurrencyCoverageReport
-      
-    - name: Upload release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-apk
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
-        retention-days: 30
-        
-    - name: Upload currency coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: currency-coverage-report
-        path: app/build/reports/jacoco/jacocoCurrencyCoverageReport/
-        retention-days: 30
+    needs: [unit-tests, ui-tests]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
-  # Notification job
-  notify:
-    name: Notify Results
-    runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, performance-tests, ui-tests, accessibility-tests, build-and-deploy]
-    if: always()
-    
     steps:
-    - name: Notify success
-      if: ${{ needs.unit-tests.result == 'success' && needs.integration-tests.result == 'success' && needs.performance-tests.result == 'success' && needs.ui-tests.result == 'success' && needs.accessibility-tests.result == 'success' }}
-      run: |
-        echo "✅ All tests passed successfully!"
-        echo "🎉 CI/CD pipeline completed successfully"
-        
-    - name: Notify failure
-      if: ${{ needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.performance-tests.result == 'failure' || needs.ui-tests.result == 'failure' || needs.accessibility-tests.result == 'failure' }}
-      run: |
-        echo "❌ Some tests failed!"
-        echo "🔍 Check the test results in the artifacts"
-        exit 1
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pennywise-release-apk
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 30
