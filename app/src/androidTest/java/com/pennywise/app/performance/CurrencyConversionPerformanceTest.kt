@@ -2,14 +2,11 @@ package com.pennywise.app.performance
 
 import android.Manifest
 import android.os.Build
-import androidx.benchmark.junit4.BenchmarkRule
-import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywise.app.data.service.CurrencyConversionService
 import com.pennywise.app.data.model.CachedExchangeRate
 import com.google.gson.Gson
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Before
@@ -19,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.async
 import java.util.concurrent.TimeUnit
+import org.junit.Assert.assertTrue
 
 /**
  * Performance tests for currency conversion operations
@@ -31,18 +29,8 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class CurrencyConversionPerformanceTest {
 
-    @get:Rule
-    val benchmarkRule = BenchmarkRule()
-
     private lateinit var currencyConversionService: CurrencyConversionService
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
-
-    init {
-        // Configure benchmark output to internal storage before any tests run
-        // This must be done in init block to run before BenchmarkRule tries to grant permissions
-        System.setProperty("benchmark.output.path", 
-            InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath)
-    }
 
     @Before
     fun setup() {
@@ -95,7 +83,10 @@ class CurrencyConversionPerformanceTest {
      */
     @Test
     fun benchmarkSameCurrencyConversion() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val result = currencyConversionService.convertCurrency(
                     amount = 100.0,
@@ -103,9 +94,15 @@ class CurrencyConversionPerformanceTest {
                     toCurrency = "USD"
                 )
                 // Verify result is correct
-                assert(result == 100.0)
+                assertTrue("Result should be 100.0", result == 100.0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable (less than 10ms per operation)
+        assertTrue("Average time per conversion should be < 10ms, got ${avgTime}ms", avgTime < 10)
     }
 
     /**
@@ -131,7 +128,10 @@ class CurrencyConversionPerformanceTest {
             sharedPrefs.edit().putString("exchange_rate_USD_EUR", json).apply()
         }
 
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val result = currencyConversionService.convertCurrency(
                     amount = 100.0,
@@ -139,9 +139,15 @@ class CurrencyConversionPerformanceTest {
                     toCurrency = "EUR"
                 )
                 // Verify result is approximately correct (allowing for some variance)
-                assert(result != null && result > 80.0 && result < 90.0)
+                assertTrue("Result should be between 80 and 90", result != null && result > 80.0 && result < 90.0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time per cached conversion should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -158,7 +164,10 @@ class CurrencyConversionPerformanceTest {
             Triple(75.0, "USD", "CAD")
         )
 
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val results = mutableListOf<Double?>()
                 for ((amount, from, to) in testData) {
@@ -166,9 +175,15 @@ class CurrencyConversionPerformanceTest {
                     results.add(result)
                 }
                 // Verify we got some results (may be null due to API limitations in test)
-                assert(results.size == testData.size)
+                assertTrue("Results size should match test data size", results.size == testData.size)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time per batch should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -177,16 +192,25 @@ class CurrencyConversionPerformanceTest {
      */
     @Test
     fun benchmarkLargeAmountConversion() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val result = currencyConversionService.convertCurrency(
                     amount = 1_000_000.0,
                     fromCurrency = "USD",
                     toCurrency = "USD"
                 )
-                assert(result == 1_000_000.0)
+                assertTrue("Result should be 1,000,000", result == 1_000_000.0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time should be < 10ms, got ${avgTime}ms", avgTime < 10)
     }
 
     /**
@@ -195,15 +219,24 @@ class CurrencyConversionPerformanceTest {
      */
     @Test
     fun benchmarkCacheOperations() {
-        benchmarkRule.measureRepeated {
+        val iterations = 1000
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 // Test cache statistics retrieval
                 val stats = currencyConversionService.getCacheStats()
-                assert(stats.containsKey("total_cached"))
-                assert(stats.containsKey("valid_cached"))
-                assert(stats.containsKey("expired_cached"))
+                assertTrue("Stats should contain total_cached", stats.containsKey("total_cached"))
+                assertTrue("Stats should contain valid_cached", stats.containsKey("valid_cached"))
+                assertTrue("Stats should contain expired_cached", stats.containsKey("expired_cached"))
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time should be < 1ms, got ${avgTime}ms", avgTime < 1)
     }
 
     /**
@@ -212,13 +245,22 @@ class CurrencyConversionPerformanceTest {
      */
     @Test
     fun benchmarkCurrencyAvailabilityCheck() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val isAvailable = currencyConversionService.isConversionAvailable("USD", "EUR")
                 // Result may be true or false depending on network/API availability
-                assert(isAvailable is Boolean)
+                assertTrue("Result should be a Boolean", isAvailable is Boolean)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -227,7 +269,10 @@ class CurrencyConversionPerformanceTest {
      */
     @Test
     fun benchmarkConcurrentCurrencyConversions() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val conversions = listOf(
                     async { currencyConversionService.convertCurrency(100.0, "USD", "EUR") },
@@ -238,9 +283,15 @@ class CurrencyConversionPerformanceTest {
                 )
                 
                 val results = conversions.map { it.await() }
-                assert(results.size == 5)
+                assertTrue("Results size should be 5", results.size == 5)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -249,16 +300,25 @@ class CurrencyConversionPerformanceTest {
      */
     @Test
     fun benchmarkCacheInvalidation() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 // Clear cache
                 currencyConversionService.clearCache()
                 
                 // Verify cache is empty
                 val stats = currencyConversionService.getCacheStats()
-                assert(stats["total_cached"] == 0)
+                assertTrue("Cache should be empty", stats["total_cached"] == 0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time should be < 10ms, got ${avgTime}ms", avgTime < 10)
     }
 
     /**
@@ -275,16 +335,25 @@ class CurrencyConversionPerformanceTest {
             lastUpdateTime = System.currentTimeMillis()
         )
 
-        benchmarkRule.measureRepeated {
+        val iterations = 1000
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             // Test serialization
             val json = gson.toJson(testRate)
-            assert(json.isNotEmpty())
+            assertTrue("JSON should not be empty", json.isNotEmpty())
             
             // Test deserialization
             val deserializedRate = gson.fromJson(json, CachedExchangeRate::class.java)
-            assert(deserializedRate.baseCode == testRate.baseCode)
-            assert(deserializedRate.targetCode == testRate.targetCode)
-            assert(deserializedRate.conversionRate == testRate.conversionRate)
+            assertTrue("Base code should match", deserializedRate.baseCode == testRate.baseCode)
+            assertTrue("Target code should match", deserializedRate.targetCode == testRate.targetCode)
+            assertTrue("Conversion rate should match", deserializedRate.conversionRate == testRate.conversionRate)
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        // Verify performance is reasonable
+        assertTrue("Average time should be < 1ms, got ${avgTime}ms", avgTime < 1)
     }
 }

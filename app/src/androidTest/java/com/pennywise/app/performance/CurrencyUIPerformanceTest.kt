@@ -42,6 +42,14 @@ class CurrencyUIPerformanceTest {
         grantPermissions()
     }
     
+    @After
+    fun tearDown() {
+        // Force garbage collection to clean up any remaining references
+        System.gc()
+        // Give the GC time to run
+        Thread.sleep(100)
+    }
+    
     /**
      * Grant runtime permissions for CI environment
      * This prevents "Failed to grant permissions" errors on emulator
@@ -344,7 +352,7 @@ class CurrencyUIPerformanceTest {
      */
     @Test
     fun benchmarkCurrencyBatchOperations() {
-        val batchSize = 20
+        val batchSize = 10  // Reduced from 20 to prevent memory issues
         val testData = (1..batchSize).map { 
             Triple(
                 testAmounts.random(),
@@ -353,21 +361,27 @@ class CurrencyUIPerformanceTest {
             )
         }
 
-        testData.forEach { (amount, fromCurrency, toCurrency) ->
-            // Format original amount
-            val originalFormatted = CurrencyFormatter.formatAmount(amount, fromCurrency, context)
-            assert(originalFormatted.isNotEmpty())
+        // Process in smaller batches to prevent memory accumulation
+        testData.chunked(5).forEach { batch ->
+            batch.forEach { (amount, fromCurrency, toCurrency) ->
+                // Format original amount
+                val originalFormatted = CurrencyFormatter.formatAmount(amount, fromCurrency, context)
+                assert(originalFormatted.isNotEmpty())
+                
+                // Format with conversion
+                val convertedAmount = amount * 1.2 // Mock conversion rate
+                val convertedFormatted = CurrencyFormatter.formatAmountWithConversion(
+                    amount, convertedAmount, fromCurrency, toCurrency, context, false, 1.2
+                )
+                assert(convertedFormatted.isNotEmpty())
+                
+                // Format large amount
+                val largeFormatted = CurrencyFormatter.formatLargeAmount(amount * 1000, fromCurrency, context, true)
+                assert(largeFormatted.isNotEmpty())
+            }
             
-            // Format with conversion
-            val convertedAmount = amount * 1.2 // Mock conversion rate
-            val convertedFormatted = CurrencyFormatter.formatAmountWithConversion(
-                amount, convertedAmount, fromCurrency, toCurrency, context, false, 1.2
-            )
-            assert(convertedFormatted.isNotEmpty())
-            
-            // Format large amount
-            val largeFormatted = CurrencyFormatter.formatLargeAmount(amount * 1000, fromCurrency, context, true)
-            assert(largeFormatted.isNotEmpty())
+            // Force GC after each batch to prevent BinderProxy accumulation
+            System.gc()
         }
     }
 }

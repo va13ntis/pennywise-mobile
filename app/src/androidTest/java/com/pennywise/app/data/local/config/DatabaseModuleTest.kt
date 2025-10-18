@@ -393,6 +393,11 @@ class DatabaseModuleTest {
         )
         userDao.insertUser(user)
 
+        // Verify initial user was inserted
+        val initialUser = userDao.getUser()
+        assertNotNull(initialUser)
+        assertEquals("USD", initialUser?.defaultCurrency)
+
         // Test unique constraint on currency usage
         try {
             val currencyUsage1 = CurrencyUsageEntity(
@@ -430,10 +435,13 @@ class DatabaseModuleTest {
         )
         userDao.insertUser(duplicateUser)
         
+        // Give a moment for the database operation to complete
+        kotlinx.coroutines.delay(100)
+        
         // Verify the user was replaced
-        val users = userDao.getUser()
-        assertNotNull(users)
-        assertEquals("EUR", users?.defaultCurrency)
+        val updatedUser = userDao.getUser()
+        assertNotNull(updatedUser)
+        assertEquals("EUR", updatedUser?.defaultCurrency)
     }
 
     @Test
