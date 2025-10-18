@@ -5,7 +5,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.testutils.BaseCurrencyUiTest
 import com.pennywise.app.testutils.CurrencyTestFixtures
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -14,7 +13,6 @@ import org.junit.runner.RunWith
  * Tests search by currency code, symbol, display name, and filtering behavior
  */
 @RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
 class CurrencySearchTest : BaseCurrencyUiTest() {
     
     @Test

@@ -23,12 +23,27 @@ class MockCurrencyConversionService {
         "JPY_CAD" to 0.011
     )
     
+    // Track cache stats for testing
+    private var cacheHits = 0
+    private var cacheMisses = 0
+    private val cachedRates = mutableSetOf<String>()
+    
     suspend fun convertCurrency(amount: Double, fromCurrency: String, toCurrency: String): Double? {
         return try {
             when {
                 fromCurrency.uppercase() == toCurrency.uppercase() -> amount
                 else -> {
-                    val rate = mockRates["${fromCurrency}_${toCurrency}"] ?: 1.0
+                    val rateKey = "${fromCurrency}_${toCurrency}"
+                    val rate = mockRates[rateKey] ?: 1.0
+                    
+                    // Track cache usage
+                    if (cachedRates.contains(rateKey)) {
+                        cacheHits++
+                    } else {
+                        cacheMisses++
+                        cachedRates.add(rateKey)
+                    }
+                    
                     amount * rate
                 }
             }
@@ -43,13 +58,17 @@ class MockCurrencyConversionService {
     
     fun getCacheStats(): Map<String, Any> {
         return mapOf(
-            "total_cached" to 0,
-            "valid_cached" to 0,
-            "expired_cached" to 0
+            "total_cached" to cachedRates.size,
+            "valid_cached" to cachedRates.size,
+            "expired_cached" to 0,
+            "cache_hits" to cacheHits,
+            "cache_misses" to cacheMisses
         )
     }
     
     fun clearCache() {
-        // Mock implementation - no-op
+        cachedRates.clear()
+        cacheHits = 0
+        cacheMisses = 0
     }
 }

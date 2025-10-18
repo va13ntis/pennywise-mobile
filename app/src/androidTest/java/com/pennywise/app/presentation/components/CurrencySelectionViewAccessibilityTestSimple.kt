@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Currency
 import org.junit.Assert.*
@@ -25,9 +26,10 @@ class CurrencySelectionViewAccessibilityTestSimple {
 
     @Before
     fun setup() {
-        context = ApplicationProvider.getApplicationContext()
+        // Use instrumentation context to ensure proper theme is applied
+        context = InstrumentationRegistry.getInstrumentation().targetContext
         
-        // Create the CurrencySelectionView
+        // Create the CurrencySelectionView with proper theme context
         currencySelectionView = CurrencySelectionView(context)
     }
 

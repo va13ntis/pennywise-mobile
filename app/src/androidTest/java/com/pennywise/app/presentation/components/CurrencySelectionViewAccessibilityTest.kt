@@ -27,9 +27,10 @@ class CurrencySelectionViewAccessibilityTest {
 
     @Before
     fun setup() {
-        context = ApplicationProvider.getApplicationContext()
+        // Use instrumentation context to ensure proper theme is applied
+        context = InstrumentationRegistry.getInstrumentation().targetContext
         
-        // Create the CurrencySelectionView
+        // Create the CurrencySelectionView with proper theme context
         currencySelectionView = CurrencySelectionView(context)
     }
 

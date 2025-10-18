@@ -1,5 +1,7 @@
 package com.pennywise.app.performance
 
+import android.Manifest
+import android.os.Build
 import androidx.benchmark.junit4.BenchmarkRule
 import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -46,8 +48,18 @@ class DatabasePerformanceTest {
     private lateinit var userDao: UserDao
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
+    init {
+        // Configure benchmark output to internal storage before any tests run
+        // This must be done in init block to run before BenchmarkRule tries to grant permissions
+        System.setProperty("benchmark.output.path", 
+            InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath)
+    }
+
     @Before
     fun setup() {
+        // Grant permissions for CI environment
+        grantPermissions()
+        
         // Create in-memory database for testing
         database = Room.inMemoryDatabaseBuilder(
             context,
@@ -60,6 +72,38 @@ class DatabasePerformanceTest {
         
         // Setup test data
         setupTestData()
+    }
+    
+    /**
+     * Grant runtime permissions for CI environment
+     * This prevents "Failed to grant permissions" errors on emulator
+     */
+    private fun grantPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            val uiAutomation = instrumentation.uiAutomation
+            
+            // Grant all permissions declared in the manifest
+            val permissions = listOf(
+                Manifest.permission.INTERNET,
+                Manifest.permission.ACCESS_NETWORK_STATE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            )
+            
+            // Grant all permissions using UiAutomation
+            permissions.forEach { permission ->
+                try {
+                    uiAutomation.grantRuntimePermission(
+                        context.packageName,
+                        permission
+                    )
+                } catch (e: Exception) {
+                    // Permission may not be declared in manifest or already granted
+                    // This is expected and safe to ignore
+                }
+            }
+        }
     }
 
     @After

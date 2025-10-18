@@ -51,14 +51,12 @@ class CurrencyUIPerformanceTest {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val uiAutomation = instrumentation.uiAutomation
             
-            // List of permissions that may be needed by the app
+            // Grant all permissions declared in the manifest
             val permissions = listOf(
-                Manifest.permission.CAMERA,
+                Manifest.permission.INTERNET,
+                Manifest.permission.ACCESS_NETWORK_STATE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_AUDIO
+                Manifest.permission.READ_EXTERNAL_STORAGE
             )
             
             // Grant all permissions using UiAutomation

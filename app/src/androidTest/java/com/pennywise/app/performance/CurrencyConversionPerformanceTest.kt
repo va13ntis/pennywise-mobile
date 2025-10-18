@@ -37,10 +37,18 @@ class CurrencyConversionPerformanceTest {
     private lateinit var currencyConversionService: CurrencyConversionService
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
+    init {
+        // Configure benchmark output to internal storage before any tests run
+        // This must be done in init block to run before BenchmarkRule tries to grant permissions
+        System.setProperty("benchmark.output.path", 
+            InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath)
+    }
+
     @Before
     fun setup() {
         // Grant permissions for CI environment
         grantPermissions()
+        
         currencyConversionService = CurrencyConversionService(context)
     }
     
@@ -53,14 +61,12 @@ class CurrencyConversionPerformanceTest {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val uiAutomation = instrumentation.uiAutomation
             
-            // List of permissions that may be needed by the app
+            // Grant all permissions declared in the manifest
             val permissions = listOf(
-                Manifest.permission.CAMERA,
+                Manifest.permission.INTERNET,
+                Manifest.permission.ACCESS_NETWORK_STATE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_AUDIO
+                Manifest.permission.READ_EXTERNAL_STORAGE
             )
             
             // Grant all permissions using UiAutomation
