@@ -184,12 +184,17 @@ class DatabaseModuleTest {
             transactionDao.insertTransaction(transaction)
         }
         
-        // Insert multiple currency usages
-        for (i in 1..50) {
+        // Insert multiple currency usages (with different currencies)
+        val currencies = listOf("USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "SEK", "NZD",
+            "MXN", "SGD", "HKD", "NOK", "TRY", "RUB", "INR", "BRL", "ZAR", "KRW",
+            "DKK", "PLN", "TWD", "THB", "MYR", "PHP", "IDR", "VND", "ARS", "CLP",
+            "COP", "PEN", "EGP", "ILS", "AED", "SAR", "QAR", "KWD", "BHD", "OMR",
+            "JOD", "LBP", "PKR", "BDT", "LKR", "NPR", "MMK", "KHR", "LAK", "MOP")
+        
+        for (i in currencies.indices) {
             val currencyUsage = CurrencyUsageEntity(
-                id = i.toLong(),
-                currency = "USD",
-                usageCount = i,
+                currency = currencies[i],
+                usageCount = i + 1,
                 lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()
@@ -247,12 +252,15 @@ class DatabaseModuleTest {
             transactionDao.insertTransaction(transaction)
         }
         
-        // Insert currency usages concurrently
-        val currencyUsages = (1..25).map { i ->
+        // Insert currency usages concurrently (with different currencies)
+        val currencies = listOf("USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "SEK", "NZD",
+            "MXN", "SGD", "HKD", "NOK", "TRY", "RUB", "INR", "BRL", "ZAR", "KRW",
+            "DKK", "PLN", "TWD", "THB", "MYR")
+        
+        val currencyUsages = currencies.mapIndexed { index, currency ->
             CurrencyUsageEntity(
-                id = i.toLong(),
-                currency = "USD",
-                usageCount = i,
+                currency = currency,
+                usageCount = index + 1,
                 lastUsed = Date(),
                 createdAt = Date(),
                 updatedAt = Date()

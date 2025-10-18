@@ -10,7 +10,7 @@ import java.util.Date
  */
 @Dao
 interface CurrencyUsageDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCurrencyUsage(currencyUsage: CurrencyUsageEntity): Long
     
     @Update
@@ -37,8 +37,21 @@ interface CurrencyUsageDao {
     @Query("UPDATE currency_usage SET usageCount = usageCount + 1, lastUsed = :lastUsed, updatedAt = :updatedAt WHERE currency = :currency")
     suspend fun incrementCurrencyUsage(currency: String, lastUsed: Date, updatedAt: Date)
     
-    @Query("INSERT OR REPLACE INTO currency_usage (currency, usageCount, lastUsed, createdAt, updatedAt) VALUES (:currency, 1, :lastUsed, :createdAt, :updatedAt)")
-    suspend fun insertOrIncrementCurrencyUsage(currency: String, lastUsed: Date, createdAt: Date, updatedAt: Date)
+    @Transaction
+    suspend fun insertOrIncrementCurrencyUsage(currency: String, lastUsed: Date, createdAt: Date, updatedAt: Date) {
+        val existing = getCurrencyUsageByCurrency(currency)
+        if (existing != null) {
+            incrementCurrencyUsage(currency, lastUsed, updatedAt)
+        } else {
+            insertCurrencyUsage(CurrencyUsageEntity(
+                currency = currency,
+                usageCount = 1,
+                lastUsed = lastUsed,
+                createdAt = createdAt,
+                updatedAt = updatedAt
+            ))
+        }
+    }
     
     @Query("DELETE FROM currency_usage")
     suspend fun deleteAllCurrencyUsage()
