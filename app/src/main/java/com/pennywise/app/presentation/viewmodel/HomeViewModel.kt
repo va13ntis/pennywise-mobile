@@ -129,9 +129,10 @@ class HomeViewModel @Inject constructor(
     val totalExpenses: StateFlow<Double> = combine(
         _transactions.asStateFlow(),
         recurringTransactions,
+        splitPaymentInstallments,
         _selectedPaymentMethod.asStateFlow(),
         _currentMonth.asStateFlow()
-    ) { transactions, recurringTransactions, selectedPaymentMethod, currentMonth ->
+    ) { transactions, recurringTransactions, splitInstallments, selectedPaymentMethod, currentMonth ->
         val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
         val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
         
@@ -176,9 +177,20 @@ class HomeViewModel @Inject constructor(
             .sumOf { it.amount }
         
         println("💰 HomeViewModel: Recurring expenses: $$recurringExpenses")
-        println("💰 HomeViewModel: TOTAL EXPENSES for $currentMonth: $${regularExpenses + recurringExpenses}")
         
-        regularExpenses + recurringExpenses
+        // Add split payment installments (they're already filtered by month)
+        val splitPaymentExpenses = splitInstallments
+            .filter { installment ->
+                selectedPaymentMethod?.let { method ->
+                    installment.paymentMethod == method
+                } ?: true // Show all if no filter selected
+            }
+            .sumOf { it.amount }
+        
+        println("💰 HomeViewModel: Split payment installments: $$splitPaymentExpenses (${splitInstallments.size} installments)")
+        println("💰 HomeViewModel: TOTAL EXPENSES for $currentMonth: $${regularExpenses + recurringExpenses + splitPaymentExpenses}")
+        
+        regularExpenses + recurringExpenses + splitPaymentExpenses
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
@@ -188,8 +200,9 @@ class HomeViewModel @Inject constructor(
     val netBalance: StateFlow<Double> = combine(
         _transactions.asStateFlow(),
         recurringTransactions,
+        splitPaymentInstallments,
         _currentMonth.asStateFlow()
-    ) { transactions, recurringTransactions, currentMonth ->
+    ) { transactions, recurringTransactions, splitInstallments, currentMonth ->
         val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
         val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
         
@@ -207,7 +220,8 @@ class HomeViewModel @Inject constructor(
             }
             .sumOf { it.amount }
         val recurringExpenses = recurringTransactions.sumOf { it.amount }
-        income - (regularExpenses + recurringExpenses)
+        val splitPaymentExpenses = splitInstallments.sumOf { it.amount }
+        income - (regularExpenses + recurringExpenses + splitPaymentExpenses)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
