@@ -100,6 +100,8 @@
     <string name="payment_delay_plus_90">שוטף + 90</string>
     <string name="payment_delay_label">דחיית חיוב</string>
     <string name="billing_hint">ייחויב בחשבון של %1$s</string>
+    <string name="paid">✓ שולם</string>
+    <string name="pending">ממתין</string>
     
     <string name="one_time">פעם אחת</string>
     <string name="recurring">קבוע</string>

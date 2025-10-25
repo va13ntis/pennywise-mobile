@@ -287,9 +287,9 @@ private fun SplitPaymentInstallmentItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text(
-                        text = if (installment.isPaid) "✓ Paid" else "Pending",
-                        style = MaterialTheme.typography.bodySmall,
+                                           Text(
+                           text = if (installment.isPaid) stringResource(R.string.paid) else stringResource(R.string.pending),
+                           style = MaterialTheme.typography.bodySmall,
                         color = if (installment.isPaid) income_green else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (installment.isPaid) FontWeight.Medium else FontWeight.Normal
                     )

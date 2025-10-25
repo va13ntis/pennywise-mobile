@@ -36,7 +36,7 @@
     <string name="payment_method_cash">Наличные</string>
     <string name="payment_method_credit_card">Кредит</string>
     <string name="payment_method_cheque">Чек</string>
-    <string name="recurring_expenses">Повторяющиеся и отсроченные платежи</string>
+    <string name="recurring_expenses">Регулярные и отсроченные платежи</string>
     <string name="week_format">Неделя %d</string>
     <string name="no_expenses_this_week">Нет расходов на этой неделе</string>
     <string name="previous_month">Предыдущий месяц</string>
@@ -95,11 +95,13 @@
     
     <!-- Payment Delay (Billing Cycle) -->
     <string name="payment_delay_none">Текущий цикл</string>
-    <string name="payment_delay_plus_30">Текущий + 30 дней</string>
-    <string name="payment_delay_plus_60">Текущий + 60 дней</string>
-    <string name="payment_delay_plus_90">Текущий + 90 дней</string>
-    <string name="payment_delay_label">Задержка платежа</string>
+    <string name="payment_delay_plus_30">+30 дней</string>
+    <string name="payment_delay_plus_60">+60 дней</string>
+    <string name="payment_delay_plus_90">+90 дней</string>
+    <string name="payment_delay_label">Отсрочка платежа</string>
     <string name="billing_hint">Отразится в выписке за %1$s</string>
+    <string name="paid">✓ Оплачено</string>
+    <string name="pending">Ожидает</string>
     
     <string name="one_time">Однократно</string>
     <string name="recurring">Регулярно</string>
