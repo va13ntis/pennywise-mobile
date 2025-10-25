@@ -93,6 +93,14 @@
     <string name="edit_credit_card">ערוך כרטיס אשראי</string>
     <string name="updating">מעדכן…</string>
     
+    <!-- Payment Delay (Billing Cycle) -->
+    <string name="payment_delay_none">שוטף</string>
+    <string name="payment_delay_plus_30">שוטף + 30</string>
+    <string name="payment_delay_plus_60">שוטף + 60</string>
+    <string name="payment_delay_plus_90">שוטף + 90</string>
+    <string name="payment_delay_label">דחיית חיוב</string>
+    <string name="billing_hint">ייחויב בחשבון של %1$s</string>
+    
     <string name="one_time">פעם אחת</string>
     <string name="recurring">קבוע</string>
     <string name="recurring_period">תקופת חזרה</string>

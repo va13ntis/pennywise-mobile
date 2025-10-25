@@ -93,6 +93,14 @@
     <string name="edit_credit_card">Редактировать кредитную карту</string>
     <string name="updating">Обновление…</string>
     
+    <!-- Payment Delay (Billing Cycle) -->
+    <string name="payment_delay_none">Текущий цикл</string>
+    <string name="payment_delay_plus_30">Текущий + 30 дней</string>
+    <string name="payment_delay_plus_60">Текущий + 60 дней</string>
+    <string name="payment_delay_plus_90">Текущий + 90 дней</string>
+    <string name="payment_delay_label">Задержка платежа</string>
+    <string name="billing_hint">Отразится в выписке за %1$s</string>
+    
     <string name="one_time">Однократно</string>
     <string name="recurring">Регулярно</string>
     <string name="recurring_period">Период повторения</string>

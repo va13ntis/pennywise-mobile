@@ -301,8 +301,10 @@ class AddExpenseViewModel @Inject constructor(
                     isRecurring = expenseData.isRecurring,
                     recurringPeriod = expenseData.recurringPeriod,
                     paymentMethod = expenseData.paymentMethod,
+                    paymentMethodConfigId = expenseData.selectedPaymentMethodConfigId,
                     installments = expenseData.installments,
                     installmentAmount = expenseData.installmentAmount,
+                    billingDelayDays = expenseData.billingDelayDays,
                     createdAt = Date(),
                     updatedAt = Date()
                 )
@@ -346,6 +348,37 @@ class AddExpenseViewModel @Inject constructor(
         } else {
             totalAmount
         }
+    }
+    
+    /**
+     * Get billing cycle date based on selected credit card's withdraw day
+     * Returns the next billing date for the selected credit card
+     */
+    fun getBillingCycleDate(selectedConfigId: Long?): java.time.LocalDate {
+        val selectedConfig = _paymentMethodConfigs.value.find { it.id == selectedConfigId }
+        val withdrawDay = selectedConfig?.withdrawDay ?: java.time.LocalDate.now().dayOfMonth
+        val today = java.time.LocalDate.now()
+        
+        // Calculate next billing cycle date based on withdrawDay
+        var billingDate = try {
+            java.time.LocalDate.of(today.year, today.month, withdrawDay)
+        } catch (e: java.time.DateTimeException) {
+            // Handle invalid day for month (e.g., Feb 31)
+            today.withDayOfMonth(today.lengthOfMonth().coerceAtMost(withdrawDay))
+        }
+        
+        // If billing date is today or in the past, move to next month
+        if (billingDate.isBefore(today) || billingDate.isEqual(today)) {
+            billingDate = billingDate.plusMonths(1)
+            // Handle month overflow (e.g., Jan 31 -> Feb)
+            billingDate = try {
+                billingDate.withDayOfMonth(withdrawDay)
+            } catch (e: java.time.DateTimeException) {
+                billingDate.withDayOfMonth(billingDate.lengthOfMonth().coerceAtMost(withdrawDay))
+            }
+        }
+        
+        return billingDate
     }
     
     /**

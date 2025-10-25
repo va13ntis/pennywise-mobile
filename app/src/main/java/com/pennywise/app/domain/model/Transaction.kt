@@ -16,8 +16,10 @@ data class Transaction(
     val isRecurring: Boolean = false,
     val recurringPeriod: RecurringPeriod? = null,
     val paymentMethod: PaymentMethod = PaymentMethod.CASH,
+    val paymentMethodConfigId: Long? = null, // Link to specific PaymentMethodConfig (e.g., which credit card)
     val installments: Int? = null, // Only used for split payments
     val installmentAmount: Double? = null, // Calculated monthly payment amount
+    val billingDelayDays: Int = 0, // Billing delay in days for credit card payments (0=immediate/שוטף, 30/60/90=delayed)
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
 )

@@ -50,6 +50,7 @@ import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.domain.model.PaymentMethod
+import com.pennywise.app.domain.model.PaymentDelay
 import com.pennywise.app.domain.model.BankCard
 import com.pennywise.app.presentation.components.CurrencyAdapter
 import com.pennywise.app.presentation.util.LocaleFormatter
@@ -328,6 +329,7 @@ fun AddExpenseScreen(
     var showInstallmentOptions by remember { mutableStateOf(false) }
     var selectedBankCardId by remember { mutableStateOf<Long?>(null) }
     var selectedPaymentMethodConfigId by remember { mutableStateOf<Long?>(null) }
+    var selectedPaymentDelay by remember { mutableStateOf(PaymentDelay.NONE) }
     
     // Dialog states
     var currencyExpanded by remember { mutableStateOf(false) }
@@ -557,7 +559,8 @@ fun AddExpenseScreen(
                                     installments = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) installments else null,
                                     installmentAmount = installmentAmount,
                                     selectedBankCardId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedBankCardId else null,
-                                    selectedPaymentMethodConfigId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentMethodConfigId else null
+                                    selectedPaymentMethodConfigId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentMethodConfigId else null,
+                                    billingDelayDays = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentDelay.days else 0
                                 )
                                 viewModel.saveExpense(expenseData)
                             }
@@ -1063,6 +1066,74 @@ fun AddExpenseScreen(
                             }
                         }
                     }
+                    
+                    // Billing Delay (Credit Card only)
+                    AnimatedVisibility(
+                        visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        var billingDelayDropdownExpanded by remember { mutableStateOf(false) }
+                        
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = stringResource(R.string.payment_delay_label),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            ExposedDropdownMenuBox(
+                                expanded = billingDelayDropdownExpanded,
+                                onExpandedChange = { billingDelayDropdownExpanded = it },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedPaymentDelay.localizedLabel(context),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(R.string.payment_delay_label)) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = billingDelayDropdownExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors()
+                                )
+                                
+                                ExposedDropdownMenu(
+                                    expanded = billingDelayDropdownExpanded,
+                                    onDismissRequest = { billingDelayDropdownExpanded = false }
+                                ) {
+                                    PaymentDelay.values().forEach { option ->
+                                        DropdownMenuItem(
+                                            text = { Text(option.localizedLabel(context)) },
+                                            onClick = {
+                                                selectedPaymentDelay = option
+                                                billingDelayDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Billing hint showing when charge will appear
+                            if (selectedPaymentMethodConfigId != null) {
+                                val billingDate = viewModel.getBillingCycleDate(selectedPaymentMethodConfigId)
+                                    .plusDays(selectedPaymentDelay.days.toLong())
+                                
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern(
+                                    "MMMM yyyy",
+                                    java.util.Locale.getDefault()
+                                )
+                                
+                                Text(
+                                    text = stringResource(R.string.billing_hint, billingDate.format(formatter)),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
 
                     // Recurring Period
                     AnimatedVisibility(
@@ -1430,7 +1501,8 @@ data class ExpenseFormData(
     val installments: Int? = null,
     val installmentAmount: Double? = null,
     val selectedBankCardId: Long? = null,
-    val selectedPaymentMethodConfigId: Long? = null
+    val selectedPaymentMethodConfigId: Long? = null,
+    val billingDelayDays: Int = 0
 )
 
 /**

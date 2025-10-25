@@ -24,14 +24,15 @@ import com.pennywise.app.data.local.entity.CurrencyUsageEntity
 import com.pennywise.app.data.local.entity.BankCardEntity
 import com.pennywise.app.data.local.entity.SplitPaymentInstallmentEntity
 import com.pennywise.app.data.local.entity.PaymentMethodConfigEntity
+import com.pennywise.app.data.local.migration.DatabaseMigrations
 
 /**
  * Room database for PennyWise app
  */
 @Database(
     entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class, PaymentMethodConfigEntity::class],
-    version = 2,
-    exportSchema = false
+    version = 5,
+    exportSchema = true
 )
 @TypeConverters(
     DateConverter::class,
@@ -61,7 +62,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                     PennyWiseDatabase::class.java,
                     "pennywise_database"
                 )
-                .fallbackToDestructiveMigration() // Recreate database from scratch on migration
+                .addMigrations(*DatabaseMigrations.getAllMigrations()) // Use proper migrations to preserve user data
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

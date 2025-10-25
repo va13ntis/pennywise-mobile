@@ -30,8 +30,10 @@ data class TransactionEntity(
     val isRecurring: Boolean = false,
     val recurringPeriod: RecurringPeriod? = null,
     val paymentMethod: PaymentMethod = PaymentMethod.CASH,
+    val paymentMethodConfigId: Long? = null, // Link to specific PaymentMethodConfig (e.g., which credit card)
     val installments: Int? = null, // Only used for split payments
     val installmentAmount: Double? = null, // Calculated monthly payment amount
+    val billingDelayDays: Int = 0, // Billing delay in days for credit card payments
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
 ) {
@@ -47,8 +49,10 @@ data class TransactionEntity(
             isRecurring = isRecurring,
             recurringPeriod = recurringPeriod,
             paymentMethod = paymentMethod,
+            paymentMethodConfigId = paymentMethodConfigId,
             installments = installments,
             installmentAmount = installmentAmount,
+            billingDelayDays = billingDelayDays,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
@@ -67,8 +71,10 @@ data class TransactionEntity(
                 isRecurring = transaction.isRecurring,
                 recurringPeriod = transaction.recurringPeriod,
                 paymentMethod = transaction.paymentMethod,
+                paymentMethodConfigId = transaction.paymentMethodConfigId,
                 installments = transaction.installments,
                 installmentAmount = transaction.installmentAmount,
+                billingDelayDays = transaction.billingDelayDays,
                 createdAt = transaction.createdAt,
                 updatedAt = transaction.updatedAt
             )
