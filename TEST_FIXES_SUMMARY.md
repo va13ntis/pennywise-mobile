@@ -1,5 +1,37 @@
 # UI Test Fixes for GitHub Actions
 
+## Critical Fixes
+
+### 0. Database Migration System - CRITICAL DATA LOSS PREVENTION
+
+**Problem:** The database was configured with `fallbackToDestructiveMigration()` and version was bumped from 2→4. This would **wipe all user data** on app update, even though the schema changes (adding nullable `paymentMethodConfigId`, `installments`, `installmentAmount` fields to transactions, plus new tables) could be safely handled with proper migrations.
+
+**Solution:**
+- Created comprehensive migration system in `DatabaseMigrations.kt`
+  - Migration 2→3: Adds `bank_cards` and `split_payment_installments` tables
+  - Migration 3→4: Adds `payment_method_configs` table and new nullable columns to transactions
+  - Migration 2→4: Combined migration for direct v2→v4 upgrade path
+- Replaced `.fallbackToDestructiveMigration()` with `.addMigrations(*DatabaseMigrations.getAllMigrations())`
+- Enabled schema export with `exportSchema = true` for validation
+- Added comprehensive migration tests in `CurrencyMigrationTest.kt`
+- Added `room-testing` dependency for instrumented tests
+- Created detailed migration documentation
+
+**Impact:** 
+- ✅ User data is now preserved during app updates
+- ✅ Room validates migrations automatically
+- ✅ Schema history tracked in `app/schemas/` directory
+- ✅ Comprehensive test coverage ensures migrations work correctly
+
+**Files Modified:**
+- `app/src/main/java/com/pennywise/app/data/local/PennyWiseDatabase.kt`
+- `app/build.gradle.kts` (added KSP schema export and room-testing dependency)
+
+**Files Created:**
+- `app/src/main/java/com/pennywise/app/data/local/migration/DatabaseMigrations.kt`
+- `app/src/main/java/com/pennywise/app/data/local/migration/README.md`
+- `app/src/androidTest/java/com/pennywise/app/data/local/migration/CurrencyMigrationTest.kt` (completely rewritten)
+
 ## Issues Fixed
 
 ### 1. KAPT/KSP Conflict Causing Build Failure
