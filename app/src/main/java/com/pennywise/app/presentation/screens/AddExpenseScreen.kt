@@ -975,162 +975,180 @@ fun AddExpenseScreen(
                             exit = shrinkVertically() + fadeOut()
                         ) {
                             var creditCardDropdownExpanded by remember { mutableStateOf(false) }
+                            var billingDelayDropdownExpanded by remember { mutableStateOf(false) }
                             val selectedCard = paymentMethodConfigs.find { it.id == selectedPaymentMethodConfigId }
                             
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                
-                                Text(
-                                    text = stringResource(R.string.pay_with),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                
-                                Box {
-                                    Surface(
-                                        onClick = { creditCardDropdownExpanded = true },
-                                        shape = RoundedCornerShape(50),
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        tonalElevation = 2.dp
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    
+                                    Text(
+                                        text = stringResource(R.string.pay_with),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    
+                                    // Credit card selector
+                                    Box {
+                                        Surface(
+                                            onClick = { creditCardDropdownExpanded = true },
+                                            shape = RoundedCornerShape(50),
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            tonalElevation = 2.dp
                                         ) {
-                                            Text(
-                                                text = selectedCard?.alias ?: stringResource(R.string.select_bank_card),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                                            )
-                                            Icon(
-                                                imageVector = Icons.Default.ArrowDropDown,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                modifier = Modifier.size(16.dp)
-                                            )
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Text(
+                                                    text = selectedCard?.alias ?: stringResource(R.string.select_bank_card),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                                Icon(
+                                                    imageVector = Icons.Default.ArrowDropDown,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                        
+                                        // Dropdown menu for credit cards
+                                        DropdownMenu(
+                                            expanded = creditCardDropdownExpanded,
+                                            onDismissRequest = { creditCardDropdownExpanded = false },
+                                            properties = PopupProperties(focusable = false)
+                                        ) {
+                                            paymentMethodConfigs.forEach { config ->
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Column {
+                                                            Text(
+                                                                text = config.alias.ifBlank { config.paymentMethod.displayName },
+                                                                style = MaterialTheme.typography.bodyMedium
+                                                            )
+                                                            if (config.withdrawDay != null) {
+                                                                Text(
+                                                                    text = stringResource(R.string.payment_day_label, config.withdrawDay),
+                                                                    style = MaterialTheme.typography.bodySmall,
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        selectedPaymentMethodConfigId = config.id
+                                                        creditCardDropdownExpanded = false
+                                                    },
+                                                    trailingIcon = if (selectedPaymentMethodConfigId == config.id) {
+                                                        {
+                                                            Icon(
+                                                                Icons.Default.Check,
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.primary
+                                                            )
+                                                        }
+                                                    } else null
+                                                )
+                                            }
                                         }
                                     }
                                     
-                                    // Dropdown menu for credit cards
-                                    DropdownMenu(
-                                        expanded = creditCardDropdownExpanded,
-                                        onDismissRequest = { creditCardDropdownExpanded = false },
-                                        properties = PopupProperties(focusable = false)
-                                    ) {
-                                        paymentMethodConfigs.forEach { config ->
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Column {
-                                                        Text(
-                                                            text = config.alias.ifBlank { config.paymentMethod.displayName },
-                                                            style = MaterialTheme.typography.bodyMedium
-                                                        )
-                                                        if (config.withdrawDay != null) {
-                                                            Text(
-                                                                text = stringResource(R.string.payment_day_label, config.withdrawDay),
-                                                                style = MaterialTheme.typography.bodySmall,
-                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    // Billing delay selector (same style as credit card selector)
+                                    Box {
+                                        Surface(
+                                            onClick = { billingDelayDropdownExpanded = true },
+                                            shape = RoundedCornerShape(50),
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            tonalElevation = 2.dp
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Text(
+                                                    text = selectedPaymentDelay.localizedLabel(context),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
+                                                Icon(
+                                                    imageVector = Icons.Default.ArrowDropDown,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                        
+                                        // Dropdown menu for billing delay
+                                        DropdownMenu(
+                                            expanded = billingDelayDropdownExpanded,
+                                            onDismissRequest = { billingDelayDropdownExpanded = false },
+                                            properties = PopupProperties(focusable = false)
+                                        ) {
+                                            PaymentDelay.values().forEach { option ->
+                                                DropdownMenuItem(
+                                                    text = { Text(option.localizedLabel(context)) },
+                                                    onClick = {
+                                                        selectedPaymentDelay = option
+                                                        billingDelayDropdownExpanded = false
+                                                    },
+                                                    trailingIcon = if (selectedPaymentDelay == option) {
+                                                        {
+                                                            Icon(
+                                                                Icons.Default.Check,
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.primary
                                                             )
                                                         }
-                                                    }
-                                                },
-                                                onClick = {
-                                                    selectedPaymentMethodConfigId = config.id
-                                                    creditCardDropdownExpanded = false
-                                                },
-                                                trailingIcon = if (selectedPaymentMethodConfigId == config.id) {
-                                                    {
-                                                        Icon(
-                                                            Icons.Default.Check,
-                                                            contentDescription = null,
-                                                            tint = MaterialTheme.colorScheme.primary
-                                                        )
-                                                    }
-                                                } else null
-                                            )
+                                                    } else null
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }
-                    }
-                    
-                    // Billing Delay (Credit Card only)
-                    AnimatedVisibility(
-                        visible = selectedPaymentMethod == PaymentMethod.CREDIT_CARD,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
-                    ) {
-                        var billingDelayDropdownExpanded by remember { mutableStateOf(false) }
-                        
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = stringResource(R.string.payment_delay_label),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            
-                            ExposedDropdownMenuBox(
-                                expanded = billingDelayDropdownExpanded,
-                                onExpandedChange = { billingDelayDropdownExpanded = it },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                OutlinedTextField(
-                                    value = selectedPaymentDelay.localizedLabel(context),
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text(stringResource(R.string.payment_delay_label)) },
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = billingDelayDropdownExpanded) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .menuAnchor(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = OutlinedTextFieldDefaults.colors()
-                                )
                                 
-                                ExposedDropdownMenu(
-                                    expanded = billingDelayDropdownExpanded,
-                                    onDismissRequest = { billingDelayDropdownExpanded = false }
-                                ) {
-                                    PaymentDelay.values().forEach { option ->
-                                        DropdownMenuItem(
-                                            text = { Text(option.localizedLabel(context)) },
-                                            onClick = {
-                                                selectedPaymentDelay = option
-                                                billingDelayDropdownExpanded = false
-                                            }
+                                // Billing hint - only show for delayed billing (+30/60/90)
+                                if (selectedPaymentDelay != PaymentDelay.NONE && selectedPaymentMethodConfigId != null) {
+                                    val billingDate = viewModel.getBillingCycleDate(selectedPaymentMethodConfigId)
+                                        .plusDays(selectedPaymentDelay.days.toLong())
+                                    
+                                    val formatter = java.time.format.DateTimeFormatter.ofPattern(
+                                        "MMMM yyyy",
+                                        java.util.Locale.getDefault()
+                                    )
+                                    
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.billing_hint, billingDate.format(formatter)),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
-                            }
-                            
-                            // Billing hint showing when charge will appear
-                            if (selectedPaymentMethodConfigId != null) {
-                                val billingDate = viewModel.getBillingCycleDate(selectedPaymentMethodConfigId)
-                                    .plusDays(selectedPaymentDelay.days.toLong())
-                                
-                                val formatter = java.time.format.DateTimeFormatter.ofPattern(
-                                    "MMMM yyyy",
-                                    java.util.Locale.getDefault()
-                                )
-                                
-                                Text(
-                                    text = stringResource(R.string.billing_hint, billingDate.format(formatter)),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
                             }
                         }
                     }
