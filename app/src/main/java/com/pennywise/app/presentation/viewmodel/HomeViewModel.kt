@@ -95,17 +95,24 @@ class HomeViewModel @Inject constructor(
         transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }  // Exclude recurring expenses
             .filter { transaction ->
-                // Include transaction if its BILLING date falls within the current month
+                // Show transaction if EITHER:
+                // 1. Its transaction date is in current month (for delayed transactions in creation month)
+                // 2. Its billing date is in current month (for when it actually bills)
+                val transactionInstant = transaction.date.toInstant().atZone(java.time.ZoneId.systemDefault())
                 val billingDate = transaction.getBillingDate()
                 val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
                 
-                !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                val transactionInMonth = !transactionInstant.isBefore(startOfMonth) && !transactionInstant.isAfter(endOfMonth)
+                val billingInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                
+                transactionInMonth || billingInMonth
             }
             .sortedByDescending { it.date }
             .groupBy { transaction ->
-                // Group by week based on BILLING date, not transaction date
+                // Group by week based on transaction date (when it was created)
+                // This is more intuitive for users to find their purchases
                 val calendar = Calendar.getInstance().apply {
-                    time = transaction.getBillingDate()
+                    time = transaction.date
                 }
                 calendar.get(Calendar.WEEK_OF_MONTH)
             }
