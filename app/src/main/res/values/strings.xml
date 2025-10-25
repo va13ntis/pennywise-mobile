@@ -77,7 +77,7 @@
     <string name="payment_delay_label">Billing Delay</string>
     <string name="billing_hint">Will appear on %1$s statement</string>
     
-    <string name="recurring_expenses">Recurring, Splitted, and Delayed</string>
+    <string name="recurring_expenses">Recurring and postponed payments</string>
     <string name="week_format">Week %d</string>
     <string name="no_expenses_this_week">No expenses this week</string>
     <string name="previous_month">Previous Month</string>
