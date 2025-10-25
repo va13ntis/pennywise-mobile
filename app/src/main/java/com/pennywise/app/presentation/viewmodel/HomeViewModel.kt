@@ -95,17 +95,15 @@ class HomeViewModel @Inject constructor(
         transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }  // Exclude recurring expenses
             .filter { transaction ->
-                // Show transaction if EITHER:
-                // 1. Its transaction date is in current month (for delayed transactions in creation month)
-                // 2. Its billing date is in current month (for when it actually bills)
-                val transactionInstant = transaction.date.toInstant().atZone(java.time.ZoneId.systemDefault())
+                // EXCLUDE delayed transactions - they're treated as split payment installments
+                // Only show if billing date is in current month AND not delayed
                 val billingDate = transaction.getBillingDate()
                 val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
                 
-                val transactionInMonth = !transactionInstant.isBefore(startOfMonth) && !transactionInstant.isAfter(endOfMonth)
-                val billingInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                val isInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                val isNotDelayed = !transaction.hasDelayedBilling()
                 
-                transactionInMonth || billingInMonth
+                isInMonth && isNotDelayed
             }
             .sortedByDescending { it.date }
             .groupBy { transaction ->
@@ -313,13 +311,12 @@ class HomeViewModel @Inject constructor(
     
     /**
      * Filter split payment installments for the current month
+     * Also converts delayed transactions into pending installments
      */
     private fun filterSplitPaymentInstallmentsForMonth(
         allInstallments: List<SplitPaymentInstallment>,
         currentMonth: YearMonth
     ): List<SplitPaymentInstallment> {
-        if (allInstallments.isEmpty()) return emptyList()
-        
         val startOfMonth = currentMonth.atDay(1).atStartOfDay()
         val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
         
@@ -327,7 +324,8 @@ class HomeViewModel @Inject constructor(
         println("🔍 HomeViewModel: Date range: $startOfMonth to $endOfMonth")
         println("🔍 HomeViewModel: Total installments to filter: ${allInstallments.size}")
         
-        val filtered = allInstallments.filter { installment ->
+        // Filter existing split payment installments
+        val filteredInstallments = allInstallments.filter { installment ->
             val dueDate = installment.dueDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
             
             // Only include if the installment due date falls within the current month
@@ -345,8 +343,46 @@ class HomeViewModel @Inject constructor(
             shouldInclude
         }
         
-        println("🔍 HomeViewModel: Filtered to ${filtered.size} split payment installments for $currentMonth")
-        return filtered
+        // Convert delayed transactions into "pending installments" and include them
+        val delayedTransactions = _transactions.value.filter { transaction ->
+            transaction.hasDelayedBilling()
+        }
+        
+        println("🔍 HomeViewModel: Found ${delayedTransactions.size} delayed transactions to convert to installments")
+        
+        val pendingInstallments = delayedTransactions.map { transaction ->
+            SplitPaymentInstallment(
+                id = transaction.id, // Use transaction ID as a unique identifier
+                parentTransactionId = transaction.id,
+                amount = transaction.amount,
+                currency = transaction.currency,
+                description = transaction.description,
+                category = transaction.category,
+                type = transaction.type,
+                dueDate = transaction.getBillingDate(), // The billing date
+                installmentNumber = 1,
+                totalInstallments = 1,
+                isPaid = false, // Always pending until billed
+                paidDate = null,
+                createdAt = transaction.createdAt,
+                updatedAt = transaction.updatedAt
+            )
+        }.filter { installment ->
+            // Only include if billing date is in current month
+            val dueDate = installment.dueDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+            val isInCurrentMonth = !dueDate.isBefore(startOfMonth) && !dueDate.isAfter(endOfMonth)
+            
+            if (isInCurrentMonth) {
+                println("✅ HomeViewModel: Including delayed transaction as pending installment: ${installment.description} - ${dueDate.toLocalDate()}")
+            }
+            
+            isInCurrentMonth
+        }
+        
+        val allFiltered = filteredInstallments + pendingInstallments
+        println("🔍 HomeViewModel: Filtered to ${allFiltered.size} total (${filteredInstallments.size} split + ${pendingInstallments.size} delayed) for $currentMonth")
+        
+        return allFiltered
     }
 
     /**

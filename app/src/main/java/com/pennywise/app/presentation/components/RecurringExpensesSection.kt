@@ -237,6 +237,9 @@ private fun SplitPaymentInstallmentItem(
     currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
+    // Check if this is a delayed transaction (installmentNumber == 1 and totalInstallments == 1)
+    val isDelayedTransaction = installment.installmentNumber == 1 && installment.totalInstallments == 1
+    
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -256,7 +259,7 @@ private fun SplitPaymentInstallmentItem(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "💳",
+                    text = if (isDelayedTransaction) "⏳" else "💳",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -264,7 +267,7 @@ private fun SplitPaymentInstallmentItem(
             // Description and status
             Column {
                 Text(
-                    text = installment.getFormattedDescription(),
+                    text = if (isDelayedTransaction) installment.description else installment.getFormattedDescription(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
