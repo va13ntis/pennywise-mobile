@@ -179,13 +179,8 @@ class HomeViewModel @Inject constructor(
         println("💰 HomeViewModel: Recurring expenses: $$recurringExpenses")
         
         // Add split payment installments (they're already filtered by month)
-        val splitPaymentExpenses = splitInstallments
-            .filter { installment ->
-                selectedPaymentMethod?.let { method ->
-                    installment.paymentMethod == method
-                } ?: true // Show all if no filter selected
-            }
-            .sumOf { it.amount }
+        // Note: Split installments don't have paymentMethod field, so we include all of them
+        val splitPaymentExpenses = splitInstallments.sumOf { it.amount }
         
         println("💰 HomeViewModel: Split payment installments: $$splitPaymentExpenses (${splitInstallments.size} installments)")
         println("💰 HomeViewModel: TOTAL EXPENSES for $currentMonth: $${regularExpenses + recurringExpenses + splitPaymentExpenses}")
