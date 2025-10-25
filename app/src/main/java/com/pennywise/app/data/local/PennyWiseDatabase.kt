@@ -30,7 +30,7 @@ import com.pennywise.app.data.local.entity.PaymentMethodConfigEntity
  */
 @Database(
     entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class, PaymentMethodConfigEntity::class],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(

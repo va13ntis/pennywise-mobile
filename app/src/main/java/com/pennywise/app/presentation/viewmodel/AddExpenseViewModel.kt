@@ -301,6 +301,7 @@ class AddExpenseViewModel @Inject constructor(
                     isRecurring = expenseData.isRecurring,
                     recurringPeriod = expenseData.recurringPeriod,
                     paymentMethod = expenseData.paymentMethod,
+                    paymentMethodConfigId = expenseData.selectedPaymentMethodConfigId,
                     installments = expenseData.installments,
                     installmentAmount = expenseData.installmentAmount,
                     createdAt = Date(),
