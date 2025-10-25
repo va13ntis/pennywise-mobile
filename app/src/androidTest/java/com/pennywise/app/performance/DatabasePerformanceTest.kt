@@ -2,8 +2,6 @@ package com.pennywise.app.performance
 
 import android.Manifest
 import android.os.Build
-import androidx.benchmark.junit4.BenchmarkRule
-import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.room.Room
@@ -18,13 +16,13 @@ import com.pennywise.app.domain.model.TransactionType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Before
 import org.junit.After
 import java.util.Date
 import java.util.Calendar
+import org.junit.Assert.assertTrue
 
 /**
  * Performance tests for database operations
@@ -39,21 +37,11 @@ import java.util.Calendar
 @RunWith(AndroidJUnit4::class)
 class DatabasePerformanceTest {
 
-    @get:Rule
-    val benchmarkRule = BenchmarkRule()
-
     private lateinit var database: PennyWiseDatabase
     private lateinit var transactionDao: TransactionDao
     private lateinit var currencyUsageDao: CurrencyUsageDao
     private lateinit var userDao: UserDao
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
-
-    init {
-        // Configure benchmark output to internal storage before any tests run
-        // This must be done in init block to run before BenchmarkRule tries to grant permissions
-        System.setProperty("benchmark.output.path", 
-            InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath)
-    }
 
     @Before
     fun setup() {
@@ -165,7 +153,10 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkSingleTransactionInsertion() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val transaction = TransactionEntity(
                     amount = 100.0,
@@ -179,9 +170,14 @@ class DatabasePerformanceTest {
                     updatedAt = Date()
                 )
                 val id = transactionDao.insertTransaction(transaction)
-                assert(id > 0)
+                assertTrue("ID should be > 0", id > 0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -190,7 +186,10 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkBatchTransactionInsertion() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val transactions = (1..10).map { index ->
                     TransactionEntity(
@@ -208,10 +207,15 @@ class DatabasePerformanceTest {
                 
                 transactions.forEach { transaction ->
                     val id = transactionDao.insertTransaction(transaction)
-                    assert(id > 0)
+                    assertTrue("ID should be > 0", id > 0)
                 }
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -220,12 +224,20 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkAllTransactionsQuery() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val transactions = transactionDao.getAllTransactions().first()
-                assert(transactions.isNotEmpty())
+                assertTrue("Transactions should not be empty", transactions.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -239,12 +251,20 @@ class DatabasePerformanceTest {
         calendar.add(Calendar.MONTH, -1)
         val startDate = calendar.time
 
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
-                assert(transactions.isNotEmpty())
+                assertTrue("Transactions should not be empty", transactions.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -253,12 +273,20 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkTransactionQueryByCategory() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val transactions = transactionDao.getTransactionsByCategory("Test Category").first()
-                assert(transactions.isNotEmpty())
+                assertTrue("Transactions should not be empty", transactions.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -267,12 +295,20 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkTransactionQueryByType() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val transactions = transactionDao.getTransactionsByType(TransactionType.EXPENSE).first()
-                assert(transactions.isNotEmpty())
+                assertTrue("Transactions should not be empty", transactions.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -286,12 +322,20 @@ class DatabasePerformanceTest {
         calendar.add(Calendar.MONTH, -1)
         val startDate = calendar.time
 
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val total = transactionDao.getTotalByTypeAndDateRange(TransactionType.EXPENSE, startDate, endDate)
-                assert(total >= 0.0)
+                assertTrue("Total should be >= 0", total >= 0.0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -300,14 +344,22 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkCurrencyUsageTracking() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val now = Date()
                 currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
                 val usage = currencyUsageDao.getAllCurrencyUsage().first()
-                assert(usage.isNotEmpty())
+                assertTrue("Usage should not be empty", usage.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -316,12 +368,20 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkAllCurrencyUsageQuery() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val usage = currencyUsageDao.getAllCurrencyUsage().first()
-                assert(usage.isNotEmpty())
+                assertTrue("Usage should not be empty", usage.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -330,12 +390,20 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkTopCurrenciesQuery() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val topCurrencies = currencyUsageDao.getTopCurrencies(5).first()
-                assert(topCurrencies.size <= 5)
+                assertTrue("Top currencies size should be <= 5", topCurrencies.size <= 5)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -344,12 +412,20 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkUserQueryById() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val user = userDao.getUser()
-                assert(user != null)
+                assertTrue("User should not be null", user != null)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -358,18 +434,26 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkComplexMultipleOperations() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 // This simulates a complex query with multiple operations
                 val user = userDao.getUser()
                 val transactions = transactionDao.getAllTransactions().first()
                 val currencyUsage = currencyUsageDao.getAllCurrencyUsage().first()
                 
-                assert(user != null)
-                assert(transactions.isNotEmpty())
-                assert(currencyUsage.isNotEmpty())
+                assertTrue("User should not be null", user != null)
+                assertTrue("Transactions should not be empty", transactions.isNotEmpty())
+                assertTrue("Currency usage should not be empty", currencyUsage.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -378,7 +462,10 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkConcurrentDatabaseOperations() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val operations = listOf(
                     async { transactionDao.getAllTransactions().first() },
@@ -389,9 +476,14 @@ class DatabasePerformanceTest {
                 )
                 
                 val results = operations.map { it.await() }
-                assert(results.size == 5)
+                assertTrue("Results size should be 5", results.size == 5)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -419,12 +511,20 @@ class DatabasePerformanceTest {
             }
         }
 
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val transactions = transactionDao.getAllTransactions().first()
-                assert(transactions.size >= 1000)
+                assertTrue("Transactions size should be >= 1000", transactions.size >= 1000)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -433,7 +533,10 @@ class DatabasePerformanceTest {
      */
     @Test
     fun benchmarkDatabaseTransactionPerformance() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val now = Date()
                 // Simulate a database transaction by performing multiple operations
@@ -453,9 +556,14 @@ class DatabasePerformanceTest {
                 currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
                 val transactionCount = transactionDao.getTransactionCount()
                 
-                assert(id > 0)
-                assert(transactionCount > 0)
+                assertTrue("ID should be > 0", id > 0)
+                assertTrue("Transaction count should be > 0", transactionCount > 0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 }

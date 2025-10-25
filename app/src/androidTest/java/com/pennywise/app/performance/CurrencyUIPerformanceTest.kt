@@ -3,7 +3,6 @@ package com.pennywise.app.performance
 import android.Manifest
 import android.content.Context
 import android.os.Build
-// Removed benchmark dependencies for now
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -12,6 +11,7 @@ import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.presentation.components.CurrencySelectionDropdown
 import com.pennywise.app.presentation.util.CurrencyFormatter
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
