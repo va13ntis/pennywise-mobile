@@ -36,7 +36,7 @@
     <string name="payment_method_cash">מזומן</string>
     <string name="payment_method_credit_card">אשראי</string>
     <string name="payment_method_cheque">צ\'ק</string>
-    <string name="recurring_expenses">הוצאות קבועות</string>
+    <string name="recurring_expenses">תשלומים קבועים ודחויים</string>
     <string name="week_format">שבוע %d</string>
     <string name="no_expenses_this_week">אין הוצאות השבוע</string>
     <string name="previous_month">חודש קודם</string>
@@ -92,6 +92,16 @@
     <string name="add_credit_card">הוסף כרטיס אשראי</string>
     <string name="edit_credit_card">ערוך כרטיס אשראי</string>
     <string name="updating">מעדכן…</string>
+    
+    <!-- Payment Delay (Billing Cycle) -->
+    <string name="payment_delay_none">שוטף</string>
+    <string name="payment_delay_plus_30">שוטף + 30</string>
+    <string name="payment_delay_plus_60">שוטף + 60</string>
+    <string name="payment_delay_plus_90">שוטף + 90</string>
+    <string name="payment_delay_label">דחיית חיוב</string>
+    <string name="billing_hint">ייחויב בחשבון של %1$s</string>
+    <string name="paid">✓ שולם</string>
+    <string name="pending">ממתין</string>
     
     <string name="one_time">פעם אחת</string>
     <string name="recurring">קבוע</string>

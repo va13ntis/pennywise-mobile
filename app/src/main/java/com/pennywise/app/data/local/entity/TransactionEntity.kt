@@ -33,6 +33,7 @@ data class TransactionEntity(
     val paymentMethodConfigId: Long? = null, // Link to specific PaymentMethodConfig (e.g., which credit card)
     val installments: Int? = null, // Only used for split payments
     val installmentAmount: Double? = null, // Calculated monthly payment amount
+    val billingDelayDays: Int = 0, // Billing delay in days for credit card payments
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
 ) {
@@ -51,6 +52,7 @@ data class TransactionEntity(
             paymentMethodConfigId = paymentMethodConfigId,
             installments = installments,
             installmentAmount = installmentAmount,
+            billingDelayDays = billingDelayDays,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
@@ -72,6 +74,7 @@ data class TransactionEntity(
                 paymentMethodConfigId = transaction.paymentMethodConfigId,
                 installments = transaction.installments,
                 installmentAmount = transaction.installmentAmount,
+                billingDelayDays = transaction.billingDelayDays,
                 createdAt = transaction.createdAt,
                 updatedAt = transaction.updatedAt
             )

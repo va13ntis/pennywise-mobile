@@ -68,6 +68,7 @@ import com.pennywise.app.presentation.components.RecurringExpensesSection
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.util.CategoryMapper
+import com.pennywise.app.presentation.util.PaymentMethodMapper
 import com.pennywise.app.presentation.util.LocaleFormatter
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import com.pennywise.app.presentation.viewmodel.SettingsViewModel
@@ -553,44 +554,18 @@ private fun TransactionItem(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = when (transaction.paymentMethod) {
-                        com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD -> "💳"
-                        com.pennywise.app.domain.model.PaymentMethod.CASH -> "💵"
-                        com.pennywise.app.domain.model.PaymentMethod.CHEQUE -> "🧾"
-                    },
+                    text = PaymentMethodMapper.getPaymentMethodIcon(transaction.paymentMethod),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
             
             // Description
             Column {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = transaction.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    // Show payment number for split payments
-                    if (transaction.installments != null && transaction.installments > 1) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            tonalElevation = 1.dp
-                        ) {
-                            Text(
-                                text = "1/${transaction.installments}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-                
+                Text(
+                    text = transaction.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 if (transaction.category.isNotEmpty()) {
                     Text(
                         text = CategoryMapper.getLocalizedCategory(transaction.category),

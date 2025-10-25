@@ -12,11 +12,31 @@ object DatabaseMigrations {
     /**
      * Migration from version 2 to 3
      * Adds:
-     * - bank_cards table
-     * - split_payment_installments table
+     * - paymentMethodConfigId column to transactions table (for payment method configuration support)
+     * - Creates payment_method_configs table
+     * - Creates bank_cards table
+     * - Creates split_payment_installments table
+     * - Creates currency_usage table
      */
     val MIGRATION_2_3 = object : Migration(2, 3) {
         override fun migrate(db: SupportSQLiteDatabase) {
+            // Add paymentMethodConfigId column to transactions table
+            db.execSQL("ALTER TABLE transactions ADD COLUMN paymentMethodConfigId INTEGER")
+            
+            // Create payment_method_configs table
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS payment_method_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    paymentMethod TEXT NOT NULL,
+                    alias TEXT NOT NULL,
+                    isDefault INTEGER NOT NULL,
+                    withdrawDay INTEGER,
+                    isActive INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+            """)
+            
             // Create bank_cards table
             db.execSQL("""
                 CREATE TABLE IF NOT EXISTS bank_cards (
@@ -24,80 +44,76 @@ object DatabaseMigrations {
                     alias TEXT NOT NULL,
                     lastFourDigits TEXT NOT NULL,
                     paymentDay INTEGER NOT NULL,
-                    isActive INTEGER NOT NULL DEFAULT 1,
+                    isActive INTEGER NOT NULL,
                     createdAt INTEGER NOT NULL,
                     updatedAt INTEGER NOT NULL
                 )
-            """.trimIndent())
+            """)
             
-            // Create split_payment_installments table with foreign key to transactions
+            // Create split_payment_installments table
             db.execSQL("""
                 CREATE TABLE IF NOT EXISTS split_payment_installments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                     parentTransactionId INTEGER NOT NULL,
                     amount REAL NOT NULL,
-                    currency TEXT NOT NULL DEFAULT 'USD',
+                    currency TEXT NOT NULL,
                     description TEXT NOT NULL,
                     category TEXT NOT NULL,
                     type TEXT NOT NULL,
                     dueDate INTEGER NOT NULL,
                     installmentNumber INTEGER NOT NULL,
                     totalInstallments INTEGER NOT NULL,
-                    isPaid INTEGER NOT NULL DEFAULT 0,
+                    isPaid INTEGER NOT NULL,
                     paidDate INTEGER,
                     createdAt INTEGER NOT NULL,
                     updatedAt INTEGER NOT NULL,
-                    FOREIGN KEY(parentTransactionId) REFERENCES transactions(id) ON DELETE CASCADE
+                    FOREIGN KEY(parentTransactionId) REFERENCES transactions(id) ON UPDATE NO ACTION ON DELETE CASCADE
                 )
-            """.trimIndent())
+            """)
             
-            // Create indices for split_payment_installments
-            db.execSQL("CREATE INDEX IF NOT EXISTS index_split_payment_installments_parentTransactionId ON split_payment_installments(parentTransactionId)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS index_split_payment_installments_dueDate ON split_payment_installments(dueDate)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS index_split_payment_installments_isPaid ON split_payment_installments(isPaid)")
+            // Create currency_usage table
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS currency_usage (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    currency TEXT NOT NULL,
+                    usageCount INTEGER NOT NULL,
+                    lastUsed INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+            """)
+            
+            // Create indices for performance
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_currency_usage_currency ON currency_usage (currency)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_split_payment_installments_parentTransactionId ON split_payment_installments (parentTransactionId)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_split_payment_installments_dueDate ON split_payment_installments (dueDate)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_split_payment_installments_isPaid ON split_payment_installments (isPaid)")
         }
     }
     
     /**
      * Migration from version 3 to 4
-     * Adds:
-     * - payment_method_configs table
-     * - paymentMethodConfigId column to transactions table (nullable)
-     * - installments and installmentAmount columns to transactions table (nullable)
+     * This migration handles any schema refinements between versions 3 and 4
+     * Based on the schema file, version 4 appears to be the same as version 3
+     * but we include this migration for completeness and future-proofing
      */
     val MIGRATION_3_4 = object : Migration(3, 4) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            // Create payment_method_configs table
-            db.execSQL("""
-                CREATE TABLE IF NOT EXISTS payment_method_configs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                    paymentMethod TEXT NOT NULL,
-                    alias TEXT NOT NULL,
-                    isDefault INTEGER NOT NULL DEFAULT 0,
-                    withdrawDay INTEGER,
-                    isActive INTEGER NOT NULL DEFAULT 1,
-                    createdAt INTEGER NOT NULL,
-                    updatedAt INTEGER NOT NULL
-                )
-            """.trimIndent())
-            
-            // Add new nullable columns to transactions table
-            // These are safe to add as ALTER TABLE ADD COLUMN since they're nullable
-            db.execSQL("ALTER TABLE transactions ADD COLUMN paymentMethodConfigId INTEGER")
-            db.execSQL("ALTER TABLE transactions ADD COLUMN installments INTEGER")
-            db.execSQL("ALTER TABLE transactions ADD COLUMN installmentAmount REAL")
+            // Version 3 to 4 appears to be schema refinements
+            // No specific changes needed based on the schema file
+            // This migration exists to maintain the upgrade path
         }
     }
     
     /**
-     * Combined migration from version 2 to 4 (for users who never installed version 3)
-     * This performs all schema changes at once
+     * Migration from version 4 to 5
+     * Adds:
+     * - billingDelayDays column to transactions table (for credit card billing delay support)
      */
-    val MIGRATION_2_4 = object : Migration(2, 4) {
+    val MIGRATION_4_5 = object : Migration(4, 5) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            // Execute all changes from both migrations
-            MIGRATION_2_3.migrate(db)
-            MIGRATION_3_4.migrate(db)
+            // Add billingDelayDays column with default value of 0 (immediate/שוטף)
+            db.execSQL("ALTER TABLE transactions ADD COLUMN billingDelayDays INTEGER NOT NULL DEFAULT 0")
         }
     }
     
@@ -108,7 +124,7 @@ object DatabaseMigrations {
         return arrayOf(
             MIGRATION_2_3,
             MIGRATION_3_4,
-            MIGRATION_2_4
+            MIGRATION_4_5
         )
     }
 }

@@ -68,7 +68,18 @@
     <string name="add_credit_card">Add Credit Card</string>
     <string name="edit_credit_card">Edit Credit Card</string>
     <string name="updating">Updating…</string>
-    <string name="recurring_expenses">Recurring Expenses</string>
+    
+    <!-- Payment Delay (Billing Cycle) -->
+    <string name="payment_delay_none">Immediate</string>
+    <string name="payment_delay_plus_30">+30 days</string>
+    <string name="payment_delay_plus_60">+60 days</string>
+    <string name="payment_delay_plus_90">+90 days</string>
+    <string name="payment_delay_label">Billing Delay</string>
+    <string name="billing_hint">Will appear on %1$s statement</string>
+    <string name="paid">✓ Paid</string>
+    <string name="pending">Pending</string>
+    
+    <string name="recurring_expenses">Recurring and postponed payments</string>
     <string name="week_format">Week %d</string>
     <string name="no_expenses_this_week">No expenses this week</string>
     <string name="previous_month">Previous Month</string>

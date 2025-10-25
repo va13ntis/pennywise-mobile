@@ -85,11 +85,30 @@ class HomeViewModel @Inject constructor(
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
     
     // Reactive computed values
-    val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = _transactions.map { transactions ->
+    val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = combine(
+        _transactions.asStateFlow(),
+        _currentMonth.asStateFlow()
+    ) { transactions, currentMonth ->
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+        
         transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }  // Exclude recurring expenses
+            .filter { transaction ->
+                // EXCLUDE delayed transactions - they're treated as split payment installments
+                // Only show if billing date is in current month AND not delayed
+                val billingDate = transaction.getBillingDate()
+                val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
+                
+                val isInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                val isNotDelayed = !transaction.hasDelayedBilling()
+                
+                isInMonth && isNotDelayed
+            }
             .sortedByDescending { it.date }
             .groupBy { transaction ->
+                // Group by week based on transaction date (when it was created)
+                // This is more intuitive for users to find their purchases
                 val calendar = Calendar.getInstance().apply {
                     time = transaction.date
                 }
@@ -115,17 +134,42 @@ class HomeViewModel @Inject constructor(
     val totalExpenses: StateFlow<Double> = combine(
         _transactions.asStateFlow(),
         recurringTransactions,
-        _selectedPaymentMethod.asStateFlow()
-    ) { transactions, recurringTransactions, selectedPaymentMethod ->
+        splitPaymentInstallments,
+        _selectedPaymentMethod.asStateFlow(),
+        _currentMonth.asStateFlow()
+    ) { transactions, recurringTransactions, splitInstallments, selectedPaymentMethod, currentMonth ->
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+        
+        println("💰 HomeViewModel: Calculating totalExpenses for $currentMonth")
+        println("💰 HomeViewModel: Total transactions available: ${transactions.size}")
+        
         // Only include NON-recurring expenses from monthly transactions
-        val regularExpenses = transactions
+        // Filter by BILLING date, not transaction date
+        // EXCLUDE delayed transactions - they're handled as split payment installments
+        val regularExpensesFiltered = transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
+            .filter { transaction ->
+                // EXCLUDE delayed transactions - they're treated as split payment installments
+                !transaction.hasDelayedBilling()
+            }
+            .filter { transaction ->
+                // Include transaction if its BILLING date falls within the current month
+                val billingDate = transaction.getBillingDate()
+                val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
+                
+                val isInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                
+                isInMonth
+            }
             .filter { transaction ->
                 selectedPaymentMethod?.let { method ->
                     transaction.paymentMethod == method
                 } ?: true // Show all if no filter selected
             }
-            .sumOf { it.amount }
+        
+        val regularExpenses = regularExpensesFiltered.sumOf { it.amount }
+        println("💰 HomeViewModel: Regular expenses count: ${regularExpensesFiltered.size}, total: $$regularExpenses")
         
         val recurringExpenses = recurringTransactions
             .filter { transaction ->
@@ -135,7 +179,16 @@ class HomeViewModel @Inject constructor(
             }
             .sumOf { it.amount }
         
-        regularExpenses + recurringExpenses
+        println("💰 HomeViewModel: Recurring expenses: $$recurringExpenses")
+        
+        // Add split payment installments (they're already filtered by month)
+        // Note: Split installments don't have paymentMethod field, so we include all of them
+        val splitPaymentExpenses = splitInstallments.sumOf { it.amount }
+        
+        println("💰 HomeViewModel: Split payment installments: $$splitPaymentExpenses (${splitInstallments.size} installments)")
+        println("💰 HomeViewModel: TOTAL EXPENSES for $currentMonth: $${regularExpenses + recurringExpenses + splitPaymentExpenses}")
+        
+        regularExpenses + recurringExpenses + splitPaymentExpenses
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
@@ -144,13 +197,34 @@ class HomeViewModel @Inject constructor(
     
     val netBalance: StateFlow<Double> = combine(
         _transactions.asStateFlow(),
-        recurringTransactions
-    ) { transactions, recurringTransactions ->
+        recurringTransactions,
+        splitPaymentInstallments,
+        _currentMonth.asStateFlow()
+    ) { transactions, recurringTransactions, splitInstallments, currentMonth ->
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+        
         val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         // Only include NON-recurring expenses from monthly transactions
-        val regularExpenses = transactions.filter { it.type == TransactionType.EXPENSE && !it.isRecurring }.sumOf { it.amount }
+        // Filter by BILLING date, not transaction date
+        // EXCLUDE delayed transactions - they're handled as split payment installments
+        val regularExpenses = transactions
+            .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
+            .filter { transaction ->
+                // EXCLUDE delayed transactions - they're treated as split payment installments
+                !transaction.hasDelayedBilling()
+            }
+            .filter { transaction ->
+                // Include transaction if its BILLING date falls within the current month
+                val billingDate = transaction.getBillingDate()
+                val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
+                
+                !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+            }
+            .sumOf { it.amount }
         val recurringExpenses = recurringTransactions.sumOf { it.amount }
-        income - (regularExpenses + recurringExpenses)
+        val splitPaymentExpenses = splitInstallments.sumOf { it.amount }
+        income - (regularExpenses + recurringExpenses + splitPaymentExpenses)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
@@ -240,13 +314,12 @@ class HomeViewModel @Inject constructor(
     
     /**
      * Filter split payment installments for the current month
+     * Also converts delayed transactions into pending installments
      */
     private fun filterSplitPaymentInstallmentsForMonth(
         allInstallments: List<SplitPaymentInstallment>,
         currentMonth: YearMonth
     ): List<SplitPaymentInstallment> {
-        if (allInstallments.isEmpty()) return emptyList()
-        
         val startOfMonth = currentMonth.atDay(1).atStartOfDay()
         val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
         
@@ -254,7 +327,8 @@ class HomeViewModel @Inject constructor(
         println("🔍 HomeViewModel: Date range: $startOfMonth to $endOfMonth")
         println("🔍 HomeViewModel: Total installments to filter: ${allInstallments.size}")
         
-        val filtered = allInstallments.filter { installment ->
+        // Filter existing split payment installments
+        val filteredInstallments = allInstallments.filter { installment ->
             val dueDate = installment.dueDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
             
             // Only include if the installment due date falls within the current month
@@ -272,8 +346,46 @@ class HomeViewModel @Inject constructor(
             shouldInclude
         }
         
-        println("🔍 HomeViewModel: Filtered to ${filtered.size} split payment installments for $currentMonth")
-        return filtered
+        // Convert delayed transactions into "pending installments" and include them
+        val delayedTransactions = _transactions.value.filter { transaction ->
+            transaction.hasDelayedBilling()
+        }
+        
+        println("🔍 HomeViewModel: Found ${delayedTransactions.size} delayed transactions to convert to installments")
+        
+        val pendingInstallments = delayedTransactions.map { transaction ->
+            SplitPaymentInstallment(
+                id = transaction.id, // Use transaction ID as a unique identifier
+                parentTransactionId = transaction.id,
+                amount = transaction.amount,
+                currency = transaction.currency,
+                description = transaction.description,
+                category = transaction.category,
+                type = transaction.type,
+                dueDate = transaction.getBillingDate(), // The billing date
+                installmentNumber = 1,
+                totalInstallments = 1,
+                isPaid = false, // Always pending until billed
+                paidDate = null,
+                createdAt = transaction.createdAt,
+                updatedAt = transaction.updatedAt
+            )
+        }.filter { installment ->
+            // Only include if billing date is in current month
+            val dueDate = installment.dueDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+            val isInCurrentMonth = !dueDate.isBefore(startOfMonth) && !dueDate.isAfter(endOfMonth)
+            
+            if (isInCurrentMonth) {
+                println("✅ HomeViewModel: Including delayed transaction as pending installment: ${installment.description} - ${dueDate.toLocalDate()}")
+            }
+            
+            isInCurrentMonth
+        }
+        
+        val allFiltered = filteredInstallments + pendingInstallments
+        println("🔍 HomeViewModel: Filtered to ${allFiltered.size} total (${filteredInstallments.size} split + ${pendingInstallments.size} delayed) for $currentMonth")
+        
+        return allFiltered
     }
 
     /**
@@ -311,34 +423,36 @@ class HomeViewModel @Inject constructor(
         println("🔄 HomeViewModel: Starting to observe transactions")
         
         // Observe monthly transactions - this will automatically update when month changes
+        // We need to fetch transactions from current month AND previous months (up to 90 days back)
+        // to capture delayed billing transactions that will be billed in the current month
         monthlyTransactionsJob = viewModelScope.launch {
             try {
                 combine(authManager.currentUser, _currentMonth.asStateFlow()) { user, month ->
                     Pair(user, month)
                 }.collect { (user, month) ->
                     if (user != null) {
-                        println("🔄 HomeViewModel: Loading monthly transactions for month: $month")
+                        println("🔄 HomeViewModel: Loading transactions for month: $month (including delayed billing)")
                         _isLoading.value = true
                         
                         try {
-                            val transactions = transactionRepository.getTransactionsByMonth(month).first()
-                            println("✅ HomeViewModel: Loaded ${transactions.size} monthly transactions for $month")
+                            // Load current month AND previous 3 months to capture delayed billing (max 90 days)
+                            val monthsToLoad = listOf(
+                                month,           // Current month
+                                month.minusMonths(1), // Previous month (for 30-day delays)
+                                month.minusMonths(2), // 2 months ago (for 60-day delays)
+                                month.minusMonths(3)  // 3 months ago (for 90-day delays)
+                            )
                             
-                            // Log detailed transaction information
-                            if (transactions.isNotEmpty()) {
-                                println("📊 HomeViewModel: Transaction details for $month:")
-                                transactions.forEachIndexed { index, transaction ->
-                                    println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
-                                }
-                                
-                                val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-                                val totalExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-                                println("📊 HomeViewModel: Total Income: $${totalIncome}, Total Expenses: $${totalExpense}")
-                            } else {
-                                println("⚠️ HomeViewModel: No transactions found for $month")
+                            val allTransactions = mutableListOf<Transaction>()
+                            monthsToLoad.forEach { monthToLoad ->
+                                val monthTransactions = transactionRepository.getTransactionsByMonth(monthToLoad).first()
+                                allTransactions.addAll(monthTransactions)
+                                println("📅 HomeViewModel: Loaded ${monthTransactions.size} transactions from $monthToLoad")
                             }
                             
-                            _transactions.value = transactions
+                            println("✅ HomeViewModel: Loaded ${allTransactions.size} total transactions (will filter by billing date)")
+                            
+                            _transactions.value = allTransactions
                             _error.value = null
                             _needsAuthentication.value = false
                         } catch (e: SecurityException) {
@@ -482,17 +596,27 @@ class HomeViewModel @Inject constructor(
         val user = authManager.currentUser.value
         if (user != null) {
             println("🔄 HomeViewModel: Manual refresh requested")
-            // Force refresh by triggering the current month change
             val currentMonth = _currentMonth.value
-            _currentMonth.value = currentMonth.plusMonths(0) // This will trigger the flow to refresh
             
-            // Also force refresh the recurring transactions and split payments
+            // Force refresh by loading transactions from current and previous months
             viewModelScope.launch {
                 try {
-                    // Force reload monthly transactions
-                    val transactions = transactionRepository.getTransactionsByMonth(currentMonth).first()
-                    _transactions.value = transactions
-                    println("✅ HomeViewModel: Refreshed ${transactions.size} monthly transactions")
+                    // Load current month AND previous 3 months to capture delayed billing (max 90 days)
+                    val monthsToLoad = listOf(
+                        currentMonth,           // Current month
+                        currentMonth.minusMonths(1), // Previous month (for 30-day delays)
+                        currentMonth.minusMonths(2), // 2 months ago (for 60-day delays)
+                        currentMonth.minusMonths(3)  // 3 months ago (for 90-day delays)
+                    )
+                    
+                    val allTransactions = mutableListOf<Transaction>()
+                    monthsToLoad.forEach { monthToLoad ->
+                        val monthTransactions = transactionRepository.getTransactionsByMonth(monthToLoad).first()
+                        allTransactions.addAll(monthTransactions)
+                    }
+                    
+                    _transactions.value = allTransactions
+                    println("✅ HomeViewModel: Refreshed ${allTransactions.size} total transactions (including delayed billing)")
                     
                     // Force reload recurring transactions
                     val recurringTransactions = transactionRepository.getRecurringTransactions().first()

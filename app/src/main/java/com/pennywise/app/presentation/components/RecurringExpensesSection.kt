@@ -238,6 +238,9 @@ private fun SplitPaymentInstallmentItem(
     currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
+    // Check if this is a delayed transaction (installmentNumber == 1 and totalInstallments == 1)
+    val isDelayedTransaction = installment.installmentNumber == 1 && installment.totalInstallments == 1
+    
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -257,38 +260,18 @@ private fun SplitPaymentInstallmentItem(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "💳",
+                    text = if (isDelayedTransaction) "⏳" else "💳",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
             
             // Description and status
             Column {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = installment.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    // Payment number badge
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        tonalElevation = 1.dp
-                    ) {
-                        Text(
-                            text = "${installment.installmentNumber}/${installment.totalInstallments}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-                
+                Text(
+                    text = if (isDelayedTransaction) installment.description else installment.getFormattedDescription(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -305,9 +288,9 @@ private fun SplitPaymentInstallmentItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text(
-                        text = if (installment.isPaid) "✓ Paid" else "Pending",
-                        style = MaterialTheme.typography.bodySmall,
+                                           Text(
+                           text = if (installment.isPaid) stringResource(R.string.paid) else stringResource(R.string.pending),
+                           style = MaterialTheme.typography.bodySmall,
                         color = if (installment.isPaid) income_green else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (installment.isPaid) FontWeight.Medium else FontWeight.Normal
                     )
