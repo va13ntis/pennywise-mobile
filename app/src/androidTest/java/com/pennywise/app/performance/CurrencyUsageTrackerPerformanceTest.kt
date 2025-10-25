@@ -2,8 +2,6 @@ package com.pennywise.app.performance
 
 import android.Manifest
 import android.os.Build
-import androidx.benchmark.junit4.BenchmarkRule
-import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.room.Room
@@ -15,13 +13,13 @@ import com.pennywise.app.data.local.entity.UserEntity
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Before
 import org.junit.After
 import java.util.Date
 import java.util.Calendar
+import org.junit.Assert.assertTrue
 
 /**
  * Performance tests for currency usage tracker operations
@@ -37,20 +35,10 @@ import java.util.Calendar
 @RunWith(AndroidJUnit4::class)
 class CurrencyUsageTrackerPerformanceTest {
 
-    @get:Rule
-    val benchmarkRule = BenchmarkRule()
-
     private lateinit var database: PennyWiseDatabase
     private lateinit var currencyUsageDao: CurrencyUsageDao
     private lateinit var userDao: UserDao
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
-
-    init {
-        // Configure benchmark output to internal storage before any tests run
-        // This must be done in init block to run before BenchmarkRule tries to grant permissions
-        System.setProperty("benchmark.output.path", 
-            InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath)
-    }
 
     @Before
     fun setup() {
@@ -142,12 +130,20 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkSingleCurrencyUsageIncrement() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val now = Date()
                 currencyUsageDao.insertOrIncrementCurrencyUsage("USD", now, now, now)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -156,12 +152,20 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkAllCurrencyUsageQuery() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val usage = currencyUsageDao.getAllCurrencyUsage().first()
-                assert(usage.isNotEmpty())
+                assertTrue("Usage should not be empty", usage.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -170,12 +174,20 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkTopCurrenciesQuery() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val topCurrencies = currencyUsageDao.getTopCurrencies(5).first()
-                assert(topCurrencies.size <= 5)
+                assertTrue("Top currencies size should be <= 5", topCurrencies.size <= 5)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -184,12 +196,20 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkCurrencyUsageSortedByUsage() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val sortedUsage = currencyUsageDao.getCurrencyUsageSortedByUsage().first()
-                assert(sortedUsage.isNotEmpty())
+                assertTrue("Sorted usage should not be empty", sortedUsage.isNotEmpty())
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -198,12 +218,20 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkCurrencyUsageQueryByCurrency() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val usage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
-                assert(usage != null)
+                assertTrue("USD usage should not be null", usage != null)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -212,12 +240,20 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkCurrencyUsageCountQuery() {
-        benchmarkRule.measureRepeated {
+        val iterations = 100
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val count = currencyUsageDao.getCurrencyUsageCount()
-                assert(count > 0)
+                assertTrue("Count should be > 0", count > 0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 50ms, got ${avgTime}ms", avgTime < 50)
     }
 
     /**
@@ -226,7 +262,10 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkBatchCurrencyUsageIncrement() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val currencies = listOf("USD", "EUR", "GBP", "JPY", "CAD")
                 val now = Date()
@@ -236,6 +275,11 @@ class CurrencyUsageTrackerPerformanceTest {
                 }
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -244,7 +288,10 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkConcurrentCurrencyUsageOperations() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val operations = listOf(
                     async { currencyUsageDao.getAllCurrencyUsage().first() },
@@ -255,9 +302,14 @@ class CurrencyUsageTrackerPerformanceTest {
                 )
                 
                 val results = operations.map { it.await() }
-                assert(results.size == 5)
+                assertTrue("Results size should be 5", results.size == 5)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -281,12 +333,20 @@ class CurrencyUsageTrackerPerformanceTest {
             }
         }
 
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val allUsage = currencyUsageDao.getAllCurrencyUsage().first()
-                assert(allUsage.size >= 100)
+                assertTrue("All usage size should be >= 100", allUsage.size >= 100)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -295,7 +355,10 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkCurrencyUsageDeletion() {
-        benchmarkRule.measureRepeated {
+        val iterations = 20
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 // Setup some test data first
                 val now = Date()
@@ -308,12 +371,17 @@ class CurrencyUsageTrackerPerformanceTest {
                 
                 // Verify deletion
                 val count = currencyUsageDao.getCurrencyUsageCount()
-                assert(count == 0)
+                assertTrue("Count should be 0", count == 0)
                 
                 // Restore test data for next iteration
                 setupTestData()
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 500ms, got ${avgTime}ms", avgTime < 500)
     }
 
     /**
@@ -322,7 +390,10 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkSequentialCurrencyUsageUpdates() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val now = Date()
                 repeat(10) { _ ->
@@ -330,10 +401,15 @@ class CurrencyUsageTrackerPerformanceTest {
                 }
                 
                 val usage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
-                assert(usage != null)
-                assert(usage!!.usageCount > 0)
+                assertTrue("USD usage should not be null", usage != null)
+                assertTrue("Usage count should be > 0", usage!!.usageCount > 0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -342,18 +418,26 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkTimeBasedCurrencyQueries() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 // Get all currencies sorted by usage (which considers last used)
                 val sortedUsage = currencyUsageDao.getCurrencyUsageSortedByUsage().first()
-                assert(sortedUsage.isNotEmpty())
+                assertTrue("Sorted usage should not be empty", sortedUsage.isNotEmpty())
                 
                 // Verify they're properly sorted by usage count
                 for (i in 0 until sortedUsage.size - 1) {
-                    assert(sortedUsage[i].usageCount >= sortedUsage[i + 1].usageCount)
+                    assertTrue("Usage should be sorted", sortedUsage[i].usageCount >= sortedUsage[i + 1].usageCount)
                 }
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 
     /**
@@ -362,7 +446,10 @@ class CurrencyUsageTrackerPerformanceTest {
      */
     @Test
     fun benchmarkMixedCurrencyOperations() {
-        benchmarkRule.measureRepeated {
+        val iterations = 50
+        val startTime = System.currentTimeMillis()
+        
+        repeat(iterations) {
             runBlocking {
                 val now = Date()
                 
@@ -371,16 +458,21 @@ class CurrencyUsageTrackerPerformanceTest {
                 
                 // Read specific
                 val usdUsage = currencyUsageDao.getCurrencyUsageByCurrency("USD")
-                assert(usdUsage != null)
+                assertTrue("USD usage should not be null", usdUsage != null)
                 
                 // Read top
                 val topCurrencies = currencyUsageDao.getTopCurrencies(3).first()
-                assert(topCurrencies.isNotEmpty())
+                assertTrue("Top currencies should not be empty", topCurrencies.isNotEmpty())
                 
                 // Read count
                 val count = currencyUsageDao.getCurrencyUsageCount()
-                assert(count > 0)
+                assertTrue("Count should be > 0", count > 0)
             }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        val avgTime = duration / iterations.toDouble()
+        
+        assertTrue("Average time should be < 200ms, got ${avgTime}ms", avgTime < 200)
     }
 }

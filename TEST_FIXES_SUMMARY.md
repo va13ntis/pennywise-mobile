@@ -2,7 +2,22 @@
 
 ## Issues Fixed
 
-### 1. Benchmark Tests Failing with "ACTIVITY-MISSING DEBUGGABLE"
+### 1. KAPT/KSP Conflict Causing Build Failure
+
+**Problem:** The project was using both KSP (for Room) and KAPT (for Hilt), causing a `NullPointerException` during the `kaptDebugAndroidTestKotlin` task. The error was: `processingEnv must not be null` in the Hilt annotation processor.
+
+**Solution:**
+- Removed the `kotlin("kapt")` plugin from build.gradle.kts
+- Replaced all `kapt` dependencies with `ksp` for Hilt
+- Replaced `kaptAndroidTest` with `ksp` for Android test dependencies
+- Removed unused `androidx.benchmark:benchmark-junit4` dependency
+
+**Files Modified:**
+- `app/build.gradle.kts`
+
+**Note:** Hilt 2.48 fully supports KSP, so this migration is safe and actually improves build performance.
+
+### 2. Benchmark Tests Failing with "ACTIVITY-MISSING DEBUGGABLE"
 
 **Problem:** The `CurrencyConversionPerformanceTest` was using `BenchmarkRule()` from the AndroidX Benchmark library, which requires special configuration and debuggable activities. This was causing all benchmark tests to fail with "ACTIVITY-MISSING DEBUGGABLE" errors on the GitHub Actions emulator.
 
@@ -14,8 +29,10 @@
 
 **Files Modified:**
 - `app/src/androidTest/java/com/pennywise/app/performance/CurrencyConversionPerformanceTest.kt`
+- `app/src/androidTest/java/com/pennywise/app/performance/CurrencyUsageTrackerPerformanceTest.kt`
+- `app/src/androidTest/java/com/pennywise/app/performance/DatabasePerformanceTest.kt`
 
-### 2. BinderProxy Memory Leak
+### 3. BinderProxy Memory Leak
 
 **Problem:** The `CurrencyUIPerformanceTest.benchmarkCurrencyBatchOperations()` test was causing a BinderProxy leak (21,215 uncleared entries), leading to process crashes on the emulator.
 
@@ -28,8 +45,10 @@
 
 **Files Modified:**
 - `app/src/androidTest/java/com/pennywise/app/performance/CurrencyUIPerformanceTest.kt`
+- `app/src/androidTest/java/com/pennywise/app/performance/CurrencyUsageTrackerPerformanceTest.kt`
+- `app/src/androidTest/java/com/pennywise/app/performance/DatabasePerformanceTest.kt`
 
-### 3. Database Test Assertion Failure
+### 4. Database Test Assertion Failure
 
 **Problem:** The `DatabaseModuleTest.testDatabaseModuleErrorHandling()` test was expecting "EUR" but getting "USD", indicating a timing issue with Room's REPLACE strategy.
 
@@ -41,9 +60,17 @@
 **Files Modified:**
 - `app/src/androidTest/java/com/pennywise/app/data/local/config/DatabaseModuleTest.kt`
 
-### 4. Emulator Console Warning (Non-Critical)
+### 5. Emulator Console Warning (Non-Critical)
 
 **Note:** The warning `[EmulatorConsole]: Failed to start Emulator console for 5554` is a known non-critical issue with the Android emulator in CI environments. It does not affect test execution and can be safely ignored.
+
+## Build Configuration Changes
+
+### KSP Migration
+- Migrated from KAPT to KSP for Hilt dependency injection
+- This resolves annotation processor conflicts between Room (KSP) and Hilt (KAPT)
+- Improves build performance and reduces compilation time
+- Hilt 2.48 fully supports KSP with no breaking changes
 
 ## Performance Test Changes
 

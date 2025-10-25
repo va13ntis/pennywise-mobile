@@ -768,8 +768,13 @@ private fun computePaymentMethodSummaries(
             val displayName = cardConfig?.alias?.ifBlank { "Credit Card" } ?: "Credit Card"
             val billingCycleText = cardConfig?.withdrawDay?.let { withdrawDay ->
                 // Billing cycle: withdrawDay of current month → (withdrawDay - 1) of next month
-                val cycleStart = currentMonth.atDay(withdrawDay)
-                val cycleEnd = currentMonth.plusMonths(1).atDay(withdrawDay).minusDays(1)
+                // Clamp withdrawDay to valid range for each month (handles Feb with 28/29 days, months with 30 days, etc.)
+                val validDayInCurrentMonth = minOf(withdrawDay, currentMonth.lengthOfMonth())
+                val nextMonth = currentMonth.plusMonths(1)
+                val validDayInNextMonth = minOf(withdrawDay, nextMonth.lengthOfMonth())
+                
+                val cycleStart = currentMonth.atDay(validDayInCurrentMonth)
+                val cycleEnd = nextMonth.atDay(validDayInNextMonth).minusDays(1)
                 
                 // Convert LocalDate to Date for formatting
                 val cycleStartDate = java.util.Date.from(cycleStart.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
