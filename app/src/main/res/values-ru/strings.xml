@@ -36,7 +36,7 @@
     <string name="payment_method_cash">Наличные</string>
     <string name="payment_method_credit_card">Кредит</string>
     <string name="payment_method_cheque">Чек</string>
-    <string name="recurring_expenses">Регулярные расходы</string>
+    <string name="recurring_expenses">Повторяющиеся, рассрочка и отсроченные</string>
     <string name="week_format">Неделя %d</string>
     <string name="no_expenses_this_week">Нет расходов на этой неделе</string>
     <string name="previous_month">Предыдущий месяц</string>

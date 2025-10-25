@@ -146,21 +146,19 @@ class HomeViewModel @Inject constructor(
         
         // Only include NON-recurring expenses from monthly transactions
         // Filter by BILLING date, not transaction date
+        // EXCLUDE delayed transactions - they're handled as split payment installments
         val regularExpensesFiltered = transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
+            .filter { transaction ->
+                // EXCLUDE delayed transactions - they're treated as split payment installments
+                !transaction.hasDelayedBilling()
+            }
             .filter { transaction ->
                 // Include transaction if its BILLING date falls within the current month
                 val billingDate = transaction.getBillingDate()
                 val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
                 
                 val isInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
-                
-                if (transaction.hasDelayedBilling()) {
-                    println("⏳ HomeViewModel: Delayed transaction '${transaction.description}': " +
-                            "Created ${transaction.date}, Bills ${billingDate}, " +
-                            "Delay: ${transaction.billingDelayDays} days, " +
-                            "Included in $currentMonth: $isInMonth")
-                }
                 
                 isInMonth
             }
@@ -209,8 +207,13 @@ class HomeViewModel @Inject constructor(
         val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         // Only include NON-recurring expenses from monthly transactions
         // Filter by BILLING date, not transaction date
+        // EXCLUDE delayed transactions - they're handled as split payment installments
         val regularExpenses = transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
+            .filter { transaction ->
+                // EXCLUDE delayed transactions - they're treated as split payment installments
+                !transaction.hasDelayedBilling()
+            }
             .filter { transaction ->
                 // Include transaction if its BILLING date falls within the current month
                 val billingDate = transaction.getBillingDate()

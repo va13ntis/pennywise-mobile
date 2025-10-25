@@ -36,7 +36,7 @@
     <string name="payment_method_cash">מזומן</string>
     <string name="payment_method_credit_card">אשראי</string>
     <string name="payment_method_cheque">צ\'ק</string>
-    <string name="recurring_expenses">הוצאות קבועות</string>
+    <string name="recurring_expenses">קבועות, תשלומים ושוטף+</string>
     <string name="week_format">שבוע %d</string>
     <string name="no_expenses_this_week">אין הוצאות השבוע</string>
     <string name="previous_month">חודש קודם</string>
