@@ -66,6 +66,7 @@ import com.pennywise.app.presentation.components.RecurringExpensesSection
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.util.CategoryMapper
+import com.pennywise.app.presentation.util.PaymentMethodMapper
 import com.pennywise.app.presentation.util.LocaleFormatter
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import java.time.YearMonth
@@ -478,7 +479,7 @@ private fun TransactionItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Category icon background
+            // Payment method icon background
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -487,18 +488,31 @@ private fun TransactionItem(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = CategoryMapper.getCategoryEmoji(transaction.category),
+                    text = PaymentMethodMapper.getPaymentMethodIcon(transaction.paymentMethod),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
             
             // Description
             Column {
-                Text(
-                    text = transaction.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = transaction.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    // Show delayed billing indicator
+                    if (transaction.hasDelayedBilling()) {
+                        Text(
+                            text = "⏳",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                }
                 if (transaction.category.isNotEmpty()) {
                     Text(
                         text = CategoryMapper.getLocalizedCategory(transaction.category),

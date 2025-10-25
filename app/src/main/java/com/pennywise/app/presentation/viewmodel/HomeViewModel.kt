@@ -85,13 +85,27 @@ class HomeViewModel @Inject constructor(
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
     
     // Reactive computed values
-    val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = _transactions.map { transactions ->
+    val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = combine(
+        _transactions.asStateFlow(),
+        _currentMonth.asStateFlow()
+    ) { transactions, currentMonth ->
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+        
         transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }  // Exclude recurring expenses
+            .filter { transaction ->
+                // Include transaction if its BILLING date falls within the current month
+                val billingDate = transaction.getBillingDate()
+                val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
+                
+                !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+            }
             .sortedByDescending { it.date }
             .groupBy { transaction ->
+                // Group by week based on BILLING date, not transaction date
                 val calendar = Calendar.getInstance().apply {
-                    time = transaction.date
+                    time = transaction.getBillingDate()
                 }
                 calendar.get(Calendar.WEEK_OF_MONTH)
             }
@@ -115,11 +129,23 @@ class HomeViewModel @Inject constructor(
     val totalExpenses: StateFlow<Double> = combine(
         _transactions.asStateFlow(),
         recurringTransactions,
-        _selectedPaymentMethod.asStateFlow()
-    ) { transactions, recurringTransactions, selectedPaymentMethod ->
+        _selectedPaymentMethod.asStateFlow(),
+        _currentMonth.asStateFlow()
+    ) { transactions, recurringTransactions, selectedPaymentMethod, currentMonth ->
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+        
         // Only include NON-recurring expenses from monthly transactions
+        // Filter by BILLING date, not transaction date
         val regularExpenses = transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
+            .filter { transaction ->
+                // Include transaction if its BILLING date falls within the current month
+                val billingDate = transaction.getBillingDate()
+                val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
+                
+                !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+            }
             .filter { transaction ->
                 selectedPaymentMethod?.let { method ->
                     transaction.paymentMethod == method
@@ -144,11 +170,25 @@ class HomeViewModel @Inject constructor(
     
     val netBalance: StateFlow<Double> = combine(
         _transactions.asStateFlow(),
-        recurringTransactions
-    ) { transactions, recurringTransactions ->
+        recurringTransactions,
+        _currentMonth.asStateFlow()
+    ) { transactions, recurringTransactions, currentMonth ->
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+        
         val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         // Only include NON-recurring expenses from monthly transactions
-        val regularExpenses = transactions.filter { it.type == TransactionType.EXPENSE && !it.isRecurring }.sumOf { it.amount }
+        // Filter by BILLING date, not transaction date
+        val regularExpenses = transactions
+            .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
+            .filter { transaction ->
+                // Include transaction if its BILLING date falls within the current month
+                val billingDate = transaction.getBillingDate()
+                val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
+                
+                !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+            }
+            .sumOf { it.amount }
         val recurringExpenses = recurringTransactions.sumOf { it.amount }
         income - (regularExpenses + recurringExpenses)
     }.stateIn(
