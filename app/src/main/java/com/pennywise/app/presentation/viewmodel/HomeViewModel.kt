@@ -351,34 +351,45 @@ class HomeViewModel @Inject constructor(
         println("🔄 HomeViewModel: Starting to observe transactions")
         
         // Observe monthly transactions - this will automatically update when month changes
+        // We need to fetch transactions from current month AND previous months (up to 90 days back)
+        // to capture delayed billing transactions that will be billed in the current month
         monthlyTransactionsJob = viewModelScope.launch {
             try {
                 combine(authManager.currentUser, _currentMonth.asStateFlow()) { user, month ->
                     Pair(user, month)
                 }.collect { (user, month) ->
                     if (user != null) {
-                        println("🔄 HomeViewModel: Loading monthly transactions for month: $month")
+                        println("🔄 HomeViewModel: Loading transactions for month: $month (including delayed billing)")
                         _isLoading.value = true
                         
                         try {
-                            val transactions = transactionRepository.getTransactionsByMonth(month).first()
-                            println("✅ HomeViewModel: Loaded ${transactions.size} monthly transactions for $month")
+                            // Load current month AND previous 3 months to capture delayed billing (max 90 days)
+                            val monthsToLoad = listOf(
+                                month,           // Current month
+                                month.minusMonths(1), // Previous month (for 30-day delays)
+                                month.minusMonths(2), // 2 months ago (for 60-day delays)
+                                month.minusMonths(3)  // 3 months ago (for 90-day delays)
+                            )
                             
-                            // Log detailed transaction information
-                            if (transactions.isNotEmpty()) {
-                                println("📊 HomeViewModel: Transaction details for $month:")
-                                transactions.forEachIndexed { index, transaction ->
-                                    println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
-                                }
-                                
-                                val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-                                val totalExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-                                println("📊 HomeViewModel: Total Income: $${totalIncome}, Total Expenses: $${totalExpense}")
-                            } else {
-                                println("⚠️ HomeViewModel: No transactions found for $month")
+                            val allTransactions = mutableListOf<Transaction>()
+                            monthsToLoad.forEach { monthToLoad ->
+                                val monthTransactions = transactionRepository.getTransactionsByMonth(monthToLoad).first()
+                                allTransactions.addAll(monthTransactions)
+                                println("📅 HomeViewModel: Loaded ${monthTransactions.size} transactions from $monthToLoad")
                             }
                             
-                            _transactions.value = transactions
+                            println("✅ HomeViewModel: Loaded ${allTransactions.size} total transactions (will filter by billing date)")
+                            
+                            // Log transactions with delayed billing
+                            val delayedTransactions = allTransactions.filter { it.hasDelayedBilling() }
+                            if (delayedTransactions.isNotEmpty()) {
+                                println("⏳ HomeViewModel: Found ${delayedTransactions.size} delayed billing transactions:")
+                                delayedTransactions.forEach { transaction ->
+                                    println("  - ${transaction.description}: Created ${transaction.date}, Bills ${transaction.getBillingDate()} (+${transaction.billingDelayDays} days)")
+                                }
+                            }
+                            
+                            _transactions.value = allTransactions
                             _error.value = null
                             _needsAuthentication.value = false
                         } catch (e: SecurityException) {
@@ -522,17 +533,27 @@ class HomeViewModel @Inject constructor(
         val user = authManager.currentUser.value
         if (user != null) {
             println("🔄 HomeViewModel: Manual refresh requested")
-            // Force refresh by triggering the current month change
             val currentMonth = _currentMonth.value
-            _currentMonth.value = currentMonth.plusMonths(0) // This will trigger the flow to refresh
             
-            // Also force refresh the recurring transactions and split payments
+            // Force refresh by loading transactions from current and previous months
             viewModelScope.launch {
                 try {
-                    // Force reload monthly transactions
-                    val transactions = transactionRepository.getTransactionsByMonth(currentMonth).first()
-                    _transactions.value = transactions
-                    println("✅ HomeViewModel: Refreshed ${transactions.size} monthly transactions")
+                    // Load current month AND previous 3 months to capture delayed billing (max 90 days)
+                    val monthsToLoad = listOf(
+                        currentMonth,           // Current month
+                        currentMonth.minusMonths(1), // Previous month (for 30-day delays)
+                        currentMonth.minusMonths(2), // 2 months ago (for 60-day delays)
+                        currentMonth.minusMonths(3)  // 3 months ago (for 90-day delays)
+                    )
+                    
+                    val allTransactions = mutableListOf<Transaction>()
+                    monthsToLoad.forEach { monthToLoad ->
+                        val monthTransactions = transactionRepository.getTransactionsByMonth(monthToLoad).first()
+                        allTransactions.addAll(monthTransactions)
+                    }
+                    
+                    _transactions.value = allTransactions
+                    println("✅ HomeViewModel: Refreshed ${allTransactions.size} total transactions (including delayed billing)")
                     
                     // Force reload recurring transactions
                     val recurringTransactions = transactionRepository.getRecurringTransactions().first()

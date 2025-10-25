@@ -18,8 +18,6 @@ object PaymentMethodMapper {
         return when (paymentMethod) {
             PaymentMethod.CASH -> "💵"
             PaymentMethod.CREDIT_CARD -> "💳"
-            PaymentMethod.BANK_TRANSFER -> "🏦"
-            PaymentMethod.MOBILE_PAYMENT -> "📱"
             PaymentMethod.CHEQUE -> "📝"
         }
     }
@@ -32,8 +30,6 @@ object PaymentMethodMapper {
         return when (paymentMethod) {
             PaymentMethod.CASH -> stringResource(R.string.payment_method_cash)
             PaymentMethod.CREDIT_CARD -> stringResource(R.string.payment_method_credit_card)
-            PaymentMethod.BANK_TRANSFER -> stringResource(R.string.payment_method_bank_transfer)
-            PaymentMethod.MOBILE_PAYMENT -> stringResource(R.string.payment_method_mobile_payment)
             PaymentMethod.CHEQUE -> stringResource(R.string.payment_method_cheque)
         }
     }
