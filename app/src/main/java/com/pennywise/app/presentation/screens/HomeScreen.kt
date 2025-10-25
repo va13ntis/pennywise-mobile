@@ -561,27 +561,11 @@ private fun TransactionItem(
             
             // Description
             Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = transaction.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    // Show delayed billing indicator
-                    if (transaction.hasDelayedBilling()) {
-                        println("⏳ UI: Showing delayed indicator for '${transaction.description}' - PaymentMethod: ${transaction.paymentMethod}, Delay: ${transaction.billingDelayDays}")
-                        Text(
-                            text = "⏳",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else if (transaction.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD) {
-                        println("ℹ️ UI: Credit card transaction '${transaction.description}' has no delay (billingDelayDays: ${transaction.billingDelayDays})")
-                    }
-                }
+                Text(
+                    text = transaction.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 if (transaction.category.isNotEmpty()) {
                     Text(
                         text = CategoryMapper.getLocalizedCategory(transaction.category),

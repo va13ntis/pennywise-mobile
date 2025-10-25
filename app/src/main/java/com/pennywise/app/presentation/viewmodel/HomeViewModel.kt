@@ -452,15 +452,6 @@ class HomeViewModel @Inject constructor(
                             
                             println("✅ HomeViewModel: Loaded ${allTransactions.size} total transactions (will filter by billing date)")
                             
-                            // Log transactions with delayed billing
-                            val delayedTransactions = allTransactions.filter { it.hasDelayedBilling() }
-                            if (delayedTransactions.isNotEmpty()) {
-                                println("⏳ HomeViewModel: Found ${delayedTransactions.size} delayed billing transactions:")
-                                delayedTransactions.forEach { transaction ->
-                                    println("  - ${transaction.description}: Created ${transaction.date}, Bills ${transaction.getBillingDate()} (+${transaction.billingDelayDays} days)")
-                                }
-                            }
-                            
                             _transactions.value = allTransactions
                             _error.value = null
                             _needsAuthentication.value = false
