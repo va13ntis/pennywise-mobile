@@ -135,23 +135,37 @@ class HomeViewModel @Inject constructor(
         val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
         val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
         
+        println("💰 HomeViewModel: Calculating totalExpenses for $currentMonth")
+        println("💰 HomeViewModel: Total transactions available: ${transactions.size}")
+        
         // Only include NON-recurring expenses from monthly transactions
         // Filter by BILLING date, not transaction date
-        val regularExpenses = transactions
+        val regularExpensesFiltered = transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
             .filter { transaction ->
                 // Include transaction if its BILLING date falls within the current month
                 val billingDate = transaction.getBillingDate()
                 val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
                 
-                !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                val isInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
+                
+                if (transaction.hasDelayedBilling()) {
+                    println("⏳ HomeViewModel: Delayed transaction '${transaction.description}': " +
+                            "Created ${transaction.date}, Bills ${billingDate}, " +
+                            "Delay: ${transaction.billingDelayDays} days, " +
+                            "Included in $currentMonth: $isInMonth")
+                }
+                
+                isInMonth
             }
             .filter { transaction ->
                 selectedPaymentMethod?.let { method ->
                     transaction.paymentMethod == method
                 } ?: true // Show all if no filter selected
             }
-            .sumOf { it.amount }
+        
+        val regularExpenses = regularExpensesFiltered.sumOf { it.amount }
+        println("💰 HomeViewModel: Regular expenses count: ${regularExpensesFiltered.size}, total: $$regularExpenses")
         
         val recurringExpenses = recurringTransactions
             .filter { transaction ->
@@ -160,6 +174,9 @@ class HomeViewModel @Inject constructor(
                 } ?: true // Show all if no filter selected
             }
             .sumOf { it.amount }
+        
+        println("💰 HomeViewModel: Recurring expenses: $$recurringExpenses")
+        println("💰 HomeViewModel: TOTAL EXPENSES for $currentMonth: $${regularExpenses + recurringExpenses}")
         
         regularExpenses + recurringExpenses
     }.stateIn(

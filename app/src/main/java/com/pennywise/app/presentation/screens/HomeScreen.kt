@@ -506,11 +506,14 @@ private fun TransactionItem(
                     )
                     // Show delayed billing indicator
                     if (transaction.hasDelayedBilling()) {
+                        println("⏳ UI: Showing delayed indicator for '${transaction.description}' - PaymentMethod: ${transaction.paymentMethod}, Delay: ${transaction.billingDelayDays}")
                         Text(
                             text = "⏳",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                    } else if (transaction.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD) {
+                        println("ℹ️ UI: Credit card transaction '${transaction.description}' has no delay (billingDelayDays: ${transaction.billingDelayDays})")
                     }
                 }
                 if (transaction.category.isNotEmpty()) {
