@@ -7,6 +7,9 @@ import com.pennywise.app.domain.model.TransactionType
 import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
+import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
+import com.pennywise.app.domain.model.BillingCycle
+import com.pennywise.app.domain.model.getBillingCycles
 import com.pennywise.app.data.util.SettingsDataStore
 import com.pennywise.app.presentation.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,9 +27,30 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import java.time.YearMonth
 import java.time.temporal.WeekFields
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Calendar
 import java.util.Locale
+import java.util.Date
 import javax.inject.Inject
+
+/**
+ * Combined UI state for the Home screen
+ */
+data class HomeScreenState(
+    val totalAmount: Double = 0.0,
+    val totalIncome: Double = 0.0,
+    val totalExpenses: Double = 0.0,
+    val netBalance: Double = 0.0,
+    val recurringTransactions: List<Transaction> = emptyList(),
+    val splitPaymentInstallments: List<SplitPaymentInstallment> = emptyList(),
+    val transactionsByWeek: Map<Int, List<Transaction>> = emptyMap(),
+    val selectedBillingCycle: BillingCycle? = null,
+    val availableBillingCycles: List<BillingCycle> = emptyList(),
+    val isLoading: Boolean = true,
+    val error: String? = null,
+    val needsAuthentication: Boolean = false
+)
 
 /**
  * ViewModel for the Home screen that manages monthly expense data
@@ -35,6 +59,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val splitPaymentInstallmentRepository: SplitPaymentInstallmentRepository,
+    private val paymentMethodConfigRepository: PaymentMethodConfigRepository,
     private val settingsDataStore: SettingsDataStore,
     private val authManager: AuthManager
 ) : ViewModel() {
@@ -42,6 +67,13 @@ class HomeViewModel @Inject constructor(
     // Remove _userId - we'll use authManager.currentUser directly
     private val _currentMonth = MutableStateFlow(YearMonth.now())
     private val _selectedPaymentMethod = MutableStateFlow<com.pennywise.app.domain.model.PaymentMethod?>(null)
+    
+    // Billing cycle state management
+    private val _selectedBillingCycle = MutableStateFlow<BillingCycle?>(null)
+    val selectedBillingCycle: StateFlow<BillingCycle?> = _selectedBillingCycle.asStateFlow()
+    
+    private val _availableBillingCycles = MutableStateFlow<List<BillingCycle>>(emptyList())
+    val availableBillingCycles: StateFlow<List<BillingCycle>> = _availableBillingCycles.asStateFlow()
     
     private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions.asStateFlow()
@@ -231,13 +263,73 @@ class HomeViewModel @Inject constructor(
         initialValue = 0.0
     )
     
+    // Combined UI state for HomeScreen (defined after all dependencies)
+    // Note: combine() only supports up to 5 flows, so we use nested combines
+    val uiState: StateFlow<HomeScreenState> = combine(
+        combine(
+            totalIncome,
+            totalExpenses,
+            netBalance
+        ) { income, expenses, balance ->
+            Triple(income, expenses, balance)
+        },
+        combine(
+            recurringTransactions,
+            splitPaymentInstallments,
+            transactionsByWeek
+        ) { recurring, installments, byWeek ->
+            Triple(recurring, installments, byWeek)
+        },
+        combine(
+            selectedBillingCycle,
+            availableBillingCycles
+        ) { selectedCycle, availableCycles ->
+            Pair(selectedCycle, availableCycles)
+        },
+        combine(
+            isLoading,
+            error,
+            needsAuthentication
+        ) { loading, err, needsAuth ->
+            Triple(loading, err, needsAuth)
+        }
+    ) { financial, transactions, billing, uiFlags ->
+        val (income, expenses, balance) = financial
+        val (recurring, installments, byWeek) = transactions
+        val (selectedCycle, availableCycles) = billing
+        val (loading, err, needsAuth) = uiFlags
+        
+        HomeScreenState(
+            totalAmount = expenses,
+            totalIncome = income,
+            totalExpenses = expenses,
+            netBalance = balance,
+            recurringTransactions = recurring,
+            splitPaymentInstallments = installments,
+            transactionsByWeek = byWeek,
+            selectedBillingCycle = selectedCycle,
+            availableBillingCycles = availableCycles,
+            isLoading = loading,
+            error = err,
+            needsAuthentication = needsAuth
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = HomeScreenState()
+    )
+    
     // Job management for proper coroutine lifecycle
     private var monthlyTransactionsJob: Job? = null
     private var recurringTransactionsJob: Job? = null
     
     init {
+        // Load billing cycles first
+        loadBillingCycles()
         // Start observing transactions immediately when ViewModel is created
         startObservingTransactions()
+        // Observe billing cycle selection changes
+        observeBillingCycleChanges()
     }
     
     /**
@@ -634,6 +726,124 @@ class HomeViewModel @Inject constructor(
         }
     }
     
+    
+    /**
+     * Load billing cycles from all credit cards
+     */
+    private fun loadBillingCycles() {
+        viewModelScope.launch {
+            try {
+                val user = authManager.currentUser.value
+                if (user == null) {
+                    println("🔒 HomeViewModel: User not authenticated, cannot load billing cycles")
+                    return@launch
+                }
+                
+                println("🔄 HomeViewModel: Loading billing cycles from payment method configs")
+                _isLoading.value = true
+                
+                // Get all payment method configs
+                val configs = paymentMethodConfigRepository.getPaymentMethodConfigs().first()
+                
+                // Generate billing cycles for all credit cards
+                val allCycles = configs.flatMap { config ->
+                    config.getBillingCycles(3) // Get last 3 billing cycles per card
+                }
+                
+                // Sort cycles by end date (most recent first)
+                val sortedCycles = allCycles.sortedByDescending { it.endDate }
+                
+                _availableBillingCycles.value = sortedCycles
+                
+                // Set default selection to most recent cycle if none selected
+                if (_selectedBillingCycle.value == null && sortedCycles.isNotEmpty()) {
+                    _selectedBillingCycle.value = sortedCycles.first()
+                    println("✅ HomeViewModel: Auto-selected most recent billing cycle: ${sortedCycles.first().displayName}")
+                }
+                
+                println("✅ HomeViewModel: Loaded ${sortedCycles.size} billing cycles from ${configs.size} cards")
+                _error.value = null
+            } catch (e: SecurityException) {
+                println("🔒 HomeViewModel: Authentication required for loading billing cycles")
+                _error.value = "Authentication required"
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                if (e !is CancellationException) {
+                    println("❌ HomeViewModel: Failed to load billing cycles: ${e.message}")
+                    e.printStackTrace()
+                    _error.value = "Failed to load billing cycles: ${e.message}"
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    /**
+     * Select a billing cycle and load transactions for it
+     */
+    fun selectBillingCycle(billingCycle: BillingCycle) {
+        println("🔄 HomeViewModel: Selecting billing cycle: ${billingCycle.displayName}")
+        _selectedBillingCycle.value = billingCycle
+    }
+    
+    /**
+     * Observe billing cycle selection changes and load transactions accordingly
+     */
+    private fun observeBillingCycleChanges() {
+        viewModelScope.launch {
+            _selectedBillingCycle.asStateFlow().collect { selectedCycle ->
+                if (selectedCycle != null) {
+                    println("🔄 HomeViewModel: Billing cycle changed, loading transactions for: ${selectedCycle.displayName}")
+                    loadTransactionsForBillingCycle(selectedCycle)
+                }
+            }
+        }
+    }
+    
+    /**
+     * Load transactions for the selected billing cycle
+     */
+    private suspend fun loadTransactionsForBillingCycle(billingCycle: BillingCycle) {
+        try {
+            println("🔄 HomeViewModel: Loading transactions for billing cycle: ${billingCycle.displayName}")
+            println("🔄 HomeViewModel: Date range: ${billingCycle.startDate} to ${billingCycle.endDate}")
+            _isLoading.value = true
+            
+            // Convert LocalDate to Date for repository
+            val startDate = Date.from(
+                billingCycle.startDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+            )
+            val endDate = Date.from(
+                billingCycle.endDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant()
+            )
+            
+            // Get transactions for the billing cycle date range
+            val transactions = transactionRepository.getTransactionsByDateRange(startDate, endDate).first()
+            
+            println("✅ HomeViewModel: Loaded ${transactions.size} transactions for billing cycle")
+            
+            // Update transactions - note: this will be filtered by existing month logic
+            // For now, we'll store them but the existing month-based filtering will still apply
+            // In a future update, we can add billing cycle-specific filtering
+            _transactions.value = transactions
+            _error.value = null
+            _needsAuthentication.value = false
+        } catch (e: SecurityException) {
+            println("🔒 HomeViewModel: Authentication required for billing cycle transactions")
+            _error.value = "Authentication required"
+            _needsAuthentication.value = true
+        } catch (e: Exception) {
+            if (e !is CancellationException) {
+                println("❌ HomeViewModel: Failed to load transactions for billing cycle: ${e.message}")
+                e.printStackTrace()
+                _error.value = "Failed to load transactions: ${e.message}"
+                _needsAuthentication.value = false
+            }
+        } finally {
+            _isLoading.value = false
+        }
+    }
     
     /**
      * Clean up resources when ViewModel is cleared

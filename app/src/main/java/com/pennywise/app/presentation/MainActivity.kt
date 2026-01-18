@@ -2,7 +2,6 @@ package com.pennywise.app.presentation
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,6 +56,7 @@ class MainActivity : FragmentActivity() {
             }
         }
     }
+    
     
     /**
      * Apply the initial locale based on saved preference

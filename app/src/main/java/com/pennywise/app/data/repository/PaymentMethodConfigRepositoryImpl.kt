@@ -4,6 +4,8 @@ import com.pennywise.app.data.local.dao.PaymentMethodConfigDao
 import com.pennywise.app.data.local.entity.PaymentMethodConfigEntity
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.PaymentMethodConfig
+import com.pennywise.app.domain.model.CardWithBillingCycles
+import com.pennywise.app.domain.model.getBillingCycles
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.validation.AuthenticationValidator
 import kotlinx.coroutines.flow.Flow
@@ -70,5 +72,21 @@ class PaymentMethodConfigRepositoryImpl @Inject constructor(
                 emit(entities.map { it.toDomainModel() })
             }
         }
+    }
+    
+    override suspend fun getPaymentMethodConfigWithBillingCycles(
+        cardId: Long,
+        cycleCount: Int
+    ): CardWithBillingCycles? = withAuthentication {
+        val config = paymentMethodConfigDao.getPaymentMethodConfigById(cardId)?.toDomainModel()
+            ?: return@withAuthentication null
+        
+        // Generate billing cycles for this card
+        val billingCycles = config.getBillingCycles(cycleCount)
+        
+        CardWithBillingCycles(
+            paymentMethodConfig = config,
+            billingCycles = billingCycles
+        )
     }
 }

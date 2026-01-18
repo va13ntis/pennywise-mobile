@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -61,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.toArgb
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
@@ -76,6 +80,8 @@ import com.pennywise.app.domain.model.PaymentMethodConfig
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.HorizontalDivider
 import java.time.YearMonth
+import android.util.Log
+import org.json.JSONObject
 
 /**
  * Data class for payment method summary with billing cycle info
@@ -89,6 +95,24 @@ data class PaymentMethodSummary(
     val accentColor: Color
 )
 
+private fun debugLog(
+    hypothesisId: String,
+    location: String,
+    message: String,
+    data: Map<String, Any?> = emptyMap(),
+    runId: String = "run1"
+) {
+    val payload = JSONObject()
+    payload.put("sessionId", "debug-session")
+    payload.put("runId", runId)
+    payload.put("hypothesisId", hypothesisId)
+    payload.put("location", location)
+    payload.put("message", message)
+    payload.put("data", JSONObject(data))
+    payload.put("timestamp", System.currentTimeMillis())
+    Log.i("PW_DEBUG", payload.toString())
+}
+
 /**
  * Modern home screen with Material 3 design
  * Features monthly summary, weekly breakdown, and quick actions
@@ -99,6 +123,7 @@ data class PaymentMethodSummary(
 fun HomeScreen(
     onAddExpense: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToCardStatement: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
@@ -118,12 +143,6 @@ fun HomeScreen(
     // Store the full summary to support filtering by specific credit cards
     var selectedPaymentMethodFilter by remember { mutableStateOf<PaymentMethodSummary?>(null) }
     
-    // Refresh data when the screen becomes visible (e.g., returning from AddExpense)
-    LaunchedEffect(Unit) {
-        println("🔄 HomeScreen: Screen became visible, refreshing data")
-        viewModel.refreshData()
-    }
-    
     // Convert currency code to symbol
     val currencySymbol = remember(currencyCode) {
         CurrencyFormatter.getCurrencySymbol(currencyCode)
@@ -131,6 +150,18 @@ fun HomeScreen(
     
     // Get context for date formatting
     val context = LocalContext.current
+    val layoutDirection = LocalLayoutDirection.current
+    // #region agent log
+    debugLog(
+        hypothesisId = "H7",
+        location = "HomeScreen.kt:HomeScreen:LocaleLayout",
+        message = "Locale/layout snapshot",
+        data = mapOf(
+            "layoutDirection" to layoutDirection.name,
+            "locale" to context.resources.configuration.locales[0].toLanguageTag()
+        )
+    )
+    // #endregion
     
     // Compute payment method summaries with billing cycle info
     val paymentMethodSummaries = remember(transactionsByWeek, recurringTransactions, currentMonth, paymentMethodConfigs, context) {
@@ -141,6 +172,12 @@ fun HomeScreen(
             currentMonth = currentMonth,
             context = context
         )
+    }
+    
+    // Refresh data when the screen becomes visible (e.g., returning from AddExpense)
+    LaunchedEffect(Unit) {
+        println("🔄 HomeScreen: Screen became visible, refreshing data")
+        viewModel.refreshData()
     }
     
     // Local state for week expansion (not in ViewModel)
@@ -166,6 +203,17 @@ fun HomeScreen(
             }
         }
     }
+    // #region agent log
+    debugLog(
+        hypothesisId = "H3",
+        location = "HomeScreen.kt:HomeScreen:FilteredWeeks",
+        message = "Computed filtered weeks",
+        data = mapOf(
+            "selectedPaymentMethod" to (selectedPaymentMethodFilter?.displayName ?: "none"),
+            "weeksCount" to filteredWeeks.size
+        )
+    )
+    // #endregion
     
     if (isLoading) {
         Box(
@@ -236,7 +284,27 @@ fun HomeScreen(
                     onPreviousMonth = { viewModel.changeMonth(-1) },
                     onNextMonth = { viewModel.changeMonth(1) },
                     onPaymentMethodClick = { summary ->
-                        selectedPaymentMethodFilter = if (selectedPaymentMethodFilter == summary) null else summary
+                        // For credit cards, navigate to CardStatementScreen
+                        if (summary.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD && 
+                            summary.paymentMethodConfigId != null) {
+                            onNavigateToCardStatement(summary.paymentMethodConfigId!!)
+                        } else {
+                            // For other payment methods, toggle filter
+                            selectedPaymentMethodFilter = if (selectedPaymentMethodFilter == summary) null else summary
+                        }
+                    },
+                    onPagerPageSelected = { summary ->
+                        selectedPaymentMethodFilter = summary
+                        // #region agent log
+                        debugLog(
+                            hypothesisId = "H5",
+                            location = "HomeScreen.kt:HomeScreen:PagerSelection",
+                            message = "Updated selected payment method from pager",
+                            data = mapOf(
+                                "selectedPaymentMethod" to summary.displayName
+                            )
+                        )
+                        // #endregion
                     }
                 )
             }
@@ -256,7 +324,8 @@ fun HomeScreen(
             if (transactionsByWeek.isEmpty()) {
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
@@ -590,6 +659,7 @@ private fun TransactionItem(
  * Billing-aware summary card with payment method breakdown
  */
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun BillingAwareSummaryCard(
     currentMonth: YearMonth,
     totalAmount: Double,
@@ -599,6 +669,7 @@ private fun BillingAwareSummaryCard(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onPaymentMethodClick: (PaymentMethodSummary) -> Unit,
+    onPagerPageSelected: (PaymentMethodSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -642,74 +713,168 @@ private fun BillingAwareSummaryCard(
             if (paymentMethodSummaries.isNotEmpty()) {
                 HorizontalDivider()
                 
-                paymentMethodSummaries.forEach { summary ->
-                    PaymentMethodSummaryItem(
+                val pagerState = rememberPagerState { paymentMethodSummaries.size }
+                
+                // #region agent log
+                debugLog(
+                    hypothesisId = "H1",
+                    location = "HomeScreen.kt:BillingAwareSummaryCard:PagerSetup",
+                    message = "Payment method pager initialized",
+                    data = mapOf(
+                        "pageCount" to paymentMethodSummaries.size,
+                        "currentPage" to pagerState.currentPage
+                    )
+                )
+                // #endregion
+                LaunchedEffect(pagerState.currentPage) {
+                    // #region agent log
+                    val summary = paymentMethodSummaries.getOrNull(pagerState.currentPage)
+                    debugLog(
+                        hypothesisId = "H4",
+                        location = "HomeScreen.kt:BillingAwareSummaryCard:PagerPage",
+                        message = "Pager page changed",
+                        data = mapOf(
+                            "currentPage" to pagerState.currentPage,
+                            "summaryName" to (summary?.displayName ?: "none")
+                        )
+                    )
+                    // #endregion
+                    summary?.let { onPagerPageSelected(it) }
+                }
+                HorizontalPager(
+                    state = pagerState,
+                    pageSpacing = 12.dp,
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { page ->
+                    val summary = paymentMethodSummaries[page]
+                    PaymentMethodPagePanel(
                         summary = summary,
                         currencySymbol = currencySymbol,
                         isSelected = selectedPaymentMethod == summary,
                         onClick = { onPaymentMethodClick(summary) }
                     )
                 }
+                
+                PagerIndicatorRow(
+                    pageCount = paymentMethodSummaries.size,
+                    currentPage = pagerState.currentPage
+                )
             }
         }
     }
 }
 
+@Composable
+private fun PagerIndicatorRow(
+    pageCount: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier
+) {
+    // #region agent log
+    debugLog(
+        hypothesisId = "H2",
+        location = "HomeScreen.kt:PagerIndicatorRow",
+        message = "Rendering pager indicators",
+        data = mapOf(
+            "pageCount" to pageCount,
+            "currentPage" to currentPage
+        )
+    )
+    // #endregion
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        repeat(pageCount) { index ->
+            val isSelected = index == currentPage
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .size(if (isSelected) 8.dp else 6.dp)
+                    .background(
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    )
+            )
+        }
+    }
+}
+
 /**
- * Individual payment method summary item
+ * Individual payment method page panel
  */
 @Composable
-private fun PaymentMethodSummaryItem(
+private fun PaymentMethodPagePanel(
     summary: PaymentMethodSummary,
     currencySymbol: String,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    // #region agent log
+    debugLog(
+        hypothesisId = "H6",
+        location = "HomeScreen.kt:PaymentMethodPagePanel",
+        message = "Composing payment method panel",
+        data = mapOf(
+            "displayName" to summary.displayName,
+            "isSelected" to isSelected,
+            "accentColor" to summary.accentColor.toArgb()
+        )
+    )
+    // #endregion
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .background(
-                if (isSelected) summary.accentColor.copy(alpha = 0.1f)
-                else Color.Transparent
-            )
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) summary.accentColor.copy(alpha = 0.08f)
+            else MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        // Accent bar
-        Box(
+        Row(
             modifier = Modifier
-                .width(4.dp)
-                .height(40.dp)
-                .background(summary.accentColor, RoundedCornerShape(2.dp))
-        )
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = summary.displayName,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Accent bar
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(44.dp)
+                    .background(summary.accentColor, RoundedCornerShape(2.dp))
             )
             
-            summary.billingCycleText?.let { cycleText ->
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = cycleText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = summary.displayName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                 )
+                
+                summary.billingCycleText?.let { cycleText ->
+                    Text(
+                        text = cycleText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+            
+            Text(
+                text = "$currencySymbol${String.format("%.2f", summary.totalAmount)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) summary.accentColor else expense_red
+            )
         }
-        
-        Text(
-            text = "$currencySymbol${String.format("%.2f", summary.totalAmount)}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            color = if (isSelected) summary.accentColor else expense_red
-        )
     }
 }
 
@@ -740,7 +905,23 @@ private fun computePaymentMethodSummaries(
                 paymentMethodConfigs.find { it.id == id }
             }
             
-            val displayName = cardConfig?.alias?.ifBlank { "Credit Card" } ?: "Credit Card"
+            val displayName = cardConfig?.alias
+                ?.trim()
+                ?.replace("\\s+".toRegex(), " ")
+                ?.ifBlank { "Credit Card" }
+                ?: "Credit Card"
+            // #region agent log
+            debugLog(
+                hypothesisId = "H8",
+                location = "HomeScreen.kt:computePaymentMethodSummaries:DisplayName",
+                message = "Computed credit card display name",
+                data = mapOf(
+                    "aliasRaw" to (cardConfig?.alias ?: "null"),
+                    "displayName" to displayName,
+                    "displayNameLength" to displayName.length
+                )
+            )
+            // #endregion
             val billingCycleText = cardConfig?.withdrawDay?.let { withdrawDay ->
                 // Billing cycle: withdrawDay of current month → (withdrawDay - 1) of next month
                 // Clamp withdrawDay to valid range for each month (handles Feb with 28/29 days, months with 30 days, etc.)
