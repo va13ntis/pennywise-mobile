@@ -29,7 +29,6 @@ class DeviceAuthService @Inject constructor(
     
     val isDeviceAuthEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
         val enabled = preferences[deviceAuthEnabledKey] ?: false
-        println("🔍 DeviceAuthService: isDeviceAuthEnabled = $enabled")
         enabled
     }
     
@@ -37,11 +36,9 @@ class DeviceAuthService @Inject constructor(
      * Set whether device authentication is enabled
      */
     suspend fun setDeviceAuthEnabled(enabled: Boolean) {
-        println("🔍 DeviceAuthService: Setting device auth enabled = $enabled")
         context.dataStore.edit { preferences ->
             preferences[deviceAuthEnabledKey] = enabled
         }
-        println("🔍 DeviceAuthService: Device auth enabled set to $enabled")
     }
     
     /**

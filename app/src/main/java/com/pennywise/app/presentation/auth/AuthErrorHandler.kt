@@ -50,7 +50,6 @@ class AuthErrorHandler @Inject constructor(
             }
         } catch (e: Exception) {
             // Log error but don't crash
-            println("❌ AuthErrorHandler: Error handling authentication failure: ${e.message}")
         }
     }
     
@@ -64,7 +63,6 @@ class AuthErrorHandler @Inject constructor(
                 prefs.remove(lastFailedAttemptKey)
             }
         } catch (e: Exception) {
-            println("❌ AuthErrorHandler: Error handling authentication success: ${e.message}")
         }
     }
     
@@ -125,7 +123,6 @@ class AuthErrorHandler @Inject constructor(
                 prefs.remove(lastFailedAttemptKey)
             }
         } catch (e: Exception) {
-            println("❌ AuthErrorHandler: Error resetting authentication lockout: ${e.message}")
         }
     }
     

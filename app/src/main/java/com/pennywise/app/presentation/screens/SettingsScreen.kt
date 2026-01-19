@@ -127,7 +127,6 @@ fun CreditCardDialog(
  */
 @Composable
 fun DeletePaymentMethodDialog(
-    config: PaymentMethodConfig,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -1068,7 +1067,6 @@ fun SettingsScreen(
 
     if (showDeletePaymentMethodDialog && selectedPaymentMethodConfig != null) {
         DeletePaymentMethodDialog(
-            config = selectedPaymentMethodConfig!!,
             onDismiss = { 
                 showDeletePaymentMethodDialog = false
                 selectedPaymentMethodConfig = null

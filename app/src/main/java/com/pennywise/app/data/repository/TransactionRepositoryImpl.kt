@@ -92,27 +92,8 @@ class TransactionRepositoryImpl @Inject constructor(
                 val startDate = month.atDay(1).toDate()
                 val endDate = month.atEndOfMonth().toDate()
                 
-                println("🔍 TransactionRepository: Querying transactions for month $month")
-                println("🔍 TransactionRepository: Date range: $startDate to $endDate")
-                
                 transactionDao.getTransactionsByDateRange(startDate, endDate).collect { entities ->
                     val transactions = entities.map { it.toDomainModel() }
-                    println("🔍 TransactionRepository: Found ${transactions.size} transactions for $month")
-                    
-                    // Debug: Show recent transactions
-                    val recentTransactions = transactionDao.getRecentTransactions()
-                    println("🔍 TransactionRepository: Recent transactions:")
-                    recentTransactions.forEachIndexed { index, transaction ->
-                        println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
-                    }
-                    
-                    val countInRange = transactionDao.getTransactionCountByDateRange(startDate, endDate)
-                    println("🔍 TransactionRepository: Count of transactions in date range: $countInRange")
-                    
-                    transactions.forEachIndexed { index, transaction ->
-                        println("  ${index + 1}. ${transaction.description} - $${transaction.amount} (${transaction.type}) - ${transaction.date}")
-                    }
-                    
                     emit(transactions)
                 }
             }

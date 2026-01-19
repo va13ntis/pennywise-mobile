@@ -1,7 +1,6 @@
 package com.pennywise.app.presentation.screens
 
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -302,18 +301,12 @@ fun AddExpenseScreen(
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
     // Collect state from ViewModel
-    val currentUser by viewModel.currentUser.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
-    val bankCards by viewModel.bankCards.collectAsState()
     val paymentMethodConfigs by viewModel.paymentMethodConfigs.collectAsState()
     val defaultPaymentMethod by viewModel.defaultPaymentMethod.collectAsState()
     val merchantSuggestions by viewModel.merchantSuggestions.collectAsState()
     val topMerchants by viewModel.topMerchants.collectAsState()
-    
-    LaunchedEffect(currentUser) {
-        Log.d("AddExpenseScreen", "Current user: $currentUser")
-    }
     
     // Form state management
     var merchant by remember { mutableStateOf("") }
@@ -423,11 +416,9 @@ fun AddExpenseScreen(
         categoryError = if (category.isBlank()) categoryRequiredText else null
         
         // Form is valid only if all fields are valid AND currency is selected
-        val wasValid = isFormValid
         isFormValid = merchantError == null && amountError == null && categoryError == null && 
                      selectedCurrency != null
         
-        Log.d("AddExpenseScreen", "Validation: merchant='$merchant' (error: $merchantError), amount='$amount' (error: $amountError), category='$category' (error: $categoryError), currency=${selectedCurrency?.code}, valid=$isFormValid (was: $wasValid)")
     }
     
     // Handle currency changes and update amount field formatting
@@ -475,23 +466,18 @@ fun AddExpenseScreen(
     
     // Handle UI state changes from ViewModel
     LaunchedEffect(uiState) {
-        Log.d("AddExpenseScreen", "UI State changed: $uiState")
         when (uiState) {
             is AddExpenseUiState.Success -> {
-                Log.d("AddExpenseScreen", "Save successful, navigating back")
                 onNavigateBack()
             }
             is AddExpenseUiState.Error -> {
-                Log.e("AddExpenseScreen", "Save failed: ${(uiState as AddExpenseUiState.Error).message}")
                 // In a real app, you'd show a snackbar or dialog here
                 // For now, we'll just reset the state
                 viewModel.resetState()
             }
             is AddExpenseUiState.Loading -> {
-                Log.d("AddExpenseScreen", "Save in progress...")
             }
             else -> {
-                Log.d("AddExpenseScreen", "UI State: $uiState")
             }
         }
     }
@@ -536,11 +522,9 @@ fun AddExpenseScreen(
                     
                     Button(
                         onClick = {
-                            Log.d("AddExpenseScreen", "=== SAVE BUTTON CLICKED ===")
                             validateForm()
                             
                             if (isFormValid && selectedCurrency != null) {
-                                Log.d("AddExpenseScreen", "Proceeding with save...")
                                 val totalAmount = amount.toDouble()
                                 val installmentAmount = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) {
                                     viewModel.calculateInstallmentAmount(totalAmount, installments)

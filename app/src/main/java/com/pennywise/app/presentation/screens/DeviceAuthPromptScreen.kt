@@ -33,20 +33,17 @@ fun DeviceAuthPromptScreen(
     
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) {
-            println("✅ DeviceAuthPromptScreen: success -> onAuthSuccess()")
             onAuthSuccess()
         }
     }
     
     LaunchedEffect(Unit) {
         // Automatically trigger device authentication when screen loads
-        println("🖼️ Screen: DeviceAuthPromptScreen composing; auto-authenticate")
         val activity = context as? FragmentActivity
         if (activity != null) {
             viewModel.authenticate(activity)
         } else {
             // If we can't get a FragmentActivity, show an error
-            println("❌ DeviceAuthPromptScreen: Cannot get FragmentActivity from context")
         }
     }
     
@@ -109,7 +106,6 @@ fun DeviceAuthPromptScreen(
                     if (activity != null) {
                         viewModel.authenticate(activity)
                     } else {
-                        println("❌ DeviceAuthPromptScreen: Cannot get FragmentActivity from context")
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

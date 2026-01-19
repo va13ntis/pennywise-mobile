@@ -26,7 +26,6 @@ class CurrencyUsageTracker @Inject constructor(
             } catch (e: Exception) {
                 // Log error but don't fail the transaction creation
                 // In a production app, you might want to use a proper logging framework
-                println("Error tracking currency usage: ${e.message}")
             }
         }
     }
@@ -41,7 +40,6 @@ class CurrencyUsageTracker @Inject constructor(
                     .first()
                     .map { it.currency }
             } catch (e: Exception) {
-                println("Error getting currencies by popularity: ${e.message}")
                 emptyList()
             }
         }
@@ -57,7 +55,6 @@ class CurrencyUsageTracker @Inject constructor(
                     .first()
                     .map { it.currency }
             } catch (e: Exception) {
-                println("Error getting top currencies: ${e.message}")
                 emptyList()
             }
         }
@@ -83,7 +80,6 @@ class CurrencyUsageTracker @Inject constructor(
                     currencies = usageList.map { it.currency }
                 )
             } catch (e: Exception) {
-                println("Error getting currency usage stats: ${e.message}")
                 CurrencyUsageStats()
             }
         }
@@ -118,7 +114,6 @@ class CurrencyUsageTracker @Inject constructor(
                     activeCurrencies = recentCurrencies.size
                 )
             } catch (e: Exception) {
-                println("Error getting currency usage trend: ${e.message}")
                 CurrencyUsageTrend()
             }
         }
@@ -161,7 +156,6 @@ class CurrencyUsageTracker @Inject constructor(
                     usageTrend = if (activeCurrencies > 0) "Active" else "Inactive"
                 )
             } catch (e: Exception) {
-                println("Error getting currency usage summary: ${e.message}")
                 CurrencyUsageSummary()
             }
         }
@@ -192,7 +186,6 @@ class CurrencyUsageTracker @Inject constructor(
                         }
                     }
             } catch (e: Exception) {
-                println("Error getting most used currencies: ${e.message}")
                 emptyList()
             }
         }
@@ -219,7 +212,6 @@ class CurrencyUsageTracker @Inject constructor(
                         )
                     }
             } catch (e: Exception) {
-                println("Error getting least used currencies: ${e.message}")
                 emptyList()
             }
         }

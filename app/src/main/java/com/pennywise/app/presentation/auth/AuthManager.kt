@@ -42,14 +42,11 @@ class AuthManager @Inject constructor(
             val user = userRepository.getUser()
             if (user != null) {
                 _currentUser.value = user
-                println("✅ AuthManager: User found in database")
             } else {
                 _currentUser.value = null
-                println("ℹ️ AuthManager: No user found in database")
             }
         } catch (e: Exception) {
             // If there's any error during initialization, just clear the state
-            println("❌ AuthManager: Error during initialization: ${e.message}")
             _currentUser.value = null
         }
     }
@@ -59,14 +56,11 @@ class AuthManager @Inject constructor(
      */
     suspend fun saveAuthenticatedUser(user: User) {
         try {
-            println("🔄 AuthManager: Setting authenticated user")
             context.dataStore.edit { preferences ->
                 preferences[isLoggedInKey] = true
             }
             _currentUser.value = user
-            println("✅ AuthManager: User set successfully")
         } catch (e: Exception) {
-            println("❌ AuthManager: Error saving user: ${e.message}")
             // If there's an error saving preferences, still set the current user
             _currentUser.value = user
         }
@@ -93,14 +87,11 @@ class AuthManager @Inject constructor(
      */
     suspend fun updateCurrentUser(updatedUser: User) {
         try {
-            println("🔄 AuthManager: Updating current user")
             // Update the user in the database
             userRepository.updateUser(updatedUser)
             // Update the current user state
             _currentUser.value = updatedUser
-            println("✅ AuthManager: Current user updated successfully")
         } catch (e: Exception) {
-            println("❌ AuthManager: Error updating current user: ${e.message}")
             throw e
         }
     }

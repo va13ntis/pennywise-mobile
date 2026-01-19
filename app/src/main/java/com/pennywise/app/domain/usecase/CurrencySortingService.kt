@@ -114,18 +114,15 @@ class CurrencySortingService @Inject constructor(
             .catch { exception ->
                 // Handle errors gracefully - emit empty list or cached data if available
                 val cachedCurrencies = sortedCurrenciesCache ?: emptyList()
-                println("Error in getSortedCurrencies: ${exception.message}")
                 emit(cachedCurrencies)
             }
             .onCompletion { cause ->
                 // Optional: Log completion or perform cleanup
                 if (cause != null) {
-                    println("Flow completed with exception: ${cause.message}")
                 }
             }
         } catch (e: Exception) {
             // Handle exceptions thrown during Flow creation
-            println("Error creating Flow: ${e.message}")
             flowOf(sortedCurrenciesCache ?: emptyList())
         }
     }
@@ -186,7 +183,6 @@ class CurrencySortingService @Inject constructor(
             sortedCurrencies
         } catch (e: Exception) {
             // Handle errors gracefully - return empty list or cached data if available
-            println("Error getting sorted currencies: ${e.message}")
             sortedCurrenciesCache ?: emptyList()
         }
     }
@@ -228,7 +224,6 @@ class CurrencySortingService @Inject constructor(
             invalidateCache()
         } catch (e: Exception) {
             // Log error but don't fail the operation
-            println("Error tracking currency usage for currency $currencyCode: ${e.message}")
         }
     }
     
@@ -279,7 +274,6 @@ class CurrencySortingService @Inject constructor(
         .catch { exception ->
             // Handle errors gracefully - emit cached data if available
             val cachedCurrencies = sortedCurrenciesCache ?: emptyList()
-            println("Error in getSortedCurrenciesReactive: ${exception.message}")
             emit(cachedCurrencies)
         }
     }
@@ -330,7 +324,6 @@ class CurrencySortingService @Inject constructor(
             }
         } catch (e: Exception) {
             // Log error but don't fail the flow
-            println("Error updating cache: ${e.message}")
         }
     }
 }

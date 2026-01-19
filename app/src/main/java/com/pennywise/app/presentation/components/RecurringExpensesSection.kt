@@ -47,6 +47,7 @@ import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.theme.income_green
 import com.pennywise.app.presentation.util.CategoryMapper
+import com.pennywise.app.presentation.util.PaymentMethodMapper
 
 /**
  * Specialized section for recurring expenses that appears at the top of the home screen
@@ -56,6 +57,8 @@ import com.pennywise.app.presentation.util.CategoryMapper
 fun RecurringExpensesSection(
     transactions: List<Transaction>,
     splitPaymentInstallments: List<SplitPaymentInstallment> = emptyList(),
+    paymentMethodAliases: Map<Long, String?>,
+    paymentMethodInitialsByTransactionId: Map<Long, String?>,
     currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
@@ -141,6 +144,7 @@ fun RecurringExpensesSection(
                     transactions.sortedByDescending { it.date }.forEach { transaction ->
                         RecurringTransactionItem(
                             transaction = transaction,
+                            paymentMethodAliases = paymentMethodAliases,
                             currencySymbol = currencySymbol
                         )
                         
@@ -153,6 +157,7 @@ fun RecurringExpensesSection(
                     splitPaymentInstallments.sortedBy { it.dueDate }.forEach { installment ->
                         SplitPaymentInstallmentItem(
                             installment = installment,
+                            paymentMethodInitialsByTransactionId = paymentMethodInitialsByTransactionId,
                             currencySymbol = currencySymbol
                         )
                         
@@ -174,6 +179,7 @@ fun RecurringExpensesSection(
 @Composable
 private fun RecurringTransactionItem(
     transaction: Transaction,
+    paymentMethodAliases: Map<Long, String?>,
     currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
@@ -195,8 +201,19 @@ private fun RecurringTransactionItem(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
+                val paymentMethodLabel = if (transaction.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD) {
+                    transaction.paymentMethodConfigId?.let { configId ->
+                        paymentMethodAliases[configId]
+                    } ?: PaymentMethodMapper.getLocalizedPaymentMethod(transaction.paymentMethod)
+                } else {
+                    PaymentMethodMapper.getLocalizedPaymentMethod(transaction.paymentMethod)
+                }
+                val paymentMethodInitial = paymentMethodLabel
+                    .trim()
+                    .take(1)
+                    .uppercase()
                 Text(
-                    text = "🔄",
+                    text = paymentMethodInitial,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -235,6 +252,7 @@ private fun RecurringTransactionItem(
 @Composable
 private fun SplitPaymentInstallmentItem(
     installment: SplitPaymentInstallment,
+    paymentMethodInitialsByTransactionId: Map<Long, String?>,
     currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
@@ -259,8 +277,10 @@ private fun SplitPaymentInstallmentItem(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
+                val paymentMethodInitial = paymentMethodInitialsByTransactionId[installment.parentTransactionId]
+                    ?: "C"
                 Text(
-                    text = if (isDelayedTransaction) "⏳" else "💳",
+                    text = paymentMethodInitial,
                     style = MaterialTheme.typography.bodySmall
                 )
             }

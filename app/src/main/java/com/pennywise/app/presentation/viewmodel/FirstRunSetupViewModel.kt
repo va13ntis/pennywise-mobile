@@ -118,7 +118,6 @@ class FirstRunSetupViewModel @Inject constructor(
                 
                 // Store the selected auth method for later use in finishSetup()
                 // We'll apply device auth settings when the user is actually created
-                println("🔍 FirstRunSetupViewModel: Selected auth method = $selectedMethod (will be applied when user is created)")
                 
                 // Move to next step (currency)
                 _uiState.value = _uiState.value.copy(
@@ -187,26 +186,21 @@ class FirstRunSetupViewModel @Inject constructor(
                 )
                 
                 result.fold(
-                    onSuccess = { userId ->
-                        println("✅ FirstRunSetupViewModel: User created with ID: $userId")
+                    onSuccess = { _ ->
                         
                         // Apply device authentication settings
                         selectedAuthMethod?.let { authMethod ->
                             val enableAuth = authMethod != AuthMethod.NONE
-                            println("🔍 FirstRunSetupViewModel: Setting device auth enabled = $enableAuth for method = $authMethod")
                             deviceAuthService.setDeviceAuthEnabled(enableAuth)
                             userRepository.updateDeviceAuthEnabled(enableAuth)
                         }
                         
                         // Save preferences to settings manager
-                        println("🔧 FirstRunSetupViewModel: Saving currency to SettingsManager: $selectedCurrency")
                         settingsManager.saveCurrencyPreference(selectedCurrency)
                         
-                        println("🔧 FirstRunSetupViewModel: Language already saved to DataStore: $selectedLanguage")
 
                         // Apply payment method if selected
                         selectedPaymentMethod?.let { method ->
-                            println("🔧 FirstRunSetupViewModel: Applying payment method ${method.displayName}")
                             
                             // Update user's default payment method type
                             userRepository.updateDefaultPaymentMethod(method)
@@ -217,16 +211,11 @@ class FirstRunSetupViewModel @Inject constructor(
                                     com.pennywise.app.domain.model.PaymentMethodConfig.createDefault(method, "Default card")
                                 )
                                 paymentMethodConfigRepository.setDefaultPaymentMethodConfig(configId)
-                                println("🔧 FirstRunSetupViewModel: Default credit card created")
                             }
                             
-                            println("🔧 FirstRunSetupViewModel: Payment method ${method.displayName} set as default")
                         }
                         
                         // Verify user was created correctly
-                        val createdUser = userRepository.getUser()
-                        println("✅ FirstRunSetupViewModel: VERIFIED user settings: currency=${createdUser?.defaultCurrency}, locale=${createdUser?.locale}")
-                        
                         // Add a delay to ensure database updates are complete
                         kotlinx.coroutines.delay(1000)
                         
@@ -236,7 +225,6 @@ class FirstRunSetupViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(isLoading = false, isSetupComplete = true)
                     },
                     onFailure = { error ->
-                        println("❌ FirstRunSetupViewModel: Failed to create user: ${error.message}")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false, 
                             errorMessage = error.message ?: "Failed to create user account"
@@ -244,7 +232,6 @@ class FirstRunSetupViewModel @Inject constructor(
                     }
                 )
             } catch (e: Exception) {
-                println("❌ FirstRunSetupViewModel: Error in finishSetup: ${e.message}")
                 _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = e.message ?: "Failed to finish setup")
             }
         }

@@ -254,8 +254,6 @@ class AddExpenseViewModel @Inject constructor(
             _uiState.value = AddExpenseUiState.Loading
             
             try {
-                android.util.Log.d("AddExpenseViewModel", "Saving expense")
-                android.util.Log.d("AddExpenseViewModel", "Expense data: $expenseData")
                 val currency = _selectedCurrency.value ?: Currency.getDefault()
                 
                 // Validate currency and amount
