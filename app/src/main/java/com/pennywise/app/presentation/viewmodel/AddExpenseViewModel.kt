@@ -43,6 +43,9 @@ class AddExpenseViewModel @Inject constructor(
     
     private val _uiState = MutableStateFlow<AddExpenseUiState>(AddExpenseUiState.Idle)
     val uiState: StateFlow<AddExpenseUiState> = _uiState
+
+    private val _editingTransaction = MutableStateFlow<Transaction?>(null)
+    val editingTransaction: StateFlow<Transaction?> = _editingTransaction
     
     private val _needsAuthentication = MutableStateFlow(false)
     val needsAuthentication: StateFlow<Boolean> = _needsAuthentication
@@ -332,6 +335,96 @@ class AddExpenseViewModel @Inject constructor(
                 _needsAuthentication.value = true
             } catch (e: Exception) {
                 _uiState.value = AddExpenseUiState.Error(e.message ?: "Failed to save expense")
+                _needsAuthentication.value = false
+            }
+        }
+    }
+
+    fun loadTransaction(transactionId: Long) {
+        viewModelScope.launch {
+            _editingTransaction.value = transactionRepository.getTransactionById(transactionId)
+        }
+    }
+
+    fun updateExpense(transactionId: Long, expenseData: ExpenseFormData) {
+        viewModelScope.launch {
+            _uiState.value = AddExpenseUiState.Loading
+            try {
+                val currency = _selectedCurrency.value ?: Currency.getDefault()
+
+                val currencyValidation = currencyValidator.validateCurrencyCode(currency.code)
+                val amountValidation = currencyValidator.validateAmountForCurrency(expenseData.amount, currency)
+
+                when {
+                    currencyValidation is com.pennywise.app.domain.validation.ValidationResult.Error -> {
+                        currencyErrorHandler.handleCurrencyValidationError(
+                            com.pennywise.app.domain.validation.CurrencyErrorType.UNSUPPORTED_CODE,
+                            currency.code,
+                            "AddExpenseViewModel.updateExpense"
+                        )
+                        _uiState.value = AddExpenseUiState.Error("Invalid currency: ${currencyValidation.message}")
+                        return@launch
+                    }
+                    amountValidation is com.pennywise.app.domain.validation.ValidationResult.Error -> {
+                        currencyErrorHandler.handleCurrencyValidationError(
+                            com.pennywise.app.domain.validation.CurrencyErrorType.INVALID_AMOUNT,
+                            null,
+                            "AddExpenseViewModel.updateExpense"
+                        )
+                        _uiState.value = AddExpenseUiState.Error("Invalid amount: ${amountValidation.message}")
+                        return@launch
+                    }
+                }
+
+                val isSplitPayment = expenseData.installments != null && expenseData.installments > 1
+                val mainTransactionAmount = if (isSplitPayment) {
+                    expenseData.installmentAmount ?: calculateInstallmentAmount(expenseData.amount, expenseData.installments!!)
+                } else {
+                    expenseData.amount
+                }
+
+                val existingTransaction = _editingTransaction.value
+                val transaction = Transaction(
+                    id = transactionId,
+                    amount = mainTransactionAmount,
+                    currency = currency.code,
+                    description = expenseData.merchant,
+                    category = expenseData.category,
+                    type = TransactionType.EXPENSE,
+                    date = expenseData.date,
+                    isRecurring = expenseData.isRecurring,
+                    recurringPeriod = expenseData.recurringPeriod,
+                    paymentMethod = expenseData.paymentMethod,
+                    paymentMethodConfigId = expenseData.selectedPaymentMethodConfigId,
+                    installments = expenseData.installments,
+                    installmentAmount = expenseData.installmentAmount,
+                    billingDelayDays = expenseData.billingDelayDays,
+                    createdAt = existingTransaction?.createdAt ?: Date(),
+                    updatedAt = Date()
+                )
+
+                transactionRepository.updateTransaction(transaction)
+                splitPaymentInstallmentRepository.deleteInstallmentsByParentTransaction(transactionId)
+
+                if (isSplitPayment) {
+                    createSplitPaymentInstallments(
+                        parentTransactionId = transactionId,
+                        totalAmount = expenseData.amount,
+                        currency = currency.code,
+                        description = expenseData.merchant,
+                        category = expenseData.category,
+                        startDate = expenseData.date,
+                        installments = expenseData.installments!!
+                    )
+                }
+
+                _uiState.value = AddExpenseUiState.Success(transactionId)
+                _needsAuthentication.value = false
+            } catch (e: SecurityException) {
+                _uiState.value = AddExpenseUiState.Error("Authentication required")
+                _needsAuthentication.value = true
+            } catch (e: Exception) {
+                _uiState.value = AddExpenseUiState.Error(e.message ?: "Failed to update expense")
                 _needsAuthentication.value = false
             }
         }

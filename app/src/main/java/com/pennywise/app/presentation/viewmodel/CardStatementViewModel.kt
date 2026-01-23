@@ -7,12 +7,14 @@ import com.pennywise.app.domain.model.PaymentMethodConfig
 import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.util.BillingCycleUtils
+import com.pennywise.app.data.service.CurrencyConversionService
 import com.pennywise.app.presentation.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,7 +43,8 @@ data class CardStatementUiState(
 class CardStatementViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val paymentMethodConfigRepository: PaymentMethodConfigRepository,
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(CardStatementUiState())
@@ -49,6 +52,8 @@ class CardStatementViewModel @Inject constructor(
     
     private val _cardId = MutableStateFlow<Long?>(null)
     private val _allTransactions = MutableStateFlow<List<Transaction>>(emptyList())
+    private val _convertedTransactionAmounts = MutableStateFlow<Map<Long, Double>>(emptyMap())
+    val convertedTransactionAmounts: StateFlow<Map<Long, Double>> = _convertedTransactionAmounts.asStateFlow()
     
     /**
      * Flow of the current currency preference - uses user's default currency
@@ -60,6 +65,10 @@ class CardStatementViewModel @Inject constructor(
         started = SharingStarted.Eagerly,
         initialValue = "USD"
     )
+
+    init {
+        observeCurrencyConversions()
+    }
     
     /**
      * Initialize the screen with a card ID
@@ -106,7 +115,7 @@ class CardStatementViewModel @Inject constructor(
                     emptyList()
                 }
                 
-                val totalAmount = initialTransactions.sumOf { it.amount }
+                val totalAmount = calculateTotalAmount(initialTransactions)
                 
                 _uiState.value = CardStatementUiState(
                     cardConfig = cardConfig,
@@ -135,7 +144,7 @@ class CardStatementViewModel @Inject constructor(
         val cycle = _uiState.value.availableCycles[cycleIndex]
         val cardTransactions = _allTransactions.value
         val filteredTransactions = filterTransactionsForCycle(cardTransactions, cycle)
-        val totalAmount = filteredTransactions.sumOf { it.amount }
+        val totalAmount = calculateTotalAmount(filteredTransactions)
         
         _uiState.value = _uiState.value.copy(
             currentCycleIndex = cycleIndex,
@@ -206,6 +215,48 @@ class CardStatementViewModel @Inject constructor(
             effectiveBillingDate.time >= cycleStart.time && 
             effectiveBillingDate.time <= cycleEnd.time
         }.sortedByDescending { it.date } // Sort by purchase date, newest first
+    }
+
+    private fun observeCurrencyConversions() {
+        viewModelScope.launch {
+            combine(_allTransactions.asStateFlow(), currency) { transactions, targetCurrency ->
+                Pair(transactions, targetCurrency)
+            }.collectLatest { (transactions, targetCurrency) ->
+                updateConvertedAmounts(transactions, targetCurrency)
+            }
+        }
+    }
+
+    private suspend fun updateConvertedAmounts(
+        transactions: List<Transaction>,
+        targetCurrency: String
+    ) {
+        val conversionRates = mutableMapOf<String, Double?>()
+        val convertedAmounts = mutableMapOf<Long, Double>()
+
+        transactions.forEach { transaction ->
+            val rateKey = "${transaction.currency.uppercase()}_${targetCurrency.uppercase()}"
+            val rate = conversionRates.getOrPut(rateKey) {
+                currencyConversionService.convertCurrency(1.0, transaction.currency, targetCurrency)
+            }
+            rate?.let { convertedAmounts[transaction.id] = transaction.amount * it }
+        }
+
+        _convertedTransactionAmounts.value = convertedAmounts
+
+        val currentTransactions = _uiState.value.transactions
+        if (currentTransactions.isNotEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                totalAmount = calculateTotalAmount(currentTransactions)
+            )
+        }
+    }
+
+    private fun calculateTotalAmount(transactions: List<Transaction>): Double {
+        val convertedAmounts = _convertedTransactionAmounts.value
+        return transactions.sumOf { transaction ->
+            convertedAmounts[transaction.id] ?: transaction.amount
+        }
     }
 }
 

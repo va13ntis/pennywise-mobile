@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,9 +36,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,6 +54,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,11 +72,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.presentation.components.RecurringExpensesSection
-import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.util.CategoryMapper
 import com.pennywise.app.presentation.util.PaymentMethodMapper
@@ -112,6 +119,7 @@ fun HomeScreen(
     onAddExpense: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onEditExpense: (Long) -> Unit = {},
     onNavigateToCardStatement: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
@@ -123,6 +131,8 @@ fun HomeScreen(
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
     val splitPaymentInstallments by viewModel.splitPaymentInstallments.collectAsState()
     val currencyCode by viewModel.currency.collectAsState()
+    val convertedTransactionAmounts by viewModel.convertedTransactionAmounts.collectAsState()
+    val convertedInstallmentAmounts by viewModel.convertedInstallmentAmounts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     
     // Payment method configs and filtering state
@@ -131,23 +141,30 @@ fun HomeScreen(
     // Store the full summary to support filtering by specific credit cards
     var selectedPaymentMethodFilter by remember { mutableStateOf<PaymentMethodSummary?>(null) }
     
-    // Convert currency code to symbol
-    val currencySymbol = remember(currencyCode) {
-        CurrencyFormatter.getCurrencySymbol(currencyCode)
-    }
-    
     // Get context for date formatting
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
+    val layoutDirection = LocalLayoutDirection.current
     
+    val cardAccentColor = MaterialTheme.colorScheme.secondary
     // Compute payment method summaries with billing cycle info
-    val paymentMethodSummaries = remember(transactionsByWeek, recurringTransactions, currentMonth, paymentMethodConfigs, context) {
+    val paymentMethodSummaries = remember(
+        transactionsByWeek,
+        recurringTransactions,
+        currentMonth,
+        paymentMethodConfigs,
+        context,
+        cardAccentColor,
+        convertedTransactionAmounts
+    ) {
         computePaymentMethodSummaries(
             transactions = transactionsByWeek.values.flatten(),
             recurringTransactions = recurringTransactions,
             paymentMethodConfigs = paymentMethodConfigs,
             currentMonth = currentMonth,
-            context = context
+            context = context,
+            creditCardAccent = cardAccentColor,
+            convertedTransactionAmounts = convertedTransactionAmounts
         )
     }
     val paymentMethodAliases = remember(paymentMethodConfigs) {
@@ -155,9 +172,9 @@ fun HomeScreen(
             .filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
             .associate { config ->
                 val alias = config.alias
-                    ?.trim()
-                    ?.replace("\\s+".toRegex(), " ")
-                    ?.ifBlank { null }
+                    .trim()
+                    .replace("\\s+".toRegex(), " ")
+                    .ifBlank { null }
                 config.id to alias
             }
     }
@@ -189,6 +206,9 @@ fun HomeScreen(
     
     // Local state for week expansion (not in ViewModel)
     var expandedWeeks by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var transactionActionTarget by remember { mutableStateOf<Transaction?>(null) }
+    var showTransactionActions by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     
     // UI state
     val lazyListState = rememberLazyListState()
@@ -204,6 +224,92 @@ fun HomeScreen(
             CircularProgressIndicator()
         }
         return
+    }
+
+    if (showTransactionActions && transactionActionTarget != null) {
+        val closeAlignment = if (layoutDirection == LayoutDirection.Rtl) {
+            Alignment.TopStart
+        } else {
+            Alignment.TopEnd
+        }
+        Dialog(onDismissRequest = { showTransactionActions = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .width(140.dp)
+                ) {
+                    IconButton(
+                        onClick = { showTransactionActions = false },
+                        modifier = Modifier
+                            .align(closeAlignment)
+                            .offset(x = 6.dp, y = (-6).dp)
+                            .size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.cancel),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(top = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            showTransactionActions = false
+                            onEditExpense(transactionActionTarget?.id ?: return@IconButton)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = stringResource(R.string.edit),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = {
+                            showTransactionActions = false
+                            showDeleteConfirm = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.delete),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteConfirm && transactionActionTarget != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(stringResource(R.string.delete_expense_title)) },
+            text = { Text(stringResource(R.string.delete_expense_confirmation)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteTransaction(transactionActionTarget!!)
+                    showDeleteConfirm = false
+                    transactionActionTarget = null
+                }) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
     
     Scaffold(
@@ -259,7 +365,7 @@ fun HomeScreen(
                 BillingAwareSummaryCard(
                     currentMonth = currentMonth,
                     totalAmount = totalExpenses,
-                    currencySymbol = currencySymbol,
+                    currencyCode = currencyCode,
                     paymentMethodSummaries = paymentMethodSummaries,
                     selectedPaymentMethod = selectedPaymentMethodFilter,
                     onPreviousMonth = { viewModel.changeMonth(-1) },
@@ -288,7 +394,9 @@ fun HomeScreen(
                         splitPaymentInstallments = splitPaymentInstallments,
                         paymentMethodAliases = paymentMethodAliases,
                         paymentMethodInitialsByTransactionId = paymentMethodInitialsByTransactionId,
-                        currencySymbol = currencySymbol
+                        currencyCode = currencyCode,
+                        convertedTransactionAmounts = convertedTransactionAmounts,
+                        convertedInstallmentAmounts = convertedInstallmentAmounts
                     )
                 }
             }
@@ -331,11 +439,14 @@ fun HomeScreen(
             }
                 WeeklySummaryCard(
                     weekNumber = weekNumber,
-                weekRangeText = weekRangeText,
+                    weekRangeText = weekRangeText,
                     transactions = transactions,
-                paymentMethodAliases = paymentMethodAliases,
-                    currencySymbol = currencySymbol,
-                    weekTotal = transactions.sumOf { it.amount },
+                    paymentMethodAliases = paymentMethodAliases,
+                    currencyCode = currencyCode,
+                    convertedTransactionAmounts = convertedTransactionAmounts,
+                    weekTotal = transactions.sumOf { transaction ->
+                        convertedTransactionAmounts[transaction.id] ?: transaction.amount
+                    },
                     isExpanded = expandedWeeks.contains(weekNumber),
                     onToggleExpansion = {
                         expandedWeeks = if (expandedWeeks.contains(weekNumber)) {
@@ -343,6 +454,10 @@ fun HomeScreen(
                         } else {
                             expandedWeeks + weekNumber
                         }
+                    },
+                    onTransactionLongPress = { transaction ->
+                        transactionActionTarget = transaction
+                        showTransactionActions = true
                     }
                 )
             }
@@ -362,12 +477,13 @@ fun HomeScreen(
 private fun TopSummaryCard(
     currentMonth: YearMonth,
     totalAmount: Double,
-    currencySymbol: String,
+    currencyCode: String,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val context = LocalContext.current
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -410,10 +526,10 @@ private fun TopSummaryCard(
                 label = "amount_animation"
             ) { amount ->
                 Text(
-                    text = "$currencySymbol${String.format("%.2f", amount)}",
+                    text = CurrencyFormatter.formatAmount(amount, currencyCode, context),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.End
                 )
             }
@@ -489,12 +605,15 @@ private fun WeeklySummaryCard(
     weekRangeText: String?,
     transactions: List<Transaction>,
     paymentMethodAliases: Map<Long, String?>,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedTransactionAmounts: Map<Long, Double>,
     weekTotal: Double,
     isExpanded: Boolean,
     onToggleExpansion: () -> Unit,
+    onTransactionLongPress: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -540,10 +659,10 @@ private fun WeeklySummaryCard(
                 ) {
                     // Amount
                     Text(
-                        text = "$currencySymbol${String.format("%.2f", weekTotal)}",
+                        text = CurrencyFormatter.formatAmount(weekTotal, currencyCode, context),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = expense_red
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     // Expand/collapse triangle
@@ -565,7 +684,9 @@ private fun WeeklySummaryCard(
                     TransactionItem(
                         transaction = transaction,
                         paymentMethodAliases = paymentMethodAliases,
-                        currencySymbol = currencySymbol
+                        currencyCode = currencyCode,
+                        convertedAmount = convertedTransactionAmounts[transaction.id],
+                        onLongPress = onTransactionLongPress
                     )
                     
                     if (transaction != transactions.last()) {
@@ -600,15 +721,35 @@ private fun buildWeekRangeText(
  * Individual transaction item in expanded weekly view
  * Uses real Transaction domain model
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionItem(
     transaction: Transaction,
     paymentMethodAliases: Map<Long, String?>,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedAmount: Double?,
+    onLongPress: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val formattedAmount = if (transaction.currency != currencyCode && convertedAmount != null) {
+        CurrencyFormatter.formatAmountWithConversion(
+            originalAmount = transaction.amount,
+            convertedAmount = convertedAmount,
+            originalCurrency = transaction.currency,
+            targetCurrency = currencyCode,
+            context = context
+        )
+    } else {
+        CurrencyFormatter.formatAmount(transaction.amount, transaction.currency, context)
+    }
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { onLongPress(transaction) }
+            ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -624,7 +765,7 @@ private fun TransactionItem(
                     .clip(RoundedCornerShape(16.dp))
                     .background(
                         when (transaction.paymentMethod) {
-                            PaymentMethod.CREDIT_CARD -> Color(0xFFFFD700).copy(alpha = 0.2f) // Gold
+                            PaymentMethod.CREDIT_CARD -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
                             PaymentMethod.CASH -> Color(0xFF4CAF50).copy(alpha = 0.2f) // Green
                             PaymentMethod.CHEQUE -> Color(0xFF2196F3).copy(alpha = 0.2f) // Blue
                         }
@@ -674,10 +815,10 @@ private fun TransactionItem(
         
         // Right: Amount
         Text(
-            text = "$currencySymbol${String.format("%.2f", transaction.amount)}",
+            text = formattedAmount,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = expense_red
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -690,7 +831,7 @@ private fun TransactionItem(
 private fun BillingAwareSummaryCard(
     currentMonth: YearMonth,
     totalAmount: Double,
-    currencySymbol: String,
+    currencyCode: String,
     paymentMethodSummaries: List<PaymentMethodSummary>,
     selectedPaymentMethod: PaymentMethodSummary?,
     onPreviousMonth: () -> Unit,
@@ -700,6 +841,7 @@ private fun BillingAwareSummaryCard(
     modifier: Modifier = Modifier
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val context = LocalContext.current
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -729,10 +871,10 @@ private fun BillingAwareSummaryCard(
                 )
                 
                 Text(
-                    text = "$currencySymbol${String.format("%.2f", totalAmount)}",
+                    text = CurrencyFormatter.formatAmount(totalAmount, currencyCode, context),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             
@@ -755,7 +897,7 @@ private fun BillingAwareSummaryCard(
                     val summary = paymentMethodSummaries[page]
                     PaymentMethodPagePanel(
                         summary = summary,
-                        currencySymbol = currencySymbol,
+                        currencyCode = currencyCode,
                         isSelected = selectedPaymentMethod == summary,
                         onClick = { onPaymentMethodClick(summary) }
                     )
@@ -802,11 +944,12 @@ private fun PagerIndicatorRow(
 @Composable
 private fun PaymentMethodPagePanel(
     summary: PaymentMethodSummary,
-    currencySymbol: String,
+    currencyCode: String,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -851,10 +994,14 @@ private fun PaymentMethodPagePanel(
             }
             
             Text(
-                text = "$currencySymbol${String.format("%.2f", summary.totalAmount)}",
+                text = CurrencyFormatter.formatAmount(summary.totalAmount, currencyCode, context),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
-                color = if (isSelected) summary.accentColor else expense_red
+                color = when {
+                    isSelected -> summary.accentColor
+                    summary.paymentMethod == PaymentMethod.CREDIT_CARD -> MaterialTheme.colorScheme.onSurface
+                    else -> summary.accentColor
+                }
             )
         }
     }
@@ -868,7 +1015,9 @@ private fun computePaymentMethodSummaries(
     recurringTransactions: List<Transaction>,
     paymentMethodConfigs: List<PaymentMethodConfig>,
     currentMonth: YearMonth,
-    context: Context
+    context: Context,
+    creditCardAccent: Color,
+    convertedTransactionAmounts: Map<Long, Double>
 ): List<PaymentMethodSummary> {
     val allTransactions = transactions + recurringTransactions
     val summaries = mutableListOf<PaymentMethodSummary>()
@@ -880,7 +1029,9 @@ private fun computePaymentMethodSummaries(
     val creditCardGroups = creditCardTransactions.groupBy { it.paymentMethodConfigId }
     
     creditCardGroups.forEach { (configId, transactionsForCard) ->
-        val total = transactionsForCard.sumOf { it.amount }
+        val total = transactionsForCard.sumOf { transaction ->
+            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        }
         if (total > 0.0) {
             // Find the specific card config
             val cardConfig = configId?.let { id -> 
@@ -916,7 +1067,7 @@ private fun computePaymentMethodSummaries(
                     displayName = displayName,
                     totalAmount = total,
                     billingCycleText = billingCycleText,
-                    accentColor = Color(0xFFFFD700) // Gold
+                    accentColor = creditCardAccent
                 )
             )
         }
@@ -925,7 +1076,9 @@ private fun computePaymentMethodSummaries(
     // Handle CASH transactions
     val cashTotal = allTransactions
         .filter { it.paymentMethod == PaymentMethod.CASH }
-        .sumOf { it.amount }
+        .sumOf { transaction ->
+            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        }
     
     if (cashTotal > 0.0) {
         summaries.add(
@@ -942,7 +1095,9 @@ private fun computePaymentMethodSummaries(
     // Handle CHEQUE transactions
     val chequeTotal = allTransactions
         .filter { it.paymentMethod == PaymentMethod.CHEQUE }
-        .sumOf { it.amount }
+        .sumOf { transaction ->
+            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        }
     
     if (chequeTotal > 0.0) {
         summaries.add(

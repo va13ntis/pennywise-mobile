@@ -7,7 +7,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
+import androidx.navigation.navArgument
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -142,6 +144,9 @@ fun AppNavigation() {
                 onNavigateToSettings = {
                     navController.navigate(SETTINGS_ROUTE)
                 },
+                onEditExpense = { transactionId ->
+                    navController.navigate("$EDIT_EXPENSE_ROUTE/$transactionId")
+                },
                 viewModel = homeViewModel
             )
         }
@@ -153,7 +158,23 @@ fun AppNavigation() {
                     // Refresh home data before navigating back using shared ViewModel
                     homeViewModel.refreshData()
                     navController.popBackStack() 
-                }
+                },
+                transactionId = null
+            )
+        }
+
+        // Edit Expense screen
+        composable(
+            route = "$EDIT_EXPENSE_ROUTE/{transactionId}",
+            arguments = listOf(navArgument("transactionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val transactionId = backStackEntry.arguments?.getLong("transactionId")
+            AddExpenseScreen(
+                onNavigateBack = {
+                    homeViewModel.refreshData()
+                    navController.popBackStack()
+                },
+                transactionId = transactionId
             )
         }
         
@@ -174,6 +195,7 @@ fun AppNavigation() {
 const val FIRST_RUN_SETUP_ROUTE = "first_run_setup"
 const val MAIN_ROUTE = "main"
 const val ADD_EXPENSE_ROUTE = "add_expense"
+const val EDIT_EXPENSE_ROUTE = "edit_expense"
 const val SETTINGS_ROUTE = "settings"
 
 

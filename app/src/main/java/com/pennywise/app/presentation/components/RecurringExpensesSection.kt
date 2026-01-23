@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,9 +45,9 @@ import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.SplitPaymentInstallment
-import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.theme.income_green
 import com.pennywise.app.presentation.util.CategoryMapper
+import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.util.PaymentMethodMapper
 
 /**
@@ -59,7 +60,9 @@ fun RecurringExpensesSection(
     splitPaymentInstallments: List<SplitPaymentInstallment> = emptyList(),
     paymentMethodAliases: Map<Long, String?>,
     paymentMethodInitialsByTransactionId: Map<Long, String?>,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedTransactionAmounts: Map<Long, Double>,
+    convertedInstallmentAmounts: Map<Long, Double>,
     modifier: Modifier = Modifier
 ) {
     if (transactions.isEmpty() && splitPaymentInstallments.isEmpty()) {
@@ -69,7 +72,12 @@ fun RecurringExpensesSection(
     var isExpanded by remember { mutableStateOf(false) }
     
     // Calculate total
-    val totalAmount = transactions.sumOf { it.amount } + splitPaymentInstallments.sumOf { it.amount }
+    val totalAmount = transactions.sumOf { transaction ->
+        convertedTransactionAmounts[transaction.id] ?: transaction.amount
+    } + splitPaymentInstallments.sumOf { installment ->
+        convertedInstallmentAmounts[installment.id] ?: installment.amount
+    }
+    val totalFormatted = CurrencyFormatter.formatAmount(totalAmount, currencyCode, LocalContext.current)
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -107,10 +115,10 @@ fun RecurringExpensesSection(
                 ) {
                     // Amount
                     Text(
-                        text = "$currencySymbol${String.format("%.2f", totalAmount)}",
+                        text = totalFormatted,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = expense_red
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     // Expand/collapse triangle
@@ -145,7 +153,8 @@ fun RecurringExpensesSection(
                         RecurringTransactionItem(
                             transaction = transaction,
                             paymentMethodAliases = paymentMethodAliases,
-                            currencySymbol = currencySymbol
+                            currencyCode = currencyCode,
+                            convertedAmount = convertedTransactionAmounts[transaction.id]
                         )
                         
                         if (transaction != transactions.last() || splitPaymentInstallments.isNotEmpty()) {
@@ -158,7 +167,8 @@ fun RecurringExpensesSection(
                         SplitPaymentInstallmentItem(
                             installment = installment,
                             paymentMethodInitialsByTransactionId = paymentMethodInitialsByTransactionId,
-                            currencySymbol = currencySymbol
+                            currencyCode = currencyCode,
+                            convertedAmount = convertedInstallmentAmounts[installment.id]
                         )
                         
                         if (installment != splitPaymentInstallments.last()) {
@@ -180,9 +190,23 @@ fun RecurringExpensesSection(
 private fun RecurringTransactionItem(
     transaction: Transaction,
     paymentMethodAliases: Map<Long, String?>,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedAmount: Double?,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val formattedAmount = if (transaction.currency != currencyCode && convertedAmount != null) {
+        CurrencyFormatter.formatAmountWithConversion(
+            originalAmount = transaction.amount,
+            convertedAmount = convertedAmount,
+            originalCurrency = transaction.currency,
+            targetCurrency = currencyCode,
+            context = context
+        )
+    } else {
+        CurrencyFormatter.formatAmount(transaction.amount, transaction.currency, context)
+    }
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -237,10 +261,10 @@ private fun RecurringTransactionItem(
         
         // Right: Amount
         Text(
-            text = "$currencySymbol${String.format("%.2f", transaction.amount)}",
+            text = formattedAmount,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = expense_red
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -253,11 +277,24 @@ private fun RecurringTransactionItem(
 private fun SplitPaymentInstallmentItem(
     installment: SplitPaymentInstallment,
     paymentMethodInitialsByTransactionId: Map<Long, String?>,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedAmount: Double?,
     modifier: Modifier = Modifier
 ) {
     // Check if this is a delayed transaction (installmentNumber == 1 and totalInstallments == 1)
     val isDelayedTransaction = installment.installmentNumber == 1 && installment.totalInstallments == 1
+    val context = LocalContext.current
+    val formattedAmount = if (installment.currency != currencyCode && convertedAmount != null) {
+        CurrencyFormatter.formatAmountWithConversion(
+            originalAmount = installment.amount,
+            convertedAmount = convertedAmount,
+            originalCurrency = installment.currency,
+            targetCurrency = currencyCode,
+            context = context
+        )
+    } else {
+        CurrencyFormatter.formatAmount(installment.amount, installment.currency, context)
+    }
     
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -320,10 +357,10 @@ private fun SplitPaymentInstallmentItem(
         
         // Right: Amount
         Text(
-            text = "$currencySymbol${String.format("%.2f", installment.amount)}",
+            text = formattedAmount,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = if (installment.isPaid) MaterialTheme.colorScheme.onSurfaceVariant else expense_red
+            color = if (installment.isPaid) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
     }
 }

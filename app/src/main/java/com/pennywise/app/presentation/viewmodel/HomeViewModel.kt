@@ -10,6 +10,7 @@ import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.model.BillingCycle
 import com.pennywise.app.domain.model.getBillingCycles
+import com.pennywise.app.data.service.CurrencyConversionService
 import com.pennywise.app.data.util.SettingsDataStore
 import com.pennywise.app.presentation.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
@@ -61,7 +63,8 @@ class HomeViewModel @Inject constructor(
     private val splitPaymentInstallmentRepository: SplitPaymentInstallmentRepository,
     private val paymentMethodConfigRepository: PaymentMethodConfigRepository,
     private val settingsDataStore: SettingsDataStore,
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
     
     // Remove _userId - we'll use authManager.currentUser directly
@@ -81,6 +84,12 @@ class HomeViewModel @Inject constructor(
     private val _allRecurringTransactions = MutableStateFlow<List<Transaction>>(emptyList())
     private val _splitPaymentInstallments = MutableStateFlow<List<SplitPaymentInstallment>>(emptyList())
     
+    private val _convertedTransactionAmounts = MutableStateFlow<Map<Long, Double>>(emptyMap())
+    val convertedTransactionAmounts: StateFlow<Map<Long, Double>> = _convertedTransactionAmounts.asStateFlow()
+
+    private val _convertedInstallmentAmounts = MutableStateFlow<Map<Long, Double>>(emptyMap())
+    val convertedInstallmentAmounts: StateFlow<Map<Long, Double>> = _convertedInstallmentAmounts.asStateFlow()
+
     // Computed recurring transactions filtered by current month
     val recurringTransactions: StateFlow<List<Transaction>> = combine(
         _allRecurringTransactions.asStateFlow(),
@@ -116,6 +125,17 @@ class HomeViewModel @Inject constructor(
     
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
     
+    /**
+     * Flow of the current currency preference - uses user's default currency
+     */
+    val currency: StateFlow<String> = authManager.currentUser.map { user ->
+        user?.defaultCurrency ?: "USD"
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = "USD"
+    )
+
     // Reactive computed values
     val transactionsByWeek: StateFlow<Map<Int, List<Transaction>>> = combine(
         _transactions.asStateFlow(),
@@ -153,31 +173,49 @@ class HomeViewModel @Inject constructor(
         initialValue = emptyMap()
     )
     
-    val totalIncome: StateFlow<Double> = _transactions.map { transactions ->
+    val totalIncome: StateFlow<Double> = combine(
+        _transactions.asStateFlow(),
+        _convertedTransactionAmounts.asStateFlow()
+    ) { transactions, convertedAmounts ->
         transactions
             .filter { it.type == TransactionType.INCOME }
-            .sumOf { it.amount }
+            .sumOf { transaction ->
+                convertedAmounts[transaction.id] ?: transaction.amount
+            }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = 0.0
     )
-    
-    val totalExpenses: StateFlow<Double> = combine(
+
+    private val expenseInputs = combine(
         _transactions.asStateFlow(),
         recurringTransactions,
         splitPaymentInstallments,
         _selectedPaymentMethod.asStateFlow(),
         _currentMonth.asStateFlow()
     ) { transactions, recurringTransactions, splitInstallments, selectedPaymentMethod, currentMonth ->
-        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
-        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
-        
-        
+        ExpenseInputs(
+            transactions = transactions,
+            recurringTransactions = recurringTransactions,
+            splitInstallments = splitInstallments,
+            selectedPaymentMethod = selectedPaymentMethod,
+            currentMonth = currentMonth
+        )
+    }
+
+    val totalExpenses: StateFlow<Double> = combine(
+        expenseInputs,
+        _convertedTransactionAmounts.asStateFlow(),
+        _convertedInstallmentAmounts.asStateFlow()
+    ) { inputs, convertedAmounts, convertedInstallments ->
+        val startOfMonth = inputs.currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = inputs.currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+
         // Only include NON-recurring expenses from monthly transactions
         // Filter by BILLING date, not transaction date
         // EXCLUDE delayed transactions - they're handled as split payment installments
-        val regularExpensesFiltered = transactions
+        val regularExpensesFiltered = inputs.transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
             .filter { transaction ->
                 // EXCLUDE delayed transactions - they're treated as split payment installments
@@ -187,54 +225,57 @@ class HomeViewModel @Inject constructor(
                 // Include transaction if its BILLING date falls within the current month
                 val billingDate = transaction.getBillingDate()
                 val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
-                
-                val isInMonth = !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
-                
-                isInMonth
+
+                !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
             }
             .filter { transaction ->
-                selectedPaymentMethod?.let { method ->
+                inputs.selectedPaymentMethod?.let { method ->
                     transaction.paymentMethod == method
                 } ?: true // Show all if no filter selected
             }
-        
-        val regularExpenses = regularExpensesFiltered.sumOf { it.amount }
-        
-        val recurringExpenses = recurringTransactions
+
+        val regularExpenses = regularExpensesFiltered.sumOf { transaction ->
+            convertedAmounts[transaction.id] ?: transaction.amount
+        }
+
+        val recurringExpenses = inputs.recurringTransactions
             .filter { transaction ->
-                selectedPaymentMethod?.let { method ->
+                inputs.selectedPaymentMethod?.let { method ->
                     transaction.paymentMethod == method
                 } ?: true // Show all if no filter selected
             }
-            .sumOf { it.amount }
-        
-        
+            .sumOf { transaction ->
+                convertedAmounts[transaction.id] ?: transaction.amount
+            }
+
         // Add split payment installments (they're already filtered by month)
         // Note: Split installments don't have paymentMethod field, so we include all of them
-        val splitPaymentExpenses = splitInstallments.sumOf { it.amount }
-        
-        
+        val splitPaymentExpenses = inputs.splitInstallments.sumOf { installment ->
+            convertedInstallments[installment.id] ?: installment.amount
+        }
+
         regularExpenses + recurringExpenses + splitPaymentExpenses
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = 0.0
     )
-    
+
     val netBalance: StateFlow<Double> = combine(
-        _transactions.asStateFlow(),
-        recurringTransactions,
-        splitPaymentInstallments,
-        _currentMonth.asStateFlow()
-    ) { transactions, recurringTransactions, splitInstallments, currentMonth ->
-        val startOfMonth = currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
-        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
-        
-        val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+        expenseInputs,
+        _convertedTransactionAmounts.asStateFlow(),
+        _convertedInstallmentAmounts.asStateFlow()
+    ) { inputs, convertedAmounts, convertedInstallments ->
+        val startOfMonth = inputs.currentMonth.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault())
+        val endOfMonth = inputs.currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(java.time.ZoneId.systemDefault())
+
+        val income = inputs.transactions.filter { it.type == TransactionType.INCOME }.sumOf { transaction ->
+            convertedAmounts[transaction.id] ?: transaction.amount
+        }
         // Only include NON-recurring expenses from monthly transactions
         // Filter by BILLING date, not transaction date
         // EXCLUDE delayed transactions - they're handled as split payment installments
-        val regularExpenses = transactions
+        val regularExpenses = inputs.transactions
             .filter { it.type == TransactionType.EXPENSE && !it.isRecurring }
             .filter { transaction ->
                 // EXCLUDE delayed transactions - they're treated as split payment installments
@@ -244,12 +285,18 @@ class HomeViewModel @Inject constructor(
                 // Include transaction if its BILLING date falls within the current month
                 val billingDate = transaction.getBillingDate()
                 val billingInstant = billingDate.toInstant().atZone(java.time.ZoneId.systemDefault())
-                
+
                 !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
             }
-            .sumOf { it.amount }
-        val recurringExpenses = recurringTransactions.sumOf { it.amount }
-        val splitPaymentExpenses = splitInstallments.sumOf { it.amount }
+            .sumOf { transaction ->
+                convertedAmounts[transaction.id] ?: transaction.amount
+            }
+        val recurringExpenses = inputs.recurringTransactions.sumOf { transaction ->
+            convertedAmounts[transaction.id] ?: transaction.amount
+        }
+        val splitPaymentExpenses = inputs.splitInstallments.sumOf { installment ->
+            convertedInstallments[installment.id] ?: installment.amount
+        }
         income - (regularExpenses + recurringExpenses + splitPaymentExpenses)
     }.stateIn(
         scope = viewModelScope,
@@ -324,20 +371,77 @@ class HomeViewModel @Inject constructor(
         startObservingTransactions()
         // Observe billing cycle selection changes
         observeBillingCycleChanges()
+        // Keep converted amounts in sync with data and currency
+        observeCurrencyConversions()
     }
     
-    /**
-     * Flow of the current currency preference - uses user's default currency
-     */
-    val currency: StateFlow<String> = authManager.currentUser.map { user ->
-        user?.defaultCurrency ?: "USD"
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = "USD"
+    private fun observeCurrencyConversions() {
+        viewModelScope.launch {
+            combine(
+                _transactions.asStateFlow(),
+                _allRecurringTransactions.asStateFlow(),
+                _splitPaymentInstallments.asStateFlow(),
+                currency
+            ) { transactions, recurringTransactions, splitInstallments, targetCurrency ->
+                ConversionPayload(transactions, recurringTransactions, splitInstallments, targetCurrency)
+            }.collectLatest { payload ->
+                updateConvertedAmounts(
+                    transactions = payload.transactions,
+                    recurringTransactions = payload.recurringTransactions,
+                    splitInstallments = payload.splitInstallments,
+                    targetCurrency = payload.targetCurrency
+                )
+            }
+        }
+    }
+
+    private suspend fun updateConvertedAmounts(
+        transactions: List<Transaction>,
+        recurringTransactions: List<Transaction>,
+        splitInstallments: List<SplitPaymentInstallment>,
+        targetCurrency: String
+    ) {
+        val conversionRates = mutableMapOf<String, Double?>()
+        val combinedTransactions = (transactions + recurringTransactions)
+            .associateBy { it.id }
+            .values
+
+        val transactionAmounts = mutableMapOf<Long, Double>()
+        combinedTransactions.forEach { transaction ->
+            val rateKey = "${transaction.currency.uppercase()}_${targetCurrency.uppercase()}"
+            val rate = conversionRates.getOrPut(rateKey) {
+                currencyConversionService.convertCurrency(1.0, transaction.currency, targetCurrency)
+            }
+            rate?.let { transactionAmounts[transaction.id] = transaction.amount * it }
+        }
+
+        val installmentAmounts = mutableMapOf<Long, Double>()
+        splitInstallments.forEach { installment ->
+            val rateKey = "${installment.currency.uppercase()}_${targetCurrency.uppercase()}"
+            val rate = conversionRates.getOrPut(rateKey) {
+                currencyConversionService.convertCurrency(1.0, installment.currency, targetCurrency)
+            }
+            rate?.let { installmentAmounts[installment.id] = installment.amount * it }
+        }
+
+        _convertedTransactionAmounts.value = transactionAmounts
+        _convertedInstallmentAmounts.value = installmentAmounts
+    }
+
+    private data class ExpenseInputs(
+        val transactions: List<Transaction>,
+        val recurringTransactions: List<Transaction>,
+        val splitInstallments: List<SplitPaymentInstallment>,
+        val selectedPaymentMethod: com.pennywise.app.domain.model.PaymentMethod?,
+        val currentMonth: YearMonth
     )
-    
-    
+
+    private data class ConversionPayload(
+        val transactions: List<Transaction>,
+        val recurringTransactions: List<Transaction>,
+        val splitInstallments: List<SplitPaymentInstallment>,
+        val targetCurrency: String
+    )
     
     /**
      * Filter recurring transactions to show only those relevant for the current month
@@ -681,6 +785,13 @@ class HomeViewModel @Inject constructor(
                 } catch (e: Exception) {
                 }
             }
+        }
+    }
+
+    fun deleteTransaction(transaction: Transaction) {
+        viewModelScope.launch {
+            transactionRepository.deleteTransaction(transaction)
+            refreshData()
         }
     }
     

@@ -298,6 +298,7 @@ private fun getLocalizedPaymentMethodName(paymentMethod: com.pennywise.app.domai
 @Composable
 fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
+    transactionId: Long? = null,
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
     // Collect state from ViewModel
@@ -323,6 +324,7 @@ fun AddExpenseScreen(
     var selectedBankCardId by remember { mutableStateOf<Long?>(null) }
     var selectedPaymentMethodConfigId by remember { mutableStateOf<Long?>(null) }
     var selectedPaymentDelay by remember { mutableStateOf(PaymentDelay.NONE) }
+    var hasInitializedEdit by remember(transactionId) { mutableStateOf(false) }
     
     // Dialog states
     var currencyExpanded by remember { mutableStateOf(false) }
@@ -458,6 +460,41 @@ fun AddExpenseScreen(
             viewModel.loadMerchantSuggestions(categoryKey)
         }
     }
+
+    LaunchedEffect(transactionId) {
+        if (transactionId != null) {
+            viewModel.loadTransaction(transactionId)
+        }
+    }
+
+    val editingTransaction by viewModel.editingTransaction.collectAsState()
+    LaunchedEffect(editingTransaction, transactionId) {
+        val transaction = editingTransaction
+        if (transactionId != null && transaction != null && !hasInitializedEdit) {
+            val totalAmount = if (transaction.installments != null && transaction.installments > 1 &&
+                transaction.installmentAmount != null
+            ) {
+                transaction.installmentAmount * transaction.installments
+            } else {
+                transaction.amount
+            }
+            merchant = transaction.description
+            amount = totalAmount.toString()
+            category = CategoryMapper.getLocalizedCategory(context, transaction.category)
+            isRecurring = transaction.isRecurring
+            selectedRecurringPeriod = transaction.recurringPeriod ?: RecurringPeriod.MONTHLY
+            selectedDate = transaction.date
+            selectedPaymentMethod = transaction.paymentMethod
+            installments = transaction.installments ?: 1
+            selectedPaymentMethodConfigId = transaction.paymentMethodConfigId
+            selectedPaymentDelay = PaymentDelay.values().firstOrNull { it.days == transaction.billingDelayDays }
+                ?: PaymentDelay.NONE
+            Currency.fromCode(transaction.currency)?.let { currency ->
+                viewModel.updateSelectedCurrency(currency)
+            }
+            hasInitializedEdit = true
+        }
+    }
     
     // Validate form whenever any field changes
     LaunchedEffect(merchant, amount, category, selectedCurrency, selectedPaymentMethod) {
@@ -546,7 +583,11 @@ fun AddExpenseScreen(
                                     selectedPaymentMethodConfigId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentMethodConfigId else null,
                                     billingDelayDays = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentDelay.days else 0
                                 )
-                                viewModel.saveExpense(expenseData)
+                                if (transactionId != null) {
+                                    viewModel.updateExpense(transactionId, expenseData)
+                                } else {
+                                    viewModel.saveExpense(expenseData)
+                                }
                             }
                         },
                         enabled = isFormValid && selectedCurrency != null && uiState !is AddExpenseUiState.Loading,

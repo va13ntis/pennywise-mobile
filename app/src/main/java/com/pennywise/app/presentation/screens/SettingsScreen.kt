@@ -273,10 +273,7 @@ fun SettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            modifier = Modifier.graphicsLayer(
-                                scaleX = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
-                            )
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 }

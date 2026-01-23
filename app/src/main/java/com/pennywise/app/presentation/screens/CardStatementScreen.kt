@@ -17,7 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Card
@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.domain.model.Transaction
-import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.util.CategoryMapper
 import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.util.LocaleFormatter
@@ -67,17 +66,13 @@ fun CardStatementScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currencyCode by viewModel.currency.collectAsState()
+    val convertedTransactionAmounts by viewModel.convertedTransactionAmounts.collectAsState()
     val context = LocalContext.current
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     
     // Initialize ViewModel with card ID
     LaunchedEffect(cardId) {
         viewModel.initialize(cardId)
-    }
-    
-    // Get currency symbol from currency code
-    val currencySymbol = remember(currencyCode) {
-        CurrencyFormatter.getCurrencySymbol(currencyCode)
     }
     
     Scaffold(
@@ -87,7 +82,7 @@ fun CardStatementScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -151,7 +146,7 @@ fun CardStatementScreen(
                             cycleStart = uiState.availableCycles.getOrNull(uiState.currentCycleIndex)?.first,
                             cycleEnd = uiState.availableCycles.getOrNull(uiState.currentCycleIndex)?.second,
                             totalAmount = uiState.totalAmount,
-                            currencySymbol = currencySymbol,
+                            currencyCode = currencyCode,
                             canGoPrevious = uiState.currentCycleIndex > 0,
                             canGoNext = uiState.currentCycleIndex < uiState.availableCycles.size - 1,
                             onPreviousCycle = { viewModel.previousCycle() },
@@ -166,12 +161,7 @@ fun CardStatementScreen(
                         item {
                             CycleNavigationRow(
                                 currentIndex = uiState.currentCycleIndex,
-                                totalCycles = uiState.availableCycles.size,
-                                onPrevious = { viewModel.previousCycle() },
-                                onNext = { viewModel.nextCycle() },
-                                canGoPrevious = uiState.currentCycleIndex > 0,
-                                canGoNext = uiState.currentCycleIndex < uiState.availableCycles.size - 1,
-                                isRtl = isRtl
+                                totalCycles = uiState.availableCycles.size
                             )
                         }
                     }
@@ -197,7 +187,8 @@ fun CardStatementScreen(
                         ) { transaction ->
                             StatementTransactionItem(
                                 transaction = transaction,
-                                currencySymbol = currencySymbol,
+                                currencyCode = currencyCode,
+                                convertedAmount = convertedTransactionAmounts[transaction.id],
                                 context = context
                             )
                         }
@@ -217,7 +208,7 @@ private fun StatementHeaderCard(
     cycleStart: Date?,
     cycleEnd: Date?,
     totalAmount: Double,
-    currencySymbol: String,
+    currencyCode: String,
     canGoPrevious: Boolean,
     canGoNext: Boolean,
     onPreviousCycle: () -> Unit,
@@ -306,10 +297,10 @@ private fun StatementHeaderCard(
             
             // Total amount
             Text(
-                text = "$currencySymbol${String.format("%.2f", totalAmount)}",
+            text = CurrencyFormatter.formatAmount(totalAmount, currencyCode, context),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = expense_red
+            color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -322,11 +313,6 @@ private fun StatementHeaderCard(
 private fun CycleNavigationRow(
     currentIndex: Int,
     totalCycles: Int,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    canGoPrevious: Boolean,
-    canGoNext: Boolean,
-    isRtl: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -349,10 +335,22 @@ private fun CycleNavigationRow(
 @Composable
 private fun StatementTransactionItem(
     transaction: Transaction,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedAmount: Double?,
     context: android.content.Context,
     modifier: Modifier = Modifier
 ) {
+    val formattedAmount = if (transaction.currency != currencyCode && convertedAmount != null) {
+        CurrencyFormatter.formatAmountWithConversion(
+            originalAmount = transaction.amount,
+            convertedAmount = convertedAmount,
+            originalCurrency = transaction.currency,
+            targetCurrency = currencyCode,
+            context = context
+        )
+    } else {
+        CurrencyFormatter.formatAmount(transaction.amount, transaction.currency, context)
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -421,10 +419,10 @@ private fun StatementTransactionItem(
         
         // Right: Amount
         Text(
-            text = "$currencySymbol${String.format("%.2f", transaction.amount)}",
+            text = formattedAmount,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = expense_red
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

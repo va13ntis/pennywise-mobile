@@ -85,6 +85,11 @@
     <string name="delete_payment_method_confirmation">האם אתה בטוח שברצונך למחוק שיטת תשלום זו?</string>
     <string name="cannot_delete_last">לא ניתן למחוק את שיטת התשלום האחרונה</string>
     <string name="payment_method_deleted">שיטת תשלום נמחקה בהצלחה</string>
+    <string name="transaction_actions_title">פעולות הוצאה</string>
+    <string name="delete_expense_title">למחוק הוצאה?</string>
+    <string name="delete_expense_confirmation">האם למחוק את ההוצאה הזו?</string>
+    <string name="date_label">תאריך</string>
+    <string name="installments_label">תשלומים</string>
     <string name="default_payment_type">סוג תשלום ברירת מחדל</string>
     <string name="credit_cards_management">ניהול כרטיסי אשראי</string>
     <string name="default_card">כרטיס ברירת מחדל</string>

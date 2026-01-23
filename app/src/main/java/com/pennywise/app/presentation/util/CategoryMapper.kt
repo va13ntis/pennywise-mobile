@@ -1,5 +1,6 @@
 package com.pennywise.app.presentation.util
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.pennywise.app.R
@@ -88,6 +89,24 @@ object CategoryMapper {
             CategoryKey.EDUCATION.key -> stringResource(R.string.category_education)
             CategoryKey.OTHER.key -> stringResource(R.string.category_other)
             else -> categoryKey // Return original if no mapping found
+        }
+    }
+
+    /**
+     * Get localized category name from canonical key using context
+     * Safe to call outside of @Composable scope.
+     */
+    fun getLocalizedCategory(context: Context, categoryKey: String): String {
+        return when (categoryKey.lowercase()) {
+            CategoryKey.FOOD.key -> context.getString(R.string.category_food)
+            CategoryKey.TRANSPORT.key -> context.getString(R.string.category_transport)
+            CategoryKey.SHOPPING.key -> context.getString(R.string.category_shopping)
+            CategoryKey.ENTERTAINMENT.key -> context.getString(R.string.category_entertainment)
+            CategoryKey.UTILITIES.key -> context.getString(R.string.category_utilities)
+            CategoryKey.HEALTH.key -> context.getString(R.string.category_health)
+            CategoryKey.EDUCATION.key -> context.getString(R.string.category_education)
+            CategoryKey.OTHER.key -> context.getString(R.string.category_other)
+            else -> categoryKey
         }
     }
     
