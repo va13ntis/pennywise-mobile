@@ -21,7 +21,6 @@ class SettingsManager @Inject constructor(
      * Save the user's language preference
      */
     suspend fun saveLanguagePreference(languageCode: String) {
-        println("🔧 SettingsManager: Saving language preference: $languageCode")
         
         // Save to DataStore via SettingsDataStore
         settingsDataStore.setLanguage(languageCode)
@@ -42,7 +41,6 @@ class SettingsManager @Inject constructor(
      * Save the user's currency preference
      */
     suspend fun saveCurrencyPreference(currencyCode: String) {
-        println("🔧 SettingsManager: Saving currency preference: $currencyCode")
         
         // Save to DataStore via SettingsDataStore
         settingsDataStore.setCurrency(currencyCode)

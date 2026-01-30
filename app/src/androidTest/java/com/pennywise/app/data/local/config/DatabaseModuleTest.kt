@@ -427,6 +427,7 @@ class DatabaseModuleTest {
         // Test duplicate primary key - Room uses REPLACE strategy by default
         // This will replace the existing user instead of throwing an error
         val duplicateUser = UserEntity(
+            id = initialUser!!.id,
             defaultCurrency = "EUR",
             locale = "fr",
             deviceAuthEnabled = true,

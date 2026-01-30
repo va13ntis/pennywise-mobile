@@ -30,7 +30,6 @@ class UpdateTransactionUseCase @Inject constructor(
                         currencyUsageTracker.trackCurrencyUsage(updatedTransaction.currency)
                     } catch (e: Exception) {
                         // Log error but don't fail the transaction update
-                        println("Error tracking currency usage for updated transaction ${updatedTransaction.id}: ${e.message}")
                     }
                 }
             }

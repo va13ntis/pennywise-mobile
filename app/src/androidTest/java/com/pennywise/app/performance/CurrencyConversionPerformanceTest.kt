@@ -4,9 +4,11 @@ import android.Manifest
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.pennywise.app.data.service.CurrencyConversionService
-import com.pennywise.app.data.model.CachedExchangeRate
 import com.google.gson.Gson
+import com.pennywise.app.data.api.CurrencyApi
+import com.pennywise.app.data.model.CachedExchangeRate
+import com.pennywise.app.data.model.ExchangeRateResponse
+import com.pennywise.app.data.service.CurrencyConversionService
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Before
@@ -31,13 +33,32 @@ class CurrencyConversionPerformanceTest {
 
     private lateinit var currencyConversionService: CurrencyConversionService
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val testCurrencyApi = object : CurrencyApi {
+        override suspend fun getExchangeRate(baseCode: String, targetCode: String): ExchangeRateResponse {
+            return ExchangeRateResponse(
+                result = "success",
+                baseCode = baseCode,
+                targetCode = targetCode,
+                conversionRate = 1.0
+            )
+        }
+
+        override suspend fun getExchangeRates(baseCode: String, targetCodes: String): ExchangeRateResponse {
+            return ExchangeRateResponse(
+                result = "success",
+                baseCode = baseCode,
+                targetCode = targetCodes,
+                conversionRate = 1.0
+            )
+        }
+    }
 
     @Before
     fun setup() {
         // Grant permissions for CI environment
         grantPermissions()
         
-        currencyConversionService = CurrencyConversionService(context)
+        currencyConversionService = CurrencyConversionService(context, testCurrencyApi)
     }
     
     /**
@@ -122,7 +143,7 @@ class CurrencyConversionPerformanceTest {
             )
             
             // Manually cache the rate (this would normally be done by the service)
-            val sharedPrefs = context.getSharedPreferences("currency_conversion_cache", 0)
+            val sharedPrefs = context.getSharedPreferences("currency_exchange_rates", 0)
             val gson = Gson()
             val json = gson.toJson(cachedRate)
             sharedPrefs.edit().putString("exchange_rate_USD_EUR", json).apply()

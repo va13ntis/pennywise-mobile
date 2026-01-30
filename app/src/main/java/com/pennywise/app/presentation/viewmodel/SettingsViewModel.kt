@@ -43,6 +43,12 @@ class SettingsViewModel @Inject constructor(
     private val _language = MutableStateFlow("")
     val language: StateFlow<String> = _language
 
+    // Merchant icon settings
+    private val _merchantIconsEnabled = MutableStateFlow(false)
+    val merchantIconsEnabled: StateFlow<Boolean> = _merchantIconsEnabled
+
+    private val _merchantIconsWifiOnly = MutableStateFlow(true)
+    val merchantIconsWifiOnly: StateFlow<Boolean> = _merchantIconsWifiOnly
 
     // Default currency state
     private val _defaultCurrencyState = MutableStateFlow<DefaultCurrencyState>(DefaultCurrencyState.Loading)
@@ -162,6 +168,14 @@ class SettingsViewModel @Inject constructor(
             // Load language
             val language = settingsDataStore.getLanguage()
             _language.value = language
+        }
+
+        viewModelScope.launch {
+            _merchantIconsEnabled.value = settingsDataStore.getMerchantIconsEnabled()
+        }
+
+        viewModelScope.launch {
+            _merchantIconsWifiOnly.value = settingsDataStore.getMerchantIconsWifiOnly()
         }
 
     }
@@ -308,6 +322,20 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.setLanguage(lang)
             _language.value = lang
+        }
+    }
+
+    fun setMerchantIconsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsDataStore.setMerchantIconsEnabled(enabled)
+            _merchantIconsEnabled.value = enabled
+        }
+    }
+
+    fun setMerchantIconsWifiOnly(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsDataStore.setMerchantIconsWifiOnly(enabled)
+            _merchantIconsWifiOnly.value = enabled
         }
     }
 

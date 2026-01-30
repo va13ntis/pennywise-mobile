@@ -73,6 +73,9 @@ class LocaleManager @Inject constructor() {
             @Suppress("DEPRECATION")
             configuration.locale = locale
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            configuration.setLayoutDirection(locale)
+        }
         
         // Create a new context with the updated configuration
         val updatedContext = context.createConfigurationContext(configuration)

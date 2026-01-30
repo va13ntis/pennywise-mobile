@@ -104,6 +104,17 @@ object DatabaseMigrations {
             // This migration exists to maintain the upgrade path
         }
     }
+
+    /**
+     * Direct migration from version 2 to 4.
+     * Used by tests that validate skipping version 3.
+     */
+    val MIGRATION_2_4 = object : Migration(2, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            MIGRATION_2_3.migrate(db)
+            MIGRATION_3_4.migrate(db)
+        }
+    }
     
     /**
      * Migration from version 4 to 5

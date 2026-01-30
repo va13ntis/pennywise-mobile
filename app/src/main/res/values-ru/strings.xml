@@ -85,6 +85,11 @@
     <string name="delete_payment_method_confirmation">Вы уверены, что хотите удалить этот способ платежа?</string>
     <string name="cannot_delete_last">Невозможно удалить последний способ платежа</string>
     <string name="payment_method_deleted">Способ платежа успешно удален</string>
+    <string name="transaction_actions_title">Действия с расходом</string>
+    <string name="delete_expense_title">Удалить расход?</string>
+    <string name="delete_expense_confirmation">Вы уверены, что хотите удалить этот расход?</string>
+    <string name="date_label">Дата</string>
+    <string name="installments_label">Рассрочка</string>
     <string name="default_payment_type">Тип платежа по умолчанию</string>
     <string name="credit_cards_management">Управление кредитными картами</string>
     <string name="default_card">Карта по умолчанию</string>

@@ -26,7 +26,6 @@ class DeviceAuthPromptViewModel @Inject constructor(
     val uiState: StateFlow<DeviceAuthPromptUiState> = _uiState.asStateFlow()
     
     fun authenticate(activity: FragmentActivity? = null) {
-        println("🔍 DeviceAuthPromptViewModel: authenticate() called with activity = ${activity != null}")
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
@@ -35,25 +34,20 @@ class DeviceAuthPromptViewModel @Inject constructor(
             
             // Show the actual device authentication prompt
             activity?.let { fragmentActivity ->
-                println("🔍 DeviceAuthPromptViewModel: Showing device auth prompt")
                 deviceAuthService.showDeviceAuthPrompt(
                     activity = fragmentActivity,
                     onSuccess = {
-                        println("🔍 DeviceAuthPromptViewModel: Authentication success")
                         onAuthenticationSuccess()
                     },
                     onError = { error ->
-                        println("🔍 DeviceAuthPromptViewModel: Authentication error: $error")
                         onAuthenticationError(error)
                     },
                     onCancel = {
-                        println("🔍 DeviceAuthPromptViewModel: Authentication cancelled")
                         onAuthenticationCancel()
                     }
                 )
             } ?: run {
                 // If no activity provided, show an error
-                println("❌ DeviceAuthPromptViewModel: No activity provided, cannot perform device authentication")
                 onAuthenticationError("Device authentication is not available. Please try again.")
             }
         }

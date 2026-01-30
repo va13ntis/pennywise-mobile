@@ -162,19 +162,13 @@ object LocaleFormatter {
         val systemLocale = Locale.getDefault()
         val testDate = Date()
         
-        android.util.Log.d("LocaleFormatter", "=== System Date Format Debug ===")
-        android.util.Log.d("LocaleFormatter", "System Locale: ${systemLocale.language}_${systemLocale.country}")
-        android.util.Log.d("LocaleFormatter", "System Locale Display: ${systemLocale.displayName}")
         
         // Test date formatting with system default (respects user preference)
-        val systemFormatted = DateFormat.getDateInstance(DateFormat.SHORT).format(testDate)
+        DateFormat.getDateInstance(DateFormat.SHORT).format(testDate)
         
         // Test date formatting with explicit locale (might not respect user preference)
-        val localeFormatted = DateFormat.getDateInstance(DateFormat.SHORT, systemLocale).format(testDate)
+        DateFormat.getDateInstance(DateFormat.SHORT, systemLocale).format(testDate)
         
-        android.util.Log.d("LocaleFormatter", "System Date Format (user preference): $systemFormatted")
-        android.util.Log.d("LocaleFormatter", "Locale Date Format (locale default): $localeFormatted")
-        android.util.Log.d("LocaleFormatter", "=== End Date Format Debug ===")
     }
     
     /**

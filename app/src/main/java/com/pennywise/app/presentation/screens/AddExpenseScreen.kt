@@ -1,7 +1,6 @@
 package com.pennywise.app.presentation.screens
 
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -299,21 +298,16 @@ private fun getLocalizedPaymentMethodName(paymentMethod: com.pennywise.app.domai
 @Composable
 fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
+    transactionId: Long? = null,
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
     // Collect state from ViewModel
-    val currentUser by viewModel.currentUser.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
-    val bankCards by viewModel.bankCards.collectAsState()
     val paymentMethodConfigs by viewModel.paymentMethodConfigs.collectAsState()
     val defaultPaymentMethod by viewModel.defaultPaymentMethod.collectAsState()
     val merchantSuggestions by viewModel.merchantSuggestions.collectAsState()
     val topMerchants by viewModel.topMerchants.collectAsState()
-    
-    LaunchedEffect(currentUser) {
-        Log.d("AddExpenseScreen", "Current user: $currentUser")
-    }
     
     // Form state management
     var merchant by remember { mutableStateOf("") }
@@ -330,6 +324,7 @@ fun AddExpenseScreen(
     var selectedBankCardId by remember { mutableStateOf<Long?>(null) }
     var selectedPaymentMethodConfigId by remember { mutableStateOf<Long?>(null) }
     var selectedPaymentDelay by remember { mutableStateOf(PaymentDelay.NONE) }
+    var hasInitializedEdit by remember(transactionId) { mutableStateOf(false) }
     
     // Dialog states
     var currencyExpanded by remember { mutableStateOf(false) }
@@ -423,11 +418,9 @@ fun AddExpenseScreen(
         categoryError = if (category.isBlank()) categoryRequiredText else null
         
         // Form is valid only if all fields are valid AND currency is selected
-        val wasValid = isFormValid
         isFormValid = merchantError == null && amountError == null && categoryError == null && 
                      selectedCurrency != null
         
-        Log.d("AddExpenseScreen", "Validation: merchant='$merchant' (error: $merchantError), amount='$amount' (error: $amountError), category='$category' (error: $categoryError), currency=${selectedCurrency?.code}, valid=$isFormValid (was: $wasValid)")
     }
     
     // Handle currency changes and update amount field formatting
@@ -467,6 +460,41 @@ fun AddExpenseScreen(
             viewModel.loadMerchantSuggestions(categoryKey)
         }
     }
+
+    LaunchedEffect(transactionId) {
+        if (transactionId != null) {
+            viewModel.loadTransaction(transactionId)
+        }
+    }
+
+    val editingTransaction by viewModel.editingTransaction.collectAsState()
+    LaunchedEffect(editingTransaction, transactionId) {
+        val transaction = editingTransaction
+        if (transactionId != null && transaction != null && !hasInitializedEdit) {
+            val totalAmount = if (transaction.installments != null && transaction.installments > 1 &&
+                transaction.installmentAmount != null
+            ) {
+                transaction.installmentAmount * transaction.installments
+            } else {
+                transaction.amount
+            }
+            merchant = transaction.description
+            amount = totalAmount.toString()
+            category = CategoryMapper.getLocalizedCategory(context, transaction.category)
+            isRecurring = transaction.isRecurring
+            selectedRecurringPeriod = transaction.recurringPeriod ?: RecurringPeriod.MONTHLY
+            selectedDate = transaction.date
+            selectedPaymentMethod = transaction.paymentMethod
+            installments = transaction.installments ?: 1
+            selectedPaymentMethodConfigId = transaction.paymentMethodConfigId
+            selectedPaymentDelay = PaymentDelay.values().firstOrNull { it.days == transaction.billingDelayDays }
+                ?: PaymentDelay.NONE
+            Currency.fromCode(transaction.currency)?.let { currency ->
+                viewModel.updateSelectedCurrency(currency)
+            }
+            hasInitializedEdit = true
+        }
+    }
     
     // Validate form whenever any field changes
     LaunchedEffect(merchant, amount, category, selectedCurrency, selectedPaymentMethod) {
@@ -475,23 +503,18 @@ fun AddExpenseScreen(
     
     // Handle UI state changes from ViewModel
     LaunchedEffect(uiState) {
-        Log.d("AddExpenseScreen", "UI State changed: $uiState")
         when (uiState) {
             is AddExpenseUiState.Success -> {
-                Log.d("AddExpenseScreen", "Save successful, navigating back")
                 onNavigateBack()
             }
             is AddExpenseUiState.Error -> {
-                Log.e("AddExpenseScreen", "Save failed: ${(uiState as AddExpenseUiState.Error).message}")
                 // In a real app, you'd show a snackbar or dialog here
                 // For now, we'll just reset the state
                 viewModel.resetState()
             }
             is AddExpenseUiState.Loading -> {
-                Log.d("AddExpenseScreen", "Save in progress...")
             }
             else -> {
-                Log.d("AddExpenseScreen", "UI State: $uiState")
             }
         }
     }
@@ -536,11 +559,9 @@ fun AddExpenseScreen(
                     
                     Button(
                         onClick = {
-                            Log.d("AddExpenseScreen", "=== SAVE BUTTON CLICKED ===")
                             validateForm()
                             
                             if (isFormValid && selectedCurrency != null) {
-                                Log.d("AddExpenseScreen", "Proceeding with save...")
                                 val totalAmount = amount.toDouble()
                                 val installmentAmount = if ((selectedPaymentMethod == PaymentMethod.CREDIT_CARD || selectedPaymentMethod == PaymentMethod.CHEQUE) && installments > 1) {
                                     viewModel.calculateInstallmentAmount(totalAmount, installments)
@@ -562,7 +583,11 @@ fun AddExpenseScreen(
                                     selectedPaymentMethodConfigId = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentMethodConfigId else null,
                                     billingDelayDays = if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) selectedPaymentDelay.days else 0
                                 )
-                                viewModel.saveExpense(expenseData)
+                                if (transactionId != null) {
+                                    viewModel.updateExpense(transactionId, expenseData)
+                                } else {
+                                    viewModel.saveExpense(expenseData)
+                                }
                             }
                         },
                         enabled = isFormValid && selectedCurrency != null && uiState !is AddExpenseUiState.Loading,

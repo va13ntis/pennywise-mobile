@@ -20,7 +20,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromUSDToEUR() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -36,7 +36,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromEURToUSD() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -52,7 +52,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromUSDToJPY() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -71,7 +71,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromJPYToUSD() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -90,7 +90,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromUSDToKRW() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -109,7 +109,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromKRWToUSD() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -128,7 +128,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromUSDToKRWAndBackToUSD() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -145,7 +145,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromEURToJPY() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -163,7 +163,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromJPYToEUR() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -179,7 +179,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromEURToKRW() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -197,7 +197,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromKRWToEUR() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -213,7 +213,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromJPYToKRW() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When
@@ -229,7 +229,7 @@ class CurrencySymbolUpdateTest : BaseCurrencyUiTest() {
     @Test
     fun currencySymbolShouldUpdateInAmountFieldWhenCurrencyChangesFromKRWToJPY() {
         // Given
-        setupComposeContent()
+        setupComposeContent { }
         navigateToAddExpense()
         
         // When

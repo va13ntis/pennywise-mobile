@@ -2,221 +2,156 @@ package com.pennywise.app.data.service
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.gson.Gson
 import com.pennywise.app.data.api.CurrencyApi
 import com.pennywise.app.data.model.CachedExchangeRate
 import com.pennywise.app.data.model.ExchangeRateResponse
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Service for handling currency conversion operations
- * Includes API integration, caching, and offline fallback
+ * Service for converting currency with caching and API fallback.
  */
 @Singleton
 class CurrencyConversionService @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val currencyApi: CurrencyApi? = null
+    private val currencyApi: CurrencyApi
 ) {
-    
-    private val sharedPreferences: SharedPreferences = context.getSharedPreferences(
-        "currency_conversion_cache",
-        Context.MODE_PRIVATE
-    )
-    
+    private val sharedPreferences: SharedPreferences =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val gson = Gson()
-    
-    // Using a free API key for demonstration - in production, use a proper API key
-    private val apiKey = "YOUR_API_KEY" // Replace with actual API key
-    private val baseUrl = "https://v6.exchangerate-api.com/"
-    
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(baseUrl)
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .build()
-    
-    private val api: CurrencyApi = currencyApi ?: retrofit.create(CurrencyApi::class.java)
-    
-    companion object {
-        private const val CACHE_KEY_PREFIX = "exchange_rate_"
-        private const val CACHE_TIMESTAMP_PREFIX = "timestamp_"
-        private const val CACHE_DURATION_HOURS = 24L
-    }
-    
-    /**
-     * Convert amount from one currency to another
-     * @param amount The amount to convert
-     * @param fromCurrency The source currency code
-     * @param toCurrency The target currency code
-     * @return The converted amount, or null if conversion fails
-     */
+
     suspend fun convertCurrency(
         amount: Double,
         fromCurrency: String,
         toCurrency: String
     ): Double? = withContext(Dispatchers.IO) {
-        try {
-            // If currencies are the same, no conversion needed (case insensitive)
-            if (fromCurrency.uppercase() == toCurrency.uppercase()) {
-                return@withContext amount
-            }
-            
-            // Try to get cached rate first
-            val cachedRate = getCachedExchangeRate(fromCurrency, toCurrency)
-            if (cachedRate != null && !cachedRate.isExpired()) {
-                return@withContext amount * cachedRate.conversionRate
-            }
-            
-            // If no valid cache, fetch from API
-            val exchangeRate = fetchExchangeRate(fromCurrency, toCurrency)
-            if (exchangeRate != null) {
-                // Cache the new rate
-                cacheExchangeRate(fromCurrency, toCurrency, exchangeRate)
-                return@withContext amount * exchangeRate.conversionRate
-            }
-            
-            // If API fails and we have expired cache, use it as fallback
-            if (cachedRate != null) {
-                return@withContext amount * cachedRate.conversionRate
-            }
-            
-            null
-        } catch (e: Exception) {
-            // Log error and return null
-            e.printStackTrace()
-            null
+        if (fromCurrency.equals(toCurrency, ignoreCase = true)) {
+            return@withContext amount
         }
-    }
-    
-    /**
-     * Fetch exchange rate from API
-     */
-    private suspend fun fetchExchangeRate(
-        fromCurrency: String,
-        toCurrency: String
-    ): CachedExchangeRate? {
-        return try {
-            val response = api.getExchangeRate(fromCurrency, toCurrency)
-            CachedExchangeRate(
-                baseCode = response.baseCode,
-                targetCode = response.targetCode,
-                conversionRate = response.conversionRate,
-                lastUpdateTime = System.currentTimeMillis()
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+        if (amount == 0.0) {
+            return@withContext 0.0
         }
-    }
-    
-    /**
-     * Get cached exchange rate
-     */
-    private fun getCachedExchangeRate(
-        fromCurrency: String,
-        toCurrency: String
-    ): CachedExchangeRate? {
-        val cacheKey = "$CACHE_KEY_PREFIX${fromCurrency}_$toCurrency"
-        val json = sharedPreferences.getString(cacheKey, null)
-        
-        return if (json != null) {
-            try {
-                gson.fromJson(json, CachedExchangeRate::class.java)
-            } catch (e: Exception) {
-                null
-            }
-        } else {
-            null
+
+        val cachedRate = getCachedRate(fromCurrency, toCurrency)
+        if (cachedRate != null && !cachedRate.isExpired()) {
+            return@withContext amount * cachedRate.conversionRate
         }
-    }
-    
-    /**
-     * Cache exchange rate
-     */
-    private fun cacheExchangeRate(
-        fromCurrency: String,
-        toCurrency: String,
-        rate: CachedExchangeRate
-    ) {
-        val cacheKey = "$CACHE_KEY_PREFIX${fromCurrency}_$toCurrency"
-        val json = gson.toJson(rate)
-        sharedPreferences.edit().putString(cacheKey, json).apply()
-    }
-    
-    /**
-     * Clear all cached exchange rates
-     */
-    fun clearCache() {
-        val editor = sharedPreferences.edit()
-        val allKeys = sharedPreferences.all.keys
-        allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) || it.startsWith(CACHE_TIMESTAMP_PREFIX) }
-            .forEach { editor.remove(it) }
-        editor.apply()
-    }
-    
-    /**
-     * Get cache statistics
-     */
-    fun getCacheStats(): Map<String, Any> {
-        val allKeys = sharedPreferences.all.keys
-        val cachedRates = allKeys.filter { it.startsWith(CACHE_KEY_PREFIX) }
-        
-        var validRates = 0
-        var expiredRates = 0
-        
-        cachedRates.forEach { key ->
-            val json = sharedPreferences.getString(key, null)
-            if (json != null) {
-                try {
-                    val rate = gson.fromJson(json, CachedExchangeRate::class.java)
-                    if (!rate.isExpired()) {
-                        validRates++
-                    } else {
-                        expiredRates++
-                    }
-                } catch (e: Exception) {
-                    // Malformed JSON entries count as expired
-                    expiredRates++
-                }
-            } else {
-                // Null entries count as expired
-                expiredRates++
-            }
+
+        val apiRate = fetchRate(fromCurrency, toCurrency)
+        if (apiRate != null) {
+            cacheRate(fromCurrency, toCurrency, apiRate)
+            return@withContext amount * apiRate
         }
-        
-        return mapOf(
-            "total_cached" to cachedRates.size,
-            "valid_cached" to validRates,
-            "expired_cached" to expiredRates
-        )
+
+        if (cachedRate != null) {
+            return@withContext amount * cachedRate.conversionRate
+        }
+
+        null
     }
-    
-    /**
-     * Check if conversion is available (either cached or API accessible)
-     */
-    suspend fun isConversionAvailable(
-        fromCurrency: String,
-        toCurrency: String
-    ): Boolean {
-        if (fromCurrency == toCurrency) return true
-        
-        val cachedRate = getCachedExchangeRate(fromCurrency, toCurrency)
+
+    suspend fun isConversionAvailable(fromCurrency: String, toCurrency: String): Boolean {
+        if (fromCurrency.equals(toCurrency, ignoreCase = true)) {
+            return true
+        }
+
+        val cachedRate = getCachedRate(fromCurrency, toCurrency)
         if (cachedRate != null && !cachedRate.isExpired()) {
             return true
         }
-        
-        // Try to fetch from API to check availability
-        return try {
-            val rate = fetchExchangeRate(fromCurrency, toCurrency)
-            rate != null
-        } catch (e: Exception) {
-            false
+
+        return fetchRate(fromCurrency, toCurrency) != null
+    }
+
+    fun getCacheStats(): Map<String, Any> {
+        val keys = sharedPreferences.all.keys.filter { it.startsWith(EXCHANGE_RATE_PREFIX) }
+        var validCount = 0
+        var expiredCount = 0
+
+        keys.forEach { key ->
+            val json = sharedPreferences.getString(key, null)
+            val cachedRate = json?.let { parseCachedRate(it) }
+            if (cachedRate != null && !cachedRate.isExpired()) {
+                validCount++
+            } else {
+                expiredCount++
+            }
         }
+
+        return mapOf(
+            "total_cached" to keys.size,
+            "valid_cached" to validCount,
+            "expired_cached" to expiredCount
+        )
+    }
+
+    fun clearCache() {
+        val editor = sharedPreferences.edit()
+        sharedPreferences.all.keys.forEach { key ->
+            if (key.startsWith(EXCHANGE_RATE_PREFIX) || key.startsWith(TIMESTAMP_PREFIX)) {
+                editor.remove(key)
+            }
+        }
+        editor.apply()
+    }
+
+    private suspend fun fetchRate(fromCurrency: String, toCurrency: String): Double? {
+        return try {
+            val response = currencyApi.getExchangeRate(fromCurrency, toCurrency)
+            extractRate(response, toCurrency)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun extractRate(response: ExchangeRateResponse, targetCurrency: String): Double? {
+        val isSuccess = response.success == true || response.result == "success"
+        if (!isSuccess) {
+            return null
+        }
+
+        response.conversionRate?.let { return it }
+
+        val rates = response.rates ?: return null
+        return rates[targetCurrency.uppercase()]
+    }
+
+    private fun getCachedRate(fromCurrency: String, toCurrency: String): CachedExchangeRate? {
+        val key = buildRateKey(fromCurrency, toCurrency)
+        val json = sharedPreferences.getString(key, null) ?: return null
+        return parseCachedRate(json)
+    }
+
+    private fun cacheRate(fromCurrency: String, toCurrency: String, rate: Double) {
+        val cachedRate = CachedExchangeRate(
+            baseCode = fromCurrency.uppercase(),
+            targetCode = toCurrency.uppercase(),
+            conversionRate = rate,
+            lastUpdateTime = System.currentTimeMillis()
+        )
+        val json = gson.toJson(cachedRate)
+        sharedPreferences.edit().putString(buildRateKey(fromCurrency, toCurrency), json).apply()
+    }
+
+    private fun parseCachedRate(json: String): CachedExchangeRate? {
+        return try {
+            gson.fromJson(json, CachedExchangeRate::class.java)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun buildRateKey(fromCurrency: String, toCurrency: String): String {
+        return "$EXCHANGE_RATE_PREFIX${fromCurrency.uppercase()}_${toCurrency.uppercase()}"
+    }
+
+    private companion object {
+        const val PREFS_NAME = "currency_exchange_rates"
+        const val EXCHANGE_RATE_PREFIX = "exchange_rate_"
+        const val TIMESTAMP_PREFIX = "timestamp_"
     }
 }

@@ -57,11 +57,6 @@ class CurrencyConverterTest {
 
         // Create service with mock API injected directly
         conversionService = CurrencyConversionService(mockContext, mockCurrencyApi)
-        
-        // Use reflection to inject the mock API into the private 'api' field
-        val apiField = conversionService.javaClass.getDeclaredField("api")
-        apiField.isAccessible = true
-        apiField.set(conversionService, mockCurrencyApi)
     }
 
     @AfterEach

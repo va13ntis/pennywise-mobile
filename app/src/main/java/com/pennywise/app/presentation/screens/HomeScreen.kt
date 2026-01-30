@@ -1,5 +1,6 @@
 package com.pennywise.app.presentation.screens
 
+import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -7,10 +8,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,21 +22,28 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,6 +55,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,18 +66,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.presentation.components.RecurringExpensesSection
-import com.pennywise.app.presentation.theme.expense_red
 import com.pennywise.app.presentation.util.CurrencyFormatter
 import com.pennywise.app.presentation.util.CategoryMapper
 import com.pennywise.app.presentation.util.PaymentMethodMapper
@@ -75,19 +89,30 @@ import com.pennywise.app.presentation.viewmodel.SettingsViewModel
 import com.pennywise.app.domain.model.PaymentMethodConfig
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.HorizontalDivider
+import com.pennywise.app.domain.model.PaymentMethod
+import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
+import java.time.temporal.WeekFields
+import java.util.Date
+import java.util.Locale
 
 /**
  * Data class for payment method summary with billing cycle info
  */
 data class PaymentMethodSummary(
-    val paymentMethod: com.pennywise.app.domain.model.PaymentMethod,
+    val paymentMethod: PaymentMethod,
     val paymentMethodConfigId: Long? = null, // For credit cards, identifies which specific card
     val displayName: String,
     val totalAmount: Double,
     val billingCycleText: String? = null,
+    val billingCycleStart: Date? = null,
+    val billingCycleEnd: Date? = null,
     val accentColor: Color
 )
+
+
 
 /**
  * Modern home screen with Material 3 design
@@ -100,16 +125,19 @@ fun HomeScreen(
     onAddExpense: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onEditExpense: (Long) -> Unit = {},
+    onNavigateToCardStatement: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     // State collection from real ViewModel
     val currentMonth by viewModel.currentMonth.collectAsState()
-    val totalExpenses by viewModel.totalExpenses.collectAsState()
     val transactionsByWeek by viewModel.transactionsByWeek.collectAsState()
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
     val splitPaymentInstallments by viewModel.splitPaymentInstallments.collectAsState()
     val currencyCode by viewModel.currency.collectAsState()
+    val convertedTransactionAmounts by viewModel.convertedTransactionAmounts.collectAsState()
+    val convertedInstallmentAmounts by viewModel.convertedInstallmentAmounts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     
     // Payment method configs and filtering state
@@ -118,52 +146,74 @@ fun HomeScreen(
     // Store the full summary to support filtering by specific credit cards
     var selectedPaymentMethodFilter by remember { mutableStateOf<PaymentMethodSummary?>(null) }
     
-    // Refresh data when the screen becomes visible (e.g., returning from AddExpense)
-    LaunchedEffect(Unit) {
-        println("🔄 HomeScreen: Screen became visible, refreshing data")
-        viewModel.refreshData()
-    }
-    
-    // Convert currency code to symbol
-    val currencySymbol = remember(currencyCode) {
-        CurrencyFormatter.getCurrencySymbol(currencyCode)
-    }
-    
     // Get context for date formatting
     val context = LocalContext.current
+    val locale = context.resources.configuration.locales[0]
+    val layoutDirection = LocalLayoutDirection.current
     
+    val cardAccentColor = MaterialTheme.colorScheme.secondary
     // Compute payment method summaries with billing cycle info
-    val paymentMethodSummaries = remember(transactionsByWeek, recurringTransactions, currentMonth, paymentMethodConfigs, context) {
+    val paymentMethodSummaries = remember(
+        transactionsByWeek,
+        recurringTransactions,
+        currentMonth,
+        paymentMethodConfigs,
+        context,
+        cardAccentColor,
+        convertedTransactionAmounts,
+        layoutDirection
+    ) {
         computePaymentMethodSummaries(
             transactions = transactionsByWeek.values.flatten(),
             recurringTransactions = recurringTransactions,
             paymentMethodConfigs = paymentMethodConfigs,
             currentMonth = currentMonth,
-            context = context
+            context = context,
+            creditCardAccent = cardAccentColor,
+            convertedTransactionAmounts = convertedTransactionAmounts,
+            isRtl = layoutDirection == LayoutDirection.Rtl
         )
+    }
+    // Refresh data when the screen becomes visible (e.g., returning from AddExpense)
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
     }
     
     // Local state for week expansion (not in ViewModel)
     var expandedWeeks by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var transactionActionTarget by remember { mutableStateOf<Transaction?>(null) }
+    var showTransactionActions by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     
     // UI state
     val lazyListState = rememberLazyListState()
     
-    // Filter transactions by selected payment method (and specific credit card if applicable)
-    val filteredWeeks: Map<Int, List<Transaction>> = if (selectedPaymentMethodFilter == null) {
-        transactionsByWeek
-    } else {
-        transactionsByWeek.mapValues { entry: Map.Entry<Int, List<Transaction>> ->
-            entry.value.filter { transaction: Transaction -> 
-                val matchesPaymentMethod = transaction.paymentMethod == selectedPaymentMethodFilter?.paymentMethod
-                // For credit cards, also check the specific card config ID
-                val matchesConfigId = if (transaction.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD) {
-                    transaction.paymentMethodConfigId == selectedPaymentMethodFilter?.paymentMethodConfigId
-                } else {
-                    true // For non-credit card methods, config ID doesn't matter
-                }
-                matchesPaymentMethod && matchesConfigId
+    // Show all transactions in week layout regardless of selected payment method.
+    val matchesSelectedSummary: (Transaction) -> Boolean = { transaction ->
+        selectedPaymentMethodFilter?.let { summary ->
+            if (summary.paymentMethod == PaymentMethod.CREDIT_CARD) {
+                transaction.paymentMethod == PaymentMethod.CREDIT_CARD &&
+                    transaction.paymentMethodConfigId == summary.paymentMethodConfigId
+            } else {
+                transaction.paymentMethod == summary.paymentMethod
             }
+        } ?: true
+    }
+    val filteredWeeks: Map<Int, List<Transaction>> = transactionsByWeek
+        .mapValues { entry ->
+            entry.value.filter(matchesSelectedSummary)
+        }
+        .filterValues { it.isNotEmpty() }
+    val filteredRecurringTransactions = recurringTransactions.filter(matchesSelectedSummary)
+    val transactionById = remember(transactionsByWeek, recurringTransactions) {
+        (transactionsByWeek.values.flatten() + recurringTransactions).associateBy { it.id }
+    }
+    val filteredSplitPaymentInstallments = splitPaymentInstallments.filter { installment ->
+        val parentTransaction = transactionById[installment.parentTransactionId]
+        if (parentTransaction != null) {
+            matchesSelectedSummary(parentTransaction)
+        } else {
+            true
         }
     }
     
@@ -175,6 +225,92 @@ fun HomeScreen(
             CircularProgressIndicator()
         }
         return
+    }
+
+    if (showTransactionActions && transactionActionTarget != null) {
+        val closeAlignment = if (layoutDirection == LayoutDirection.Rtl) {
+            Alignment.TopStart
+        } else {
+            Alignment.TopEnd
+        }
+        Dialog(onDismissRequest = { showTransactionActions = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .width(140.dp)
+                ) {
+                    IconButton(
+                        onClick = { showTransactionActions = false },
+                        modifier = Modifier
+                            .align(closeAlignment)
+                            .offset(x = 6.dp, y = (-6).dp)
+                            .size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.cancel),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(top = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            showTransactionActions = false
+                            onEditExpense(transactionActionTarget?.id ?: return@IconButton)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = stringResource(R.string.edit),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = {
+                            showTransactionActions = false
+                            showDeleteConfirm = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.delete),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteConfirm && transactionActionTarget != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(stringResource(R.string.delete_expense_title)) },
+            text = { Text(stringResource(R.string.delete_expense_confirmation)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteTransaction(transactionActionTarget!!)
+                    showDeleteConfirm = false
+                    transactionActionTarget = null
+                }) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
     
     Scaffold(
@@ -229,34 +365,46 @@ fun HomeScreen(
             item {
                 BillingAwareSummaryCard(
                     currentMonth = currentMonth,
-                    totalAmount = totalExpenses,
-                    currencySymbol = currencySymbol,
+                    currencyCode = currencyCode,
                     paymentMethodSummaries = paymentMethodSummaries,
                     selectedPaymentMethod = selectedPaymentMethodFilter,
                     onPreviousMonth = { viewModel.changeMonth(-1) },
                     onNextMonth = { viewModel.changeMonth(1) },
                     onPaymentMethodClick = { summary ->
-                        selectedPaymentMethodFilter = if (selectedPaymentMethodFilter == summary) null else summary
+                        // For credit cards, navigate to CardStatementScreen
+                        if (summary.paymentMethod == PaymentMethod.CREDIT_CARD &&
+                            summary.paymentMethodConfigId != null) {
+                            onNavigateToCardStatement(summary.paymentMethodConfigId)
+                        } else {
+                            // For other payment methods, toggle filter
+                            selectedPaymentMethodFilter = if (selectedPaymentMethodFilter == summary) null else summary
+                        }
+                    },
+                    onPagerPageSelected = { summary ->
+                        selectedPaymentMethodFilter = summary
                     }
                 )
             }
             
             // Recurring Expenses Section (appears after top summary)
-            if (recurringTransactions.isNotEmpty() || splitPaymentInstallments.isNotEmpty()) {
+            if (filteredRecurringTransactions.isNotEmpty() || filteredSplitPaymentInstallments.isNotEmpty()) {
                 item {
                     RecurringExpensesSection(
-                        transactions = recurringTransactions,
-                        splitPaymentInstallments = splitPaymentInstallments,
-                        currencySymbol = currencySymbol
+                        transactions = filteredRecurringTransactions,
+                        splitPaymentInstallments = filteredSplitPaymentInstallments,
+                        currencyCode = currencyCode,
+                        convertedTransactionAmounts = convertedTransactionAmounts,
+                        convertedInstallmentAmounts = convertedInstallmentAmounts
                     )
                 }
             }
             
             // Empty state message when no transactions
-            if (transactionsByWeek.isEmpty()) {
+            if (filteredWeeks.isEmpty()) {
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
@@ -284,18 +432,29 @@ fun HomeScreen(
                 items = filteredWeeks.entries.sortedByDescending { it.key },
                 key = { it.key }
             ) { (weekNumber, transactions) ->
+            val weekRangeText = remember(weekNumber, transactions, locale) {
+                buildWeekRangeText(transactions, locale, context)
+            }
                 WeeklySummaryCard(
                     weekNumber = weekNumber,
+                    weekRangeText = weekRangeText,
                     transactions = transactions,
-                    currencySymbol = currencySymbol,
-                    weekTotal = transactions.sumOf { it.amount },
+                    currencyCode = currencyCode,
+                    convertedTransactionAmounts = convertedTransactionAmounts,
+                    weekTotal = transactions.sumOf { transaction ->
+                        convertedTransactionAmounts[transaction.id] ?: transaction.amount
+                    },
                     isExpanded = expandedWeeks.contains(weekNumber),
                     onToggleExpansion = {
                         expandedWeeks = if (expandedWeeks.contains(weekNumber)) {
-                            (expandedWeeks - weekNumber) as Set<Int>
+                            expandedWeeks - weekNumber
                         } else {
-                            (expandedWeeks + weekNumber) as Set<Int>
+                            expandedWeeks + weekNumber
                         }
+                    },
+                    onTransactionLongPress = { transaction ->
+                        transactionActionTarget = transaction
+                        showTransactionActions = true
                     }
                 )
             }
@@ -315,12 +474,13 @@ fun HomeScreen(
 private fun TopSummaryCard(
     currentMonth: YearMonth,
     totalAmount: Double,
-    currencySymbol: String,
+    currencyCode: String,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val context = LocalContext.current
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -363,10 +523,10 @@ private fun TopSummaryCard(
                 label = "amount_animation"
             ) { amount ->
                 Text(
-                    text = "$currencySymbol${String.format("%.2f", amount)}",
+                    text = CurrencyFormatter.formatAmount(amount, currencyCode, context),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.End
                 )
             }
@@ -439,14 +599,17 @@ private fun MonthNavigationRow(
 @Composable
 private fun WeeklySummaryCard(
     weekNumber: Int,
+    weekRangeText: String?,
     transactions: List<Transaction>,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedTransactionAmounts: Map<Long, Double>,
     weekTotal: Double,
     isExpanded: Boolean,
     onToggleExpansion: () -> Unit,
+    onTransactionLongPress: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    
+    val context = LocalContext.current
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -468,13 +631,22 @@ private fun WeeklySummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: Week number
-                Text(
-                    text = stringResource(R.string.week_format, weekNumber),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                // Left: Week number + date range
+                Column {
+                    Text(
+                        text = stringResource(R.string.week_format, weekNumber),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (!weekRangeText.isNullOrBlank()) {
+                        Text(
+                            text = weekRangeText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 
                 // Right: Amount and expand/collapse arrow
                 Row(
@@ -483,10 +655,10 @@ private fun WeeklySummaryCard(
                 ) {
                     // Amount
                     Text(
-                        text = "$currencySymbol${String.format("%.2f", weekTotal)}",
+                        text = CurrencyFormatter.formatAmount(weekTotal, currencyCode, context),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = expense_red
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     // Expand/collapse triangle
@@ -507,7 +679,9 @@ private fun WeeklySummaryCard(
                 transactions.sortedByDescending { it.date }.forEach { transaction ->
                     TransactionItem(
                         transaction = transaction,
-                        currencySymbol = currencySymbol
+                        currencyCode = currencyCode,
+                        convertedAmount = convertedTransactionAmounts[transaction.id],
+                        onLongPress = onTransactionLongPress
                     )
                     
                     if (transaction != transactions.last()) {
@@ -519,18 +693,57 @@ private fun WeeklySummaryCard(
     }
 }
 
+private fun buildWeekRangeText(
+    transactions: List<Transaction>,
+    locale: Locale,
+    context: Context
+): String? {
+    if (transactions.isEmpty()) {
+        return null
+    }
+    val representativeDate = transactions.maxByOrNull { it.date }?.date ?: return null
+    val localDate = representativeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val weekFields = WeekFields.of(locale)
+    val weekStart = localDate.with(TemporalAdjusters.previousOrSame(weekFields.firstDayOfWeek))
+    val weekEnd = weekStart.plusDays(6)
+    val weekStartDate = Date.from(weekStart.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    val weekEndDate = Date.from(weekEnd.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    return "${LocaleFormatter.formatTransactionDate(weekStartDate, context)} - " +
+        LocaleFormatter.formatTransactionDate(weekEndDate, context)
+}
+
 /**
  * Individual transaction item in expanded weekly view
  * Uses real Transaction domain model
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionItem(
     transaction: Transaction,
-    currencySymbol: String,
+    currencyCode: String,
+    convertedAmount: Double?,
+    onLongPress: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val formattedAmount = if (transaction.currency != currencyCode && convertedAmount != null) {
+        CurrencyFormatter.formatAmountWithConversion(
+            originalAmount = transaction.amount,
+            convertedAmount = convertedAmount,
+            originalCurrency = transaction.currency,
+            targetCurrency = currencyCode,
+            context = context
+        )
+    } else {
+        CurrencyFormatter.formatAmount(transaction.amount, transaction.currency, context)
+    }
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { onLongPress(transaction) }
+            ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -539,22 +752,23 @@ private fun TransactionItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Payment method icon background
+            // Merchant initial badge
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        when (transaction.paymentMethod) {
-                            com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD -> Color(0xFFFFD700).copy(alpha = 0.2f) // Gold
-                            com.pennywise.app.domain.model.PaymentMethod.CASH -> Color(0xFF4CAF50).copy(alpha = 0.2f) // Green
-                            com.pennywise.app.domain.model.PaymentMethod.CHEQUE -> Color(0xFF2196F3).copy(alpha = 0.2f) // Blue
-                        }
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
+                val merchantInitial = transaction.description
+                    .trim()
+                    .take(1)
+                    .ifBlank { "?" }
+                    .uppercase()
                 Text(
-                    text = PaymentMethodMapper.getPaymentMethodIcon(transaction.paymentMethod),
+                    text = merchantInitial,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -573,15 +787,22 @@ private fun TransactionItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (transaction.installments != null && transaction.installments > 1) {
+                    Text(
+                        text = "1 / ${transaction.installments}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         
         // Right: Amount
         Text(
-            text = "$currencySymbol${String.format("%.2f", transaction.amount)}",
+            text = formattedAmount,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
-            color = expense_red
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -590,21 +811,183 @@ private fun TransactionItem(
  * Billing-aware summary card with payment method breakdown
  */
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun BillingAwareSummaryCard(
     currentMonth: YearMonth,
-    totalAmount: Double,
-    currencySymbol: String,
+    currencyCode: String,
     paymentMethodSummaries: List<PaymentMethodSummary>,
     selectedPaymentMethod: PaymentMethodSummary?,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onPaymentMethodClick: (PaymentMethodSummary) -> Unit,
+    onPagerPageSelected: (PaymentMethodSummary) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    
-    Card(
+    val context = LocalContext.current
+    if (paymentMethodSummaries.isEmpty()) {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val headerTitle = LocaleFormatter.formatMonthYear(
+                    month = currentMonth.monthValue,
+                    year = currentMonth.year,
+                    context = context
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onPreviousMonth,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRtl) Icons.Default.ChevronRight else Icons.Default.ChevronLeft,
+                            contentDescription = stringResource(R.string.previous_month),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = headerTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onNextMonth,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRtl) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                            contentDescription = stringResource(R.string.next_month),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+        return
+    }
+
+    val pagerState = rememberPagerState(initialPage = 0) { paymentMethodSummaries.size }
+    LaunchedEffect(pagerState.currentPage) {
+        val summary = paymentMethodSummaries.getOrNull(pagerState.currentPage)
+        summary?.let { onPagerPageSelected(it) }
+    }
+    LaunchedEffect(paymentMethodSummaries.size) {
+        if (paymentMethodSummaries.isEmpty()) {
+            return@LaunchedEffect
+        }
+        if (pagerState.currentPage > paymentMethodSummaries.lastIndex) {
+            pagerState.scrollToPage(0)
+        }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 12.dp,
+            contentPadding = PaddingValues(horizontal = 0.dp),
+            modifier = Modifier.fillMaxWidth(),
+            key = { page ->
+                val summary = paymentMethodSummaries[page]
+                summary.paymentMethodConfigId ?: summary.paymentMethod.ordinal.toLong()
+            }
+        ) { page ->
+            val summary = paymentMethodSummaries[page]
+            SummaryCardPage(
+                summary = summary,
+                currentMonth = currentMonth,
+                currencyCode = currencyCode,
+                isRtl = isRtl,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+                onClick = { onPaymentMethodClick(summary) },
+                isSelected = selectedPaymentMethod == summary
+            )
+        }
+
+        PagerIndicatorRow(
+            pageCount = paymentMethodSummaries.size,
+            currentPage = pagerState.currentPage
+        )
+    }
+}
+
+@Composable
+private fun PagerIndicatorRow(
+    pageCount: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
         modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        repeat(pageCount) { index ->
+            val isSelected = index == currentPage
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .size(if (isSelected) 8.dp else 6.dp)
+                    .background(
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryCardPage(
+    summary: PaymentMethodSummary,
+    currentMonth: YearMonth,
+    currencyCode: String,
+    isRtl: Boolean,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onClick: () -> Unit,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val headerTitle = summary.billingCycleText
+        ?: LocaleFormatter.formatMonthYear(
+            month = currentMonth.monthValue,
+            year = currentMonth.year,
+            context = context
+        )
+    val cycleStartLabel = summary.billingCycleStart?.let {
+        LocaleFormatter.formatTransactionDate(it, context)
+    }
+    val cycleEndLabel = summary.billingCycleEnd?.let {
+        LocaleFormatter.formatTransactionDate(it, context)
+    }
+    val cycleArrow = if (isRtl) "\u2190" else "\u2192"
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
@@ -617,99 +1000,218 @@ private fun BillingAwareSummaryCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Month navigation and total
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                MonthNavigationRow(
-                    currentMonth = currentMonth,
-                    onPreviousMonth = onPreviousMonth,
-                    onNextMonth = onNextMonth,
-                    isRtl = isRtl
-                )
-                
-                Text(
-                    text = "$currencySymbol${String.format("%.2f", totalAmount)}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            
-            // Payment method summaries
-            if (paymentMethodSummaries.isNotEmpty()) {
-                HorizontalDivider()
-                
-                paymentMethodSummaries.forEach { summary ->
-                    PaymentMethodSummaryItem(
-                        summary = summary,
-                        currencySymbol = currencySymbol,
-                        isSelected = selectedPaymentMethod == summary,
-                        onClick = { onPaymentMethodClick(summary) }
+                IconButton(
+                    onClick = onPreviousMonth,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isRtl) Icons.Default.ChevronRight else Icons.Default.ChevronLeft,
+                        contentDescription = stringResource(R.string.previous_month),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (cycleStartLabel != null && cycleEndLabel != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = cycleStartLabel,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = cycleArrow,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .padding(horizontal = 8.dp)
+                                    .offset(y = (-2).dp)
+                            )
+                            Text(
+                                text = cycleEndLabel,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = headerTitle,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onNextMonth,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isRtl) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                        contentDescription = stringResource(R.string.next_month),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            BillingCycleProgressBar(
+                startDate = summary.billingCycleStart,
+                endDate = summary.billingCycleEnd,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            HorizontalDivider()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(44.dp)
+                        .background(summary.accentColor, RoundedCornerShape(2.dp))
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = summary.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+
+                Text(
+                    text = CurrencyFormatter.formatAmount(summary.totalAmount, currencyCode, context),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = when {
+                        isSelected -> summary.accentColor
+                        summary.paymentMethod == PaymentMethod.CREDIT_CARD -> MaterialTheme.colorScheme.onSurface
+                        else -> summary.accentColor
+                    }
+                )
             }
         }
     }
 }
 
-/**
- * Individual payment method summary item
- */
 @Composable
-private fun PaymentMethodSummaryItem(
-    summary: PaymentMethodSummary,
-    currencySymbol: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
+private fun BillingCycleProgressBar(
+    startDate: Date?,
+    endDate: Date?,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .background(
-                if (isSelected) summary.accentColor.copy(alpha = 0.1f)
-                else Color.Transparent
-            )
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    if (startDate == null || endDate == null) {
+        return
+    }
+
+    val context = LocalContext.current
+    val start = startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val end = endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val today = LocalDate.now()
+    if (end.isBefore(start)) {
+        return
+    }
+    if (today.isBefore(start) || today.isAfter(end)) {
+        return
+    }
+
+    val totalDays = (end.toEpochDay() - start.toEpochDay()).coerceAtLeast(1)
+    val elapsedDays = (today.toEpochDay() - start.toEpochDay()).coerceIn(0, totalDays)
+    val progress = elapsedDays.toFloat() / totalDays.toFloat()
+
+    val startLabel = LocaleFormatter.formatTransactionDate(startDate, context)
+    val endLabel = LocaleFormatter.formatTransactionDate(endDate, context)
+    val todayDate = Date.from(today.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    val todayLabel = LocaleFormatter.formatTransactionDate(todayDate, context)
+    var todayLabelWidthPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Accent bar
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .height(40.dp)
-                .background(summary.accentColor, RoundedCornerShape(2.dp))
-        )
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
-                text = summary.displayName,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                text = startLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
-            summary.billingCycleText?.let { cycleText ->
+            Text(
+                text = endLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f))
+                    .align(Alignment.Center)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+                    .align(Alignment.CenterStart)
+            )
+            val labelWidthDp = with(density) { todayLabelWidthPx.toDp() }
+            val availableWidth = (maxWidth - labelWidthDp).coerceAtLeast(0.dp)
+            val markerOffset = availableWidth * progress.coerceIn(0f, 1f)
+            Column(
+                modifier = Modifier
+                    .offset(x = markerOffset)
+                    .align(Alignment.CenterStart),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
-                    text = cycleText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = todayLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .onSizeChanged { todayLabelWidthPx = it.width }
                 )
             }
         }
-        
-        Text(
-            text = "$currencySymbol${String.format("%.2f", summary.totalAmount)}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            color = if (isSelected) summary.accentColor else expense_red
-        )
     }
 }
 
@@ -721,27 +1223,36 @@ private fun computePaymentMethodSummaries(
     recurringTransactions: List<Transaction>,
     paymentMethodConfigs: List<PaymentMethodConfig>,
     currentMonth: YearMonth,
-    context: android.content.Context
+    context: Context,
+    creditCardAccent: Color,
+    convertedTransactionAmounts: Map<Long, Double>,
+    isRtl: Boolean
 ): List<PaymentMethodSummary> {
     val allTransactions = transactions + recurringTransactions
     val summaries = mutableListOf<PaymentMethodSummary>()
     
     // Handle CREDIT_CARD transactions - show separate entry for each card used
-    val creditCardTransactions = allTransactions.filter { it.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD }
+    val creditCardTransactions = allTransactions.filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
     
     // Group credit card transactions by paymentMethodConfigId
     val creditCardGroups = creditCardTransactions.groupBy { it.paymentMethodConfigId }
     
     creditCardGroups.forEach { (configId, transactionsForCard) ->
-        val total = transactionsForCard.sumOf { it.amount }
+        val total = transactionsForCard.sumOf { transaction ->
+            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        }
         if (total > 0.0) {
             // Find the specific card config
             val cardConfig = configId?.let { id -> 
                 paymentMethodConfigs.find { it.id == id }
             }
             
-            val displayName = cardConfig?.alias?.ifBlank { "Credit Card" } ?: "Credit Card"
-            val billingCycleText = cardConfig?.withdrawDay?.let { withdrawDay ->
+            val displayName = cardConfig?.alias
+                ?.trim()
+                ?.replace("\\s+".toRegex(), " ")
+                ?.ifBlank { "Credit Card" }
+                ?: "Credit Card"
+            val billingCycleRange = cardConfig?.withdrawDay?.let { withdrawDay ->
                 // Billing cycle: withdrawDay of current month → (withdrawDay - 1) of next month
                 // Clamp withdrawDay to valid range for each month (handles Feb with 28/29 days, months with 30 days, etc.)
                 val validDayInCurrentMonth = minOf(withdrawDay, currentMonth.lengthOfMonth())
@@ -752,20 +1263,29 @@ private fun computePaymentMethodSummaries(
                 val cycleEnd = nextMonth.atDay(validDayInNextMonth).minusDays(1)
                 
                 // Convert LocalDate to Date for formatting
-                val cycleStartDate = java.util.Date.from(cycleStart.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
-                val cycleEndDate = java.util.Date.from(cycleEnd.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+                val cycleStartDate = Date.from(cycleStart.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                val cycleEndDate = Date.from(cycleEnd.atStartOfDay(ZoneId.systemDefault()).toInstant())
                 
-                "${LocaleFormatter.formatTransactionDate(cycleStartDate, context)} → ${LocaleFormatter.formatTransactionDate(cycleEndDate, context)}"
+                val startText = LocaleFormatter.formatTransactionDate(cycleStartDate, context)
+                val endText = LocaleFormatter.formatTransactionDate(cycleEndDate, context)
+                val cycleText = if (isRtl) {
+                    "$endText \u2190 $startText"
+                } else {
+                    "$startText \u2192 $endText"
+                }
+                Triple(cycleStartDate, cycleEndDate, cycleText)
             }
             
             summaries.add(
                 PaymentMethodSummary(
-                    paymentMethod = com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD,
+                    paymentMethod = PaymentMethod.CREDIT_CARD,
                     paymentMethodConfigId = configId,
                     displayName = displayName,
                     totalAmount = total,
-                    billingCycleText = billingCycleText,
-                    accentColor = Color(0xFFFFD700) // Gold
+                    billingCycleText = billingCycleRange?.third,
+                    billingCycleStart = billingCycleRange?.first,
+                    billingCycleEnd = billingCycleRange?.second,
+                    accentColor = creditCardAccent
                 )
             )
         }
@@ -773,13 +1293,15 @@ private fun computePaymentMethodSummaries(
     
     // Handle CASH transactions
     val cashTotal = allTransactions
-        .filter { it.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CASH }
-        .sumOf { it.amount }
+        .filter { it.paymentMethod == PaymentMethod.CASH }
+        .sumOf { transaction ->
+            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        }
     
     if (cashTotal > 0.0) {
         summaries.add(
             PaymentMethodSummary(
-                paymentMethod = com.pennywise.app.domain.model.PaymentMethod.CASH,
+                paymentMethod = PaymentMethod.CASH,
                 displayName = "Cash",
                 totalAmount = cashTotal,
                 billingCycleText = null,
@@ -790,13 +1312,15 @@ private fun computePaymentMethodSummaries(
     
     // Handle CHEQUE transactions
     val chequeTotal = allTransactions
-        .filter { it.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CHEQUE }
-        .sumOf { it.amount }
+        .filter { it.paymentMethod == PaymentMethod.CHEQUE }
+        .sumOf { transaction ->
+            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        }
     
     if (chequeTotal > 0.0) {
         summaries.add(
             PaymentMethodSummary(
-                paymentMethod = com.pennywise.app.domain.model.PaymentMethod.CHEQUE,
+                paymentMethod = PaymentMethod.CHEQUE,
                 displayName = "Cheque",
                 totalAmount = chequeTotal,
                 billingCycleText = null,

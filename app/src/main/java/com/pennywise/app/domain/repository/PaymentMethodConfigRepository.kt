@@ -2,6 +2,7 @@ package com.pennywise.app.domain.repository
 
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.PaymentMethodConfig
+import com.pennywise.app.domain.model.CardWithBillingCycles
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -58,4 +59,15 @@ interface PaymentMethodConfigRepository {
      * Get credit card configurations that need withdraw day configuration
      */
     fun getCreditCardConfigs(): Flow<List<PaymentMethodConfig>>
+    
+    /**
+     * Get a payment method configuration (card) with its billing cycles
+     * @param cardId The ID of the payment method configuration
+     * @param cycleCount The number of billing cycles to generate (default: 6)
+     * @return CardWithBillingCycles containing the card and its billing cycles, or null if not found
+     */
+    suspend fun getPaymentMethodConfigWithBillingCycles(
+        cardId: Long,
+        cycleCount: Int = 6
+    ): CardWithBillingCycles?
 }

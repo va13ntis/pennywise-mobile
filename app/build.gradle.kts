@@ -46,7 +46,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
-        dataBinding = true
+        dataBinding = false
     }
 
     composeOptions {
@@ -65,6 +65,10 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+
+    sourceSets {
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
 }
 
@@ -86,6 +90,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.foundation:foundation")
 
     // Material XML
     implementation("com.google.android.material:material:1.11.0")
@@ -117,11 +122,13 @@ dependencies {
     ksp("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
+    // Images
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")

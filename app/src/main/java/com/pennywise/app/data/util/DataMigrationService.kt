@@ -67,7 +67,6 @@ class DataMigrationService @Inject constructor(
             }
         } catch (e: Exception) {
             // Log the error but don't crash the app
-            println("Error during currency data migration: ${e.message}")
         }
     }
     
