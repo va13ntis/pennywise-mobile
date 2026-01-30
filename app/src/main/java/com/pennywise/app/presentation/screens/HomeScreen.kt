@@ -174,38 +174,6 @@ fun HomeScreen(
             isRtl = layoutDirection == LayoutDirection.Rtl
         )
     }
-    val paymentMethodAliases = remember(paymentMethodConfigs) {
-        paymentMethodConfigs
-            .filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
-            .associate { config ->
-                val alias = config.alias
-                    .trim()
-                    .replace("\\s+".toRegex(), " ")
-                    .ifBlank { null }
-                config.id to alias
-            }
-    }
-    val paymentMethodInitialsByTransactionId = remember(
-        transactionsByWeek,
-        recurringTransactions,
-        paymentMethodAliases
-    ) {
-        val allTransactions = transactionsByWeek.values.flatten() + recurringTransactions
-        allTransactions.associate { transaction ->
-            val initial = if (transaction.paymentMethod == PaymentMethod.CREDIT_CARD) {
-                transaction.paymentMethodConfigId?.let { configId ->
-                    paymentMethodAliases[configId]
-                        ?.trim()
-                        ?.take(1)
-                        ?.uppercase()
-                }
-            } else {
-                null
-            }
-            transaction.id to initial
-        }
-    }
-    
     // Refresh data when the screen becomes visible (e.g., returning from AddExpense)
     LaunchedEffect(Unit) {
         viewModel.refreshData()
@@ -424,8 +392,6 @@ fun HomeScreen(
                     RecurringExpensesSection(
                         transactions = filteredRecurringTransactions,
                         splitPaymentInstallments = filteredSplitPaymentInstallments,
-                        paymentMethodAliases = paymentMethodAliases,
-                        paymentMethodInitialsByTransactionId = paymentMethodInitialsByTransactionId,
                         currencyCode = currencyCode,
                         convertedTransactionAmounts = convertedTransactionAmounts,
                         convertedInstallmentAmounts = convertedInstallmentAmounts
@@ -473,7 +439,6 @@ fun HomeScreen(
                     weekNumber = weekNumber,
                     weekRangeText = weekRangeText,
                     transactions = transactions,
-                    paymentMethodAliases = paymentMethodAliases,
                     currencyCode = currencyCode,
                     convertedTransactionAmounts = convertedTransactionAmounts,
                     weekTotal = transactions.sumOf { transaction ->
@@ -636,7 +601,6 @@ private fun WeeklySummaryCard(
     weekNumber: Int,
     weekRangeText: String?,
     transactions: List<Transaction>,
-    paymentMethodAliases: Map<Long, String?>,
     currencyCode: String,
     convertedTransactionAmounts: Map<Long, Double>,
     weekTotal: Double,
@@ -715,7 +679,6 @@ private fun WeeklySummaryCard(
                 transactions.sortedByDescending { it.date }.forEach { transaction ->
                     TransactionItem(
                         transaction = transaction,
-                        paymentMethodAliases = paymentMethodAliases,
                         currencyCode = currencyCode,
                         convertedAmount = convertedTransactionAmounts[transaction.id],
                         onLongPress = onTransactionLongPress
@@ -757,7 +720,6 @@ private fun buildWeekRangeText(
 @Composable
 private fun TransactionItem(
     transaction: Transaction,
-    paymentMethodAliases: Map<Long, String?>,
     currencyCode: String,
     convertedAmount: Double?,
     onLongPress: (Transaction) -> Unit,
@@ -790,33 +752,23 @@ private fun TransactionItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Payment method icon background
+            // Merchant initial badge
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        when (transaction.paymentMethod) {
-                            PaymentMethod.CREDIT_CARD -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
-                            PaymentMethod.CASH -> Color(0xFF4CAF50).copy(alpha = 0.2f) // Green
-                            PaymentMethod.CHEQUE -> Color(0xFF2196F3).copy(alpha = 0.2f) // Blue
-                        }
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                val paymentMethodLabel = if (transaction.paymentMethod == PaymentMethod.CREDIT_CARD) {
-                    transaction.paymentMethodConfigId?.let { configId ->
-                        paymentMethodAliases[configId]
-                    } ?: PaymentMethodMapper.getLocalizedPaymentMethod(transaction.paymentMethod)
-                } else {
-                    PaymentMethodMapper.getLocalizedPaymentMethod(transaction.paymentMethod)
-                }
-                val paymentMethodInitial = paymentMethodLabel
+                val merchantInitial = transaction.description
                     .trim()
                     .take(1)
+                    .ifBlank { "?" }
                     .uppercase()
                 Text(
-                    text = paymentMethodInitial,
+                    text = merchantInitial,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -873,28 +825,169 @@ private fun BillingAwareSummaryCard(
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val context = LocalContext.current
-    val pagerState = rememberPagerState { paymentMethodSummaries.size }
-    val activeSummary = if (paymentMethodSummaries.isNotEmpty()) {
-        paymentMethodSummaries.getOrNull(pagerState.currentPage)
-    } else {
-        null
+    if (paymentMethodSummaries.isEmpty()) {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val headerTitle = LocaleFormatter.formatMonthYear(
+                    month = currentMonth.monthValue,
+                    year = currentMonth.year,
+                    context = context
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onPreviousMonth,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRtl) Icons.Default.ChevronRight else Icons.Default.ChevronLeft,
+                            contentDescription = stringResource(R.string.previous_month),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = headerTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onNextMonth,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRtl) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                            contentDescription = stringResource(R.string.next_month),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+        return
     }
-    val headerTitle = activeSummary?.billingCycleText
+
+    val pagerState = rememberPagerState(initialPage = 0) { paymentMethodSummaries.size }
+    LaunchedEffect(pagerState.currentPage) {
+        val summary = paymentMethodSummaries.getOrNull(pagerState.currentPage)
+        summary?.let { onPagerPageSelected(it) }
+    }
+    LaunchedEffect(paymentMethodSummaries.size) {
+        if (paymentMethodSummaries.isEmpty()) {
+            return@LaunchedEffect
+        }
+        if (pagerState.currentPage > paymentMethodSummaries.lastIndex) {
+            pagerState.scrollToPage(0)
+        }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 12.dp,
+            contentPadding = PaddingValues(horizontal = 0.dp),
+            modifier = Modifier.fillMaxWidth(),
+            key = { page ->
+                val summary = paymentMethodSummaries[page]
+                summary.paymentMethodConfigId ?: summary.paymentMethod.ordinal.toLong()
+            }
+        ) { page ->
+            val summary = paymentMethodSummaries[page]
+            SummaryCardPage(
+                summary = summary,
+                currentMonth = currentMonth,
+                currencyCode = currencyCode,
+                isRtl = isRtl,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+                onClick = { onPaymentMethodClick(summary) },
+                isSelected = selectedPaymentMethod == summary
+            )
+        }
+
+        PagerIndicatorRow(
+            pageCount = paymentMethodSummaries.size,
+            currentPage = pagerState.currentPage
+        )
+    }
+}
+
+@Composable
+private fun PagerIndicatorRow(
+    pageCount: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        repeat(pageCount) { index ->
+            val isSelected = index == currentPage
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .size(if (isSelected) 8.dp else 6.dp)
+                    .background(
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryCardPage(
+    summary: PaymentMethodSummary,
+    currentMonth: YearMonth,
+    currencyCode: String,
+    isRtl: Boolean,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onClick: () -> Unit,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val headerTitle = summary.billingCycleText
         ?: LocaleFormatter.formatMonthYear(
             month = currentMonth.monthValue,
             year = currentMonth.year,
             context = context
         )
-    val cycleStartLabel = activeSummary?.billingCycleStart?.let {
+    val cycleStartLabel = summary.billingCycleStart?.let {
         LocaleFormatter.formatTransactionDate(it, context)
     }
-    val cycleEndLabel = activeSummary?.billingCycleEnd?.let {
+    val cycleEndLabel = summary.billingCycleEnd?.let {
         LocaleFormatter.formatTransactionDate(it, context)
     }
     val cycleArrow = if (isRtl) "\u2190" else "\u2192"
-    
+
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
@@ -907,7 +1000,6 @@ private fun BillingAwareSummaryCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Month navigation and total
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -981,134 +1073,45 @@ private fun BillingAwareSummaryCard(
             }
 
             BillingCycleProgressBar(
-                startDate = activeSummary?.billingCycleStart,
-                endDate = activeSummary?.billingCycleEnd,
+                startDate = summary.billingCycleStart,
+                endDate = summary.billingCycleEnd,
                 modifier = Modifier.fillMaxWidth()
             )
-            
-            // Payment method summaries
-            if (paymentMethodSummaries.isNotEmpty()) {
-                HorizontalDivider()
-                
-                LaunchedEffect(pagerState.currentPage) {
-                    val summary = paymentMethodSummaries.getOrNull(pagerState.currentPage)
-                    summary?.let { onPagerPageSelected(it) }
-                }
-                HorizontalPager(
-                    state = pagerState,
-                    pageSpacing = 12.dp,
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) { page ->
-                    val summary = paymentMethodSummaries[page]
-                    PaymentMethodPagePanel(
-                        summary = summary,
-                        isSelected = selectedPaymentMethod == summary,
-                        onClick = { onPaymentMethodClick(summary) },
-                        currencyCode = currencyCode
-                    )
-                }
-                
-                PagerIndicatorRow(
-                    pageCount = paymentMethodSummaries.size,
-                    currentPage = pagerState.currentPage
-                )
-            }
-        }
-    }
-}
 
-@Composable
-private fun PagerIndicatorRow(
-    pageCount: Int,
-    currentPage: Int,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        repeat(pageCount) { index ->
-            val isSelected = index == currentPage
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 4.dp, vertical = 6.dp)
-                    .size(if (isSelected) 8.dp else 6.dp)
-                    .background(
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        shape = CircleShape
-                    )
-            )
-        }
-    }
-}
+            HorizontalDivider()
 
-/**
- * Individual payment method page panel
- */
-@Composable
-private fun PaymentMethodPagePanel(
-    summary: PaymentMethodSummary,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    currencyCode: String,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) summary.accentColor.copy(alpha = 0.08f)
-            else MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Accent bar
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(44.dp)
-                    .background(summary.accentColor, RoundedCornerShape(2.dp))
-            )
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = summary.displayName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(44.dp)
+                        .background(summary.accentColor, RoundedCornerShape(2.dp))
                 )
-                
-                summary.billingCycleText?.let { cycleText ->
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = cycleText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = summary.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 }
+
+                Text(
+                    text = CurrencyFormatter.formatAmount(summary.totalAmount, currencyCode, context),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = when {
+                        isSelected -> summary.accentColor
+                        summary.paymentMethod == PaymentMethod.CREDIT_CARD -> MaterialTheme.colorScheme.onSurface
+                        else -> summary.accentColor
+                    }
+                )
             }
-            
-            Text(
-                text = CurrencyFormatter.formatAmount(summary.totalAmount, currencyCode, context),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = when {
-                    isSelected -> summary.accentColor
-                    summary.paymentMethod == PaymentMethod.CREDIT_CARD -> MaterialTheme.colorScheme.onSurface
-                    else -> summary.accentColor
-                }
-            )
         }
     }
 }

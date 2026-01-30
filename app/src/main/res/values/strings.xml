@@ -323,6 +323,13 @@
     <string name="developer_options_disabled">Developer options disabled</string>
     <string name="tap_to_enable_developer_options">Tap 12 times to enable developer options</string>
     <string name="tap_to_disable_developer_options">Tap 6 times to disable developer options</string>
+
+    <!-- Advanced -->
+    <string name="advanced">Advanced</string>
+    <string name="merchant_icons">Merchant icons</string>
+    <string name="merchant_icons_description">Download merchant logos when available</string>
+    <string name="merchant_icons_wifi_only">Wi-Fi only</string>
+    <string name="merchant_icons_wifi_only_description">Only download icons on Wi‑Fi</string>
     
     <!-- First Run Setup -->
     <string name="language_region_title">Language &amp; Region</string>

@@ -66,6 +66,10 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+
+    sourceSets {
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
+    }
 }
 
 // Configure Room schema export location
@@ -117,6 +121,9 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.48")
     ksp("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+
+    // Images
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

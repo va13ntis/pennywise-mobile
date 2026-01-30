@@ -48,7 +48,6 @@ import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.presentation.theme.income_green
 import com.pennywise.app.presentation.util.CategoryMapper
 import com.pennywise.app.presentation.util.CurrencyFormatter
-import com.pennywise.app.presentation.util.PaymentMethodMapper
 
 /**
  * Specialized section for recurring expenses that appears at the top of the home screen
@@ -58,8 +57,6 @@ import com.pennywise.app.presentation.util.PaymentMethodMapper
 fun RecurringExpensesSection(
     transactions: List<Transaction>,
     splitPaymentInstallments: List<SplitPaymentInstallment> = emptyList(),
-    paymentMethodAliases: Map<Long, String?>,
-    paymentMethodInitialsByTransactionId: Map<Long, String?>,
     currencyCode: String,
     convertedTransactionAmounts: Map<Long, Double>,
     convertedInstallmentAmounts: Map<Long, Double>,
@@ -152,7 +149,6 @@ fun RecurringExpensesSection(
                     transactions.sortedByDescending { it.date }.forEach { transaction ->
                         RecurringTransactionItem(
                             transaction = transaction,
-                            paymentMethodAliases = paymentMethodAliases,
                             currencyCode = currencyCode,
                             convertedAmount = convertedTransactionAmounts[transaction.id]
                         )
@@ -166,7 +162,6 @@ fun RecurringExpensesSection(
                     splitPaymentInstallments.sortedBy { it.dueDate }.forEach { installment ->
                         SplitPaymentInstallmentItem(
                             installment = installment,
-                            paymentMethodInitialsByTransactionId = paymentMethodInitialsByTransactionId,
                             currencyCode = currencyCode,
                             convertedAmount = convertedInstallmentAmounts[installment.id]
                         )
@@ -189,7 +184,6 @@ fun RecurringExpensesSection(
 @Composable
 private fun RecurringTransactionItem(
     transaction: Transaction,
-    paymentMethodAliases: Map<Long, String?>,
     currencyCode: String,
     convertedAmount: Double?,
     modifier: Modifier = Modifier
@@ -217,27 +211,21 @@ private fun RecurringTransactionItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Category icon background with recurring indicator
+            // Merchant initial badge
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                val paymentMethodLabel = if (transaction.paymentMethod == com.pennywise.app.domain.model.PaymentMethod.CREDIT_CARD) {
-                    transaction.paymentMethodConfigId?.let { configId ->
-                        paymentMethodAliases[configId]
-                    } ?: PaymentMethodMapper.getLocalizedPaymentMethod(transaction.paymentMethod)
-                } else {
-                    PaymentMethodMapper.getLocalizedPaymentMethod(transaction.paymentMethod)
-                }
-                val paymentMethodInitial = paymentMethodLabel
+                val merchantInitial = transaction.description
                     .trim()
                     .take(1)
+                    .ifBlank { "?" }
                     .uppercase()
                 Text(
-                    text = paymentMethodInitial,
+                    text = merchantInitial,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -276,7 +264,6 @@ private fun RecurringTransactionItem(
 @Composable
 private fun SplitPaymentInstallmentItem(
     installment: SplitPaymentInstallment,
-    paymentMethodInitialsByTransactionId: Map<Long, String?>,
     currencyCode: String,
     convertedAmount: Double?,
     modifier: Modifier = Modifier
@@ -306,18 +293,21 @@ private fun SplitPaymentInstallmentItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Split payment icon background
+            // Merchant initial badge
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                val paymentMethodInitial = paymentMethodInitialsByTransactionId[installment.parentTransactionId]
-                    ?: "C"
+                val merchantInitial = installment.description
+                    .trim()
+                    .take(1)
+                    .ifBlank { "?" }
+                    .uppercase()
                 Text(
-                    text = paymentMethodInitial,
+                    text = merchantInitial,
                     style = MaterialTheme.typography.bodySmall
                 )
             }

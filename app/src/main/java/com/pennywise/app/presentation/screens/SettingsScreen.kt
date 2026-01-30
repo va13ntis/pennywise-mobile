@@ -218,6 +218,8 @@ fun SettingsScreen(
     val language by viewModel.language.collectAsState(initial = "")
     val defaultCurrencyState by viewModel.defaultCurrencyState.collectAsState(initial = SettingsViewModel.DefaultCurrencyState.Loading)
     val currencyUpdateState by viewModel.currencyUpdateState.collectAsState(initial = SettingsViewModel.CurrencyUpdateState.Idle)
+    val merchantIconsEnabled by viewModel.merchantIconsEnabled.collectAsState(initial = false)
+    val merchantIconsWifiOnly by viewModel.merchantIconsWifiOnly.collectAsState(initial = true)
     
     // Payment method states
     val paymentMethodConfigs by viewModel.paymentMethodConfigs.collectAsState(initial = emptyList())
@@ -238,6 +240,7 @@ fun SettingsScreen(
     var isPaymentMethodsExpanded by remember { mutableStateOf(false) }
     var isCreditCardsExpanded by remember { mutableStateOf(false) }
     var isAccountExpanded by remember { mutableStateOf(false) }
+    var isAdvancedExpanded by remember { mutableStateOf(false) }
     var isDeveloperOptionsExpanded by remember { mutableStateOf(false) }
     
     // Developer options state
@@ -886,6 +889,68 @@ fun SettingsScreen(
                                 )
                             }
                             else -> { /* Idle state, do nothing */ }
+                        }
+                    }
+                }
+            }
+
+            // Advanced section
+            item {
+                CollapsibleSection(
+                    title = stringResource(R.string.advanced),
+                    isExpanded = isAdvancedExpanded,
+                    onToggle = { isAdvancedExpanded = !isAdvancedExpanded }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.merchant_icons),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = stringResource(R.string.merchant_icons_description),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = merchantIconsEnabled,
+                                onCheckedChange = { viewModel.setMerchantIconsEnabled(it) }
+                            )
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.merchant_icons_wifi_only),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = stringResource(R.string.merchant_icons_wifi_only_description),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = merchantIconsWifiOnly,
+                                onCheckedChange = { viewModel.setMerchantIconsWifiOnly(it) },
+                                enabled = merchantIconsEnabled
+                            )
                         }
                     }
                 }

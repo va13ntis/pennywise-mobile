@@ -11,9 +11,11 @@ import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.model.BillingCycle
 import com.pennywise.app.domain.model.getBillingCycles
 import com.pennywise.app.data.service.CurrencyConversionService
-import com.pennywise.app.data.util.SettingsDataStore
+import com.pennywise.app.data.util.MerchantIconRepository
+import com.pennywise.app.data.util.NetworkUtils
 import com.pennywise.app.presentation.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +37,7 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.Date
 import javax.inject.Inject
+import java.io.File
 
 /**
  * Combined UI state for the Home screen
@@ -62,9 +65,10 @@ class HomeViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val splitPaymentInstallmentRepository: SplitPaymentInstallmentRepository,
     private val paymentMethodConfigRepository: PaymentMethodConfigRepository,
-    private val settingsDataStore: SettingsDataStore,
     private val authManager: AuthManager,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val merchantIconRepository: MerchantIconRepository,
+    private val networkUtils: NetworkUtils
 ) : ViewModel() {
     
     // Remove _userId - we'll use authManager.currentUser directly
@@ -90,6 +94,8 @@ class HomeViewModel @Inject constructor(
     private val _convertedInstallmentAmounts = MutableStateFlow<Map<Long, Double>>(emptyMap())
     val convertedInstallmentAmounts: StateFlow<Map<Long, Double>> = _convertedInstallmentAmounts.asStateFlow()
 
+    private val _merchantIconFiles = MutableStateFlow<Map<String, File>>(emptyMap())
+    val merchantIconFiles: StateFlow<Map<String, File>> = _merchantIconFiles.asStateFlow()
     // Computed recurring transactions filtered by current month
     val recurringTransactions: StateFlow<List<Transaction>> = combine(
         _allRecurringTransactions.asStateFlow(),
@@ -373,6 +379,8 @@ class HomeViewModel @Inject constructor(
         observeBillingCycleChanges()
         // Keep converted amounts in sync with data and currency
         observeCurrencyConversions()
+        // Load any cached merchant icons
+        _merchantIconFiles.value = merchantIconRepository.loadCachedIcons()
     }
     
     private fun observeCurrencyConversions() {
@@ -792,6 +800,30 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             transactionRepository.deleteTransaction(transaction)
             refreshData()
+        }
+    }
+
+    fun refreshMerchantIcons(
+        merchantNames: List<String>,
+        wifiOnly: Boolean
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (wifiOnly && !networkUtils.isWifiConnected()) {
+                return@launch
+            }
+
+            val updated = _merchantIconFiles.value.toMutableMap()
+            merchantNames.distinct().forEach { merchantName ->
+                if (merchantName.isBlank()) return@forEach
+                val cached = merchantIconRepository.getCachedIconFile(merchantName)
+                if (cached != null) {
+                    updated[cached.nameWithoutExtension] = cached
+                    return@forEach
+                }
+                val file = merchantIconRepository.fetchAndCacheIcon(merchantName) ?: return@forEach
+                updated[file.nameWithoutExtension] = file
+                _merchantIconFiles.value = updated.toMap()
+            }
         }
     }
     

@@ -26,6 +26,8 @@ class SettingsDataStore @Inject constructor(
     private val themeKey = stringPreferencesKey("theme_mode")
     private val languageKey = stringPreferencesKey("language")
     private val currencyKey = stringPreferencesKey("currency")
+    private val merchantIconsEnabledKey = booleanPreferencesKey("merchant_icons_enabled")
+    private val merchantIconsWifiOnlyKey = booleanPreferencesKey("merchant_icons_wifi_only")
     
     /**
      * Flow of the current theme mode from DataStore
@@ -77,6 +79,22 @@ class SettingsDataStore @Inject constructor(
         .map { preferences ->
             preferences[currencyKey] ?: ""
         }
+
+    /**
+     * Flow of merchant icon setting
+     */
+    val merchantIconsEnabled: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[merchantIconsEnabledKey] ?: false
+        }
+
+    /**
+     * Flow of merchant icon wifi-only setting
+     */
+    val merchantIconsWifiOnly: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[merchantIconsWifiOnlyKey] ?: true
+        }
     
     /**
      * Get the current currency
@@ -84,6 +102,19 @@ class SettingsDataStore @Inject constructor(
     suspend fun getCurrency(): String {
         val preferences = dataStore.data.first()
         return preferences[currencyKey] ?: ""
+    }
+
+    /**
+     * Get merchant icon settings
+     */
+    suspend fun getMerchantIconsEnabled(): Boolean {
+        val preferences = dataStore.data.first()
+        return preferences[merchantIconsEnabledKey] ?: false
+    }
+
+    suspend fun getMerchantIconsWifiOnly(): Boolean {
+        val preferences = dataStore.data.first()
+        return preferences[merchantIconsWifiOnlyKey] ?: true
     }
     
     /**
@@ -119,6 +150,21 @@ class SettingsDataStore @Inject constructor(
     suspend fun setCurrency(currencyCode: String) {
         dataStore.edit { preferences ->
             preferences[currencyKey] = currencyCode
+        }
+    }
+
+    /**
+     * Set merchant icon settings
+     */
+    suspend fun setMerchantIconsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[merchantIconsEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setMerchantIconsWifiOnly(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[merchantIconsWifiOnlyKey] = enabled
         }
     }
     
