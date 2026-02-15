@@ -3,6 +3,7 @@ package com.pennywise.app.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywise.app.data.util.DataSeeder
+import com.pennywise.app.presentation.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class TestDataViewModel @Inject constructor(
-    private val dataSeeder: DataSeeder
+    private val dataSeeder: DataSeeder,
+    private val authManager: AuthManager
 ) : ViewModel() {
     
     private val _isSeeding = MutableStateFlow(false)
@@ -56,6 +58,7 @@ class TestDataViewModel @Inject constructor(
             
             try {
                 dataSeeder.clearTestData()
+                authManager.logout()
                 _message.value = "✅ All test data cleared successfully!"
             } catch (e: Exception) {
                 _message.value = "❌ Failed to clear test data: ${e.message}"

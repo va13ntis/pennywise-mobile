@@ -52,6 +52,8 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun paymentMethodConfigDao(): PaymentMethodConfigDao
     
     companion object {
+        const val DATABASE_NAME = "pennywise_database"
+
         @Volatile
         private var INSTANCE: PennyWiseDatabase? = null
         
@@ -60,7 +62,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     PennyWiseDatabase::class.java,
-                    "pennywise_database"
+                    DATABASE_NAME
                 )
                 .addMigrations(*DatabaseMigrations.getAllMigrations()) // Use proper migrations to preserve user data
                 .addCallback(object : RoomDatabase.Callback() {
@@ -78,6 +80,11 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 INSTANCE = instance
                 instance
             }
+        }
+
+        fun closeDatabase() {
+            INSTANCE?.close()
+            INSTANCE = null
         }
     }
 }

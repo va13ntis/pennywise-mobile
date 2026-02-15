@@ -349,6 +349,19 @@
     <string name="developer_options_disabled">Параметры разработчика отключены</string>
     <string name="tap_to_enable_developer_options">Нажмите 12 раз, чтобы включить параметры разработчика</string>
     <string name="tap_to_disable_developer_options">Нажмите 6 раз, чтобы отключить параметры разработчика</string>
+    <string name="database_backup_restore">Резервное копирование базы данных</string>
+    <string name="backup_database">Создать резервную копию базы данных</string>
+    <string name="restore_database">Восстановить базу данных</string>
+    <string name="backing_up_database">Создание резервной копии…</string>
+    <string name="restoring_database">Восстановление базы данных…</string>
+    <string name="backup_success">Резервная копия создана</string>
+    <string name="restore_success">База данных восстановлена. Приложение перезапустится.</string>
+    <string name="backup_failed_with_reason">Не удалось создать резервную копию: %1$s</string>
+    <string name="restore_failed_with_reason">Не удалось восстановить базу данных: %1$s</string>
+    <string name="restore_database_title">Восстановить базу данных?</string>
+    <string name="restore_database_message">Это перезапишет текущие данные. Вы уверены, что хотите продолжить?</string>
+    <string name="restore">Восстановить</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
     
     <!-- Copyright -->
     <string name="copyright">© Quantum Doodles, 2025</string>

@@ -323,6 +323,19 @@
     <string name="developer_options_disabled">Developer options disabled</string>
     <string name="tap_to_enable_developer_options">Tap 12 times to enable developer options</string>
     <string name="tap_to_disable_developer_options">Tap 6 times to disable developer options</string>
+    <string name="database_backup_restore">Database Backup &amp; Restore</string>
+    <string name="backup_database">Backup Database</string>
+    <string name="restore_database">Restore Database</string>
+    <string name="backing_up_database">Backing up database…</string>
+    <string name="restoring_database">Restoring database…</string>
+    <string name="backup_success">Backup created successfully</string>
+    <string name="restore_success">Database restored successfully. The app will restart.</string>
+    <string name="backup_failed_with_reason">Failed to create backup: %1$s</string>
+    <string name="restore_failed_with_reason">Failed to restore database: %1$s</string>
+    <string name="restore_database_title">Restore database?</string>
+    <string name="restore_database_message">This will overwrite current data. Are you sure you want to continue?</string>
+    <string name="restore">Restore</string>
+    <string name="unknown_error">Unknown error</string>
 
     <!-- Advanced -->
     <string name="advanced">Advanced</string>

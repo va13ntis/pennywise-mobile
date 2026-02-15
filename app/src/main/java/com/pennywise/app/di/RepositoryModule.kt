@@ -163,9 +163,10 @@ object RepositoryModule {
     @Singleton
     fun provideDataSeeder(
         userDao: UserDao,
-        transactionDao: TransactionDao
+        transactionDao: TransactionDao,
+        database: PennyWiseDatabase
     ): DataSeeder {
-        return DataSeeder(userDao, transactionDao)
+        return DataSeeder(userDao, transactionDao, database)
     }
     
     /**

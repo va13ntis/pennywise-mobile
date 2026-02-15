@@ -1,8 +1,11 @@
 package com.pennywise.app.presentation.viewmodel
 
+import android.net.Uri
+import android.os.Process
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywise.app.data.util.SettingsDataStore
+import com.pennywise.app.data.util.DatabaseBackupManager
 import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.User
 import com.pennywise.app.domain.model.PaymentMethod
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 /**
@@ -32,7 +36,8 @@ class SettingsViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val deviceAuthService: DeviceAuthService,
     private val currencySortingService: CurrencySortingService,
-    private val paymentMethodConfigRepository: PaymentMethodConfigRepository
+    private val paymentMethodConfigRepository: PaymentMethodConfigRepository,
+    private val databaseBackupManager: DatabaseBackupManager
 ) : ViewModel() {
 
     // Theme mode state
@@ -85,6 +90,9 @@ class SettingsViewModel @Inject constructor(
     // Developer options state
     private val _developerOptionsEnabled = MutableStateFlow(false)
     val developerOptionsEnabled: StateFlow<Boolean> = _developerOptionsEnabled
+
+    private val _backupRestoreState = MutableStateFlow<BackupRestoreState>(BackupRestoreState.Idle)
+    val backupRestoreState: StateFlow<BackupRestoreState> = _backupRestoreState
     
     // Authentication method state
     private val _currentAuthMethod = MutableStateFlow<AuthMethod?>(null)
@@ -176,6 +184,10 @@ class SettingsViewModel @Inject constructor(
 
         viewModelScope.launch {
             _merchantIconsWifiOnly.value = settingsDataStore.getMerchantIconsWifiOnly()
+        }
+
+        viewModelScope.launch {
+            _developerOptionsEnabled.value = settingsDataStore.getDeveloperOptionsEnabled()
         }
 
     }
@@ -545,11 +557,46 @@ class SettingsViewModel @Inject constructor(
     // Developer Options Management
     
     fun toggleDeveloperOptions() {
-        _developerOptionsEnabled.value = !_developerOptionsEnabled.value
+        setDeveloperOptionsEnabled(!_developerOptionsEnabled.value)
     }
     
     fun setDeveloperOptionsEnabled(enabled: Boolean) {
-        _developerOptionsEnabled.value = enabled
+        viewModelScope.launch {
+            settingsDataStore.setDeveloperOptionsEnabled(enabled)
+            _developerOptionsEnabled.value = enabled
+        }
+    }
+
+    fun backupDatabase(uri: Uri) {
+        viewModelScope.launch {
+            _backupRestoreState.value = BackupRestoreState.BackupInProgress
+            val result = databaseBackupManager.backupToUri(uri)
+            _backupRestoreState.value = result.fold(
+                onSuccess = { BackupRestoreState.Success(BackupRestoreOperation.BACKUP) },
+                onFailure = { BackupRestoreState.Error(BackupRestoreOperation.BACKUP, it.message) }
+            )
+            delay(2000)
+            _backupRestoreState.value = BackupRestoreState.Idle
+        }
+    }
+
+    fun restoreDatabase(uri: Uri) {
+        viewModelScope.launch {
+            _backupRestoreState.value = BackupRestoreState.RestoreInProgress
+            val result = databaseBackupManager.restoreFromUri(uri)
+            _backupRestoreState.value = result.fold(
+                onSuccess = { BackupRestoreState.Success(BackupRestoreOperation.RESTORE) },
+                onFailure = { BackupRestoreState.Error(BackupRestoreOperation.RESTORE, it.message) }
+            )
+            delay(2000)
+            _backupRestoreState.value = BackupRestoreState.Idle
+            // Restart app after successful restore to clear Hilt/DAO caches and ensure
+            // all screens show the restored data instead of stale references
+            result.onSuccess {
+                delay(500)
+                Process.killProcess(Process.myPid())
+            }
+        }
     }
 
     enum class ThemeMode {
@@ -593,5 +640,18 @@ class SettingsViewModel @Inject constructor(
         object Loading : AuthMethodUpdateState()
         object Success : AuthMethodUpdateState()
         data class Error(val message: String) : AuthMethodUpdateState()
+    }
+
+    enum class BackupRestoreOperation {
+        BACKUP,
+        RESTORE
+    }
+
+    sealed class BackupRestoreState {
+        object Idle : BackupRestoreState()
+        object BackupInProgress : BackupRestoreState()
+        object RestoreInProgress : BackupRestoreState()
+        data class Success(val operation: BackupRestoreOperation) : BackupRestoreState()
+        data class Error(val operation: BackupRestoreOperation, val message: String?) : BackupRestoreState()
     }
 }

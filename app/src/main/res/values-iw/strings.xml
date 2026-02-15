@@ -349,6 +349,19 @@
     <string name="developer_options_disabled">אפשרויות מפתח הושבתו</string>
     <string name="tap_to_enable_developer_options">הקש 12 פעמים כדי להפעיל אפשרויות מפתח</string>
     <string name="tap_to_disable_developer_options">הקש 6 פעמים כדי לכבות אפשרויות מפתח</string>
+    <string name="database_backup_restore">גיבוי ושחזור מסד נתונים</string>
+    <string name="backup_database">גבה מסד נתונים</string>
+    <string name="restore_database">שחזר מסד נתונים</string>
+    <string name="backing_up_database">מגבה מסד נתונים…</string>
+    <string name="restoring_database">משחזר מסד נתונים…</string>
+    <string name="backup_success">הגיבוי נוצר בהצלחה</string>
+    <string name="restore_success">מסד הנתונים שוחזר. האפליקציה תפעל מחדש.</string>
+    <string name="backup_failed_with_reason">נכשל ליצור גיבוי: %1$s</string>
+    <string name="restore_failed_with_reason">נכשל לשחזר את מסד הנתונים: %1$s</string>
+    <string name="restore_database_title">לשחזר את מסד הנתונים?</string>
+    <string name="restore_database_message">פעולה זו תדרוס את הנתונים הקיימים. להמשיך?</string>
+    <string name="restore">שחזר</string>
+    <string name="unknown_error">שגיאה לא ידועה</string>
     
     <!-- Copyright -->
     <string name="copyright">© Quantum Doodles, 2025</string>

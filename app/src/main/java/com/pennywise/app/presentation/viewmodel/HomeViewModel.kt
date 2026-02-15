@@ -87,6 +87,8 @@ class HomeViewModel @Inject constructor(
     
     private val _allRecurringTransactions = MutableStateFlow<List<Transaction>>(emptyList())
     private val _splitPaymentInstallments = MutableStateFlow<List<SplitPaymentInstallment>>(emptyList())
+    private val _installmentParentTransactions = MutableStateFlow<Map<Long, Transaction>>(emptyMap())
+    val installmentParentTransactions: StateFlow<Map<Long, Transaction>> = _installmentParentTransactions.asStateFlow()
     
     private val _convertedTransactionAmounts = MutableStateFlow<Map<Long, Double>>(emptyMap())
     val convertedTransactionAmounts: StateFlow<Map<Long, Double>> = _convertedTransactionAmounts.asStateFlow()
@@ -497,9 +499,6 @@ class HomeViewModel @Inject constructor(
                 }
             }
             
-            if (shouldAppear) {
-            }
-            
             shouldAppear
         }
         
@@ -507,33 +506,29 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Filter split payment installments for the current month
-     * Also converts delayed transactions into pending installments
+     * Filter split payment installments for the current month.
+     * Includes previous month so credit card billing cycles (e.g. Feb 10 - Mar 9) see installments
+     * due in the cycle's early part (Feb 10-28) that would otherwise be excluded.
+     * Also converts delayed transactions into pending installments.
      */
     private fun filterSplitPaymentInstallmentsForMonth(
         allInstallments: List<SplitPaymentInstallment>,
         currentMonth: YearMonth
     ): List<SplitPaymentInstallment> {
-        val startOfMonth = currentMonth.atDay(1).atStartOfDay()
-        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
-        
+        // Include previous month: credit card cycles span (prevMonth.withdrawDay)..(currMonth.withdrawDay-1)
+        val startOfRange = currentMonth.minusMonths(1).atDay(1).atStartOfDay()
+        val endOfRange = currentMonth.atEndOfMonth().atTime(23, 59, 59)
         
         // Filter existing split payment installments
         val filteredInstallments = allInstallments.filter { installment ->
             val dueDate = installment.dueDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
             
-            // Only include if the installment due date falls within the current month
-            val isInCurrentMonth = !dueDate.isBefore(startOfMonth) && !dueDate.isAfter(endOfMonth)
+            val isInRange = !dueDate.isBefore(startOfRange) && !dueDate.isAfter(endOfRange)
             
             // Exclude the first installment (installmentNumber == 1) since it's already shown in the week section
             val isNotFirstInstallment = installment.installmentNumber > 1
             
-            val shouldInclude = isInCurrentMonth && isNotFirstInstallment
-            
-            if (shouldInclude) {
-            }
-            
-            shouldInclude
+            isInRange && isNotFirstInstallment
         }
         
         // Convert delayed transactions into "pending installments" and include them
@@ -560,14 +555,9 @@ class HomeViewModel @Inject constructor(
                 updatedAt = transaction.updatedAt
             )
         }.filter { installment ->
-            // Only include if billing date is in current month
+            // Only include if billing date is in range (prev month + current month for cycle support)
             val dueDate = installment.dueDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
-            val isInCurrentMonth = !dueDate.isBefore(startOfMonth) && !dueDate.isAfter(endOfMonth)
-            
-            if (isInCurrentMonth) {
-            }
-            
-            isInCurrentMonth
+            !dueDate.isBefore(startOfRange) && !dueDate.isAfter(endOfRange)
         }
         
         val allFiltered = filteredInstallments + pendingInstallments
@@ -739,6 +729,28 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+        
+        // Load parent transactions for installments whose parent is not in our 4-month window
+        viewModelScope.launch {
+            combine(
+                splitPaymentInstallments,
+                _transactions.asStateFlow(),
+                _allRecurringTransactions.asStateFlow()
+            ) { installments, transactions, recurring ->
+                val existingIds = (transactions + recurring).map { it.id }.toSet()
+                val parentIdsToLoad = installments.map { it.parentTransactionId }.distinct().filter { it !in existingIds }
+                parentIdsToLoad
+            }.collect { parentIdsToLoad ->
+                if (parentIdsToLoad.isEmpty()) {
+                    _installmentParentTransactions.value = emptyMap()
+                } else {
+                    val loaded = parentIdsToLoad.mapNotNull { id ->
+                        transactionRepository.getTransactionById(id)?.let { id to it }
+                    }.toMap()
+                    _installmentParentTransactions.value = loaded
+                }
+            }
+        }
     }
     
     /**
@@ -829,37 +841,61 @@ class HomeViewModel @Inject constructor(
     
     
     /**
-     * Load billing cycles from all credit cards
+     * Ensures currentMonth is set so the displayed billing cycle contains today's date.
+     * For credit cards: cycle is (previousMonth.withdrawDay) .. (currentMonth.withdrawDay - 1).
+     * If today falls after the cycle end, advance to next month; if before cycle start, go to previous month.
+     */
+    private fun ensureCurrentMonthShowsActiveBillingCycle(configs: List<com.pennywise.app.domain.model.PaymentMethodConfig>) {
+        val card = configs.firstOrNull { it.isCreditCard() } ?: return
+        val withdrawDay = card.withdrawDay!!
+        val today = LocalDate.now()
+        val currentMonth = _currentMonth.value
+        val previousMonth = currentMonth.minusMonths(1)
+        val validDayPrev = minOf(withdrawDay, previousMonth.lengthOfMonth())
+        val validDayCur = minOf(withdrawDay, currentMonth.lengthOfMonth())
+        val cycleStart = previousMonth.atDay(validDayPrev)
+        val cycleEnd = currentMonth.atDay(validDayCur).minusDays(1)
+        val todayAfter = today.isAfter(cycleEnd)
+        val todayBefore = today.isBefore(cycleStart)
+        when {
+            todayAfter -> _currentMonth.value = currentMonth.plusMonths(1)
+            todayBefore -> _currentMonth.value = currentMonth.minusMonths(1)
+        }
+    }
+
+    /**
+     * Load billing cycles from all credit cards.
+     * Observes authManager.currentUser so it runs when user becomes available (fixes race where
+     * init runs before auth completes and ensureCurrentMonthShowsActiveBillingCycle was never called).
      */
     private fun loadBillingCycles() {
         viewModelScope.launch {
             try {
-                val user = authManager.currentUser.value
-                if (user == null) {
-                    return@launch
+                authManager.currentUser.collect { user ->
+                    if (user == null) return@collect
+                    try {
+                        _isLoading.value = true
+                        val configs = paymentMethodConfigRepository.getPaymentMethodConfigs().first()
+                        ensureCurrentMonthShowsActiveBillingCycle(configs)
+                        val allCycles = configs.flatMap { it.getBillingCycles(3) }
+                        val sortedCycles = allCycles.sortedByDescending { it.endDate }
+                        _availableBillingCycles.value = sortedCycles
+                        if (_selectedBillingCycle.value == null && sortedCycles.isNotEmpty()) {
+                            _selectedBillingCycle.value = sortedCycles.first()
+                        }
+                        _error.value = null
+                    } catch (e: SecurityException) {
+                        _error.value = "Authentication required"
+                        _needsAuthentication.value = true
+                    } catch (e: Exception) {
+                        if (e !is CancellationException) {
+                            e.printStackTrace()
+                            _error.value = "Failed to load billing cycles: ${e.message}"
+                        }
+                    } finally {
+                        _isLoading.value = false
+                    }
                 }
-                
-                _isLoading.value = true
-                
-                // Get all payment method configs
-                val configs = paymentMethodConfigRepository.getPaymentMethodConfigs().first()
-                
-                // Generate billing cycles for all credit cards
-                val allCycles = configs.flatMap { config ->
-                    config.getBillingCycles(3) // Get last 3 billing cycles per card
-                }
-                
-                // Sort cycles by end date (most recent first)
-                val sortedCycles = allCycles.sortedByDescending { it.endDate }
-                
-                _availableBillingCycles.value = sortedCycles
-                
-                // Set default selection to most recent cycle if none selected
-                if (_selectedBillingCycle.value == null && sortedCycles.isNotEmpty()) {
-                    _selectedBillingCycle.value = sortedCycles.first()
-                }
-                
-                _error.value = null
             } catch (e: SecurityException) {
                 _error.value = "Authentication required"
                 _needsAuthentication.value = true
@@ -868,8 +904,6 @@ class HomeViewModel @Inject constructor(
                     e.printStackTrace()
                     _error.value = "Failed to load billing cycles: ${e.message}"
                 }
-            } finally {
-                _isLoading.value = false
             }
         }
     }
@@ -895,28 +929,15 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Load transactions for the selected billing cycle
+     * Load transactions for the selected billing cycle.
+     * Does NOT overwrite _transactions - startObservingTransactions keeps 4 months of data
+     * which covers any billing cycle. Totals are computed in HomeScreen by filtering raw
+     * transactions by billing cycle in computePaymentMethodSummaries.
      */
     private suspend fun loadTransactionsForBillingCycle(billingCycle: BillingCycle) {
         try {
-            _isLoading.value = true
-            
-            // Convert LocalDate to Date for repository
-            val startDate = Date.from(
-                billingCycle.startDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
-            )
-            val endDate = Date.from(
-                billingCycle.endDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant()
-            )
-            
-            // Get transactions for the billing cycle date range
-            val transactions = transactionRepository.getTransactionsByDateRange(startDate, endDate).first()
-            
-            
-            // Update transactions - note: this will be filtered by existing month logic
-            // For now, we'll store them but the existing month-based filtering will still apply
-            // In a future update, we can add billing cycle-specific filtering
-            _transactions.value = transactions
+            // Do NOT overwrite _transactions - keep 4 months from startObservingTransactions
+            // so totals and recurring can be computed correctly by filtering in the UI
             _error.value = null
             _needsAuthentication.value = false
         } catch (e: SecurityException) {
@@ -928,8 +949,6 @@ class HomeViewModel @Inject constructor(
                 _error.value = "Failed to load transactions: ${e.message}"
                 _needsAuthentication.value = false
             }
-        } finally {
-            _isLoading.value = false
         }
     }
     

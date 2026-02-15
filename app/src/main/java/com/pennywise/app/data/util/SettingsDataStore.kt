@@ -28,6 +28,7 @@ class SettingsDataStore @Inject constructor(
     private val currencyKey = stringPreferencesKey("currency")
     private val merchantIconsEnabledKey = booleanPreferencesKey("merchant_icons_enabled")
     private val merchantIconsWifiOnlyKey = booleanPreferencesKey("merchant_icons_wifi_only")
+    private val developerOptionsEnabledKey = booleanPreferencesKey("developer_options_enabled")
     
     /**
      * Flow of the current theme mode from DataStore
@@ -116,6 +117,11 @@ class SettingsDataStore @Inject constructor(
         val preferences = dataStore.data.first()
         return preferences[merchantIconsWifiOnlyKey] ?: true
     }
+
+    suspend fun getDeveloperOptionsEnabled(): Boolean {
+        val preferences = dataStore.data.first()
+        return preferences[developerOptionsEnabledKey] ?: false
+    }
     
     /**
      * Set the theme mode and save it to DataStore
@@ -165,6 +171,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun setMerchantIconsWifiOnly(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[merchantIconsWifiOnlyKey] = enabled
+        }
+    }
+
+    suspend fun setDeveloperOptionsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[developerOptionsEnabledKey] = enabled
         }
     }
     

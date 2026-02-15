@@ -1,5 +1,6 @@
 package com.pennywise.app.data.util
 
+import com.pennywise.app.data.local.PennyWiseDatabase
 import com.pennywise.app.data.local.dao.TransactionDao
 import com.pennywise.app.data.local.dao.UserDao
 import com.pennywise.app.data.local.entity.TransactionEntity
@@ -20,7 +21,8 @@ import javax.inject.Singleton
 @Singleton
 class DataSeeder @Inject constructor(
     private val userDao: UserDao,
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val database: PennyWiseDatabase
 ) {
     
     /**
@@ -1202,8 +1204,7 @@ class DataSeeder @Inject constructor(
      */
     suspend fun clearTestData() = withContext(Dispatchers.IO) {
         try {
-            transactionDao.deleteAllTransactions()
-            userDao.deleteAllUsers()
+            database.clearAllTables()
             println("✅ Test data cleared successfully!")
         } catch (e: Exception) {
             println("❌ Failed to clear test data: ${e.message}")

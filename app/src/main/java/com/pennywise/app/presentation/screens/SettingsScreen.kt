@@ -32,6 +32,8 @@ import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.PaymentMethodConfig
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import javax.inject.Inject
 
 /**
@@ -250,10 +252,60 @@ fun SettingsScreen(
     val testDataMessage by testDataViewModel.message.collectAsState(initial = "")
     val isSeeding by testDataViewModel.isSeeding.collectAsState(initial = false)
     val isClearing by testDataViewModel.isClearing.collectAsState(initial = false)
+
+    // Backup/restore state
+    val backupRestoreState by viewModel.backupRestoreState.collectAsState(
+        initial = SettingsViewModel.BackupRestoreState.Idle
+    )
+    val isBackupInProgress = backupRestoreState is SettingsViewModel.BackupRestoreState.BackupInProgress
+    val isRestoreInProgress = backupRestoreState is SettingsViewModel.BackupRestoreState.RestoreInProgress
+    val backupRestoreMessage = when (backupRestoreState) {
+        is SettingsViewModel.BackupRestoreState.Success -> {
+            when ((backupRestoreState as SettingsViewModel.BackupRestoreState.Success).operation) {
+                SettingsViewModel.BackupRestoreOperation.BACKUP -> stringResource(R.string.backup_success)
+                SettingsViewModel.BackupRestoreOperation.RESTORE -> stringResource(R.string.restore_success)
+            }
+        }
+        is SettingsViewModel.BackupRestoreState.Error -> {
+            val error = (backupRestoreState as SettingsViewModel.BackupRestoreState.Error).message
+            val errorDetail = error?.takeIf { it.isNotBlank() } ?: stringResource(R.string.unknown_error)
+            when ((backupRestoreState as SettingsViewModel.BackupRestoreState.Error).operation) {
+                SettingsViewModel.BackupRestoreOperation.BACKUP -> stringResource(
+                    R.string.backup_failed_with_reason,
+                    errorDetail
+                )
+                SettingsViewModel.BackupRestoreOperation.RESTORE -> stringResource(
+                    R.string.restore_failed_with_reason,
+                    errorDetail
+                )
+            }
+        }
+        else -> null
+    }
     
     // Tap counter for app version
     var tapCount by remember { mutableStateOf(0) }
     var lastTapTime by remember { mutableStateOf(0L) }
+
+    var showRestoreConfirm by remember { mutableStateOf(false) }
+    var pendingRestoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    val backupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.backupDatabase(uri)
+        }
+    }
+
+    val restoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            pendingRestoreUri = uri
+            showRestoreConfirm = true
+        }
+    }
     
     // Dialog states for payment methods
     var showAddPaymentMethodDialog by remember { mutableStateOf(false) }
@@ -1030,6 +1082,84 @@ fun SettingsScreen(
                                     )
                                 }
                             }
+
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
+                            Text(
+                                text = stringResource(R.string.database_backup_restore),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+
+                            Button(
+                                onClick = { backupLauncher.launch("pennywise_backup.db") },
+                                enabled = !isBackupInProgress && !isRestoreInProgress,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            ) {
+                                if (isBackupInProgress) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (isBackupInProgress) {
+                                        stringResource(R.string.backing_up_database)
+                                    } else {
+                                        stringResource(R.string.backup_database)
+                                    }
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    restoreLauncher.launch(
+                                        arrayOf(
+                                            "application/octet-stream",
+                                            "application/x-sqlite3",
+                                            "application/vnd.sqlite3"
+                                        )
+                                    )
+                                },
+                                enabled = !isBackupInProgress && !isRestoreInProgress,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                if (isRestoreInProgress) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = MaterialTheme.colorScheme.onError
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (isRestoreInProgress) {
+                                        stringResource(R.string.restoring_database)
+                                    } else {
+                                        stringResource(R.string.restore_database)
+                                    }
+                                )
+                            }
+
+                            backupRestoreMessage?.let { message ->
+                                Text(
+                                    text = message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (backupRestoreState is SettingsViewModel.BackupRestoreState.Success) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -1137,6 +1267,44 @@ fun SettingsScreen(
                 viewModel.deletePaymentMethodConfig(selectedPaymentMethodConfig!!.id)
                 showDeletePaymentMethodDialog = false
                 selectedPaymentMethodConfig = null
+            }
+        )
+    }
+
+    if (showRestoreConfirm) {
+        AlertDialog(
+            onDismissRequest = {
+                showRestoreConfirm = false
+                pendingRestoreUri = null
+            },
+            title = { Text(stringResource(R.string.restore_database_title)) },
+            text = { Text(stringResource(R.string.restore_database_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val uri = pendingRestoreUri
+                        if (uri != null) {
+                            viewModel.restoreDatabase(uri)
+                        }
+                        showRestoreConfirm = false
+                        pendingRestoreUri = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(R.string.restore))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRestoreConfirm = false
+                        pendingRestoreUri = null
+                    }
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         )
     }

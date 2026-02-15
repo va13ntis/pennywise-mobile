@@ -87,6 +87,14 @@ object LocaleFormatter {
         
         return formattedDate
     }
+
+    /**
+     * Format transaction date as short month and day (e.g., "Feb 7")
+     */
+    fun formatTransactionShortMonthDay(date: Date, context: Context): String {
+        val locale = getSystemLocale(context)
+        return SimpleDateFormat("MMM d", locale).format(date)
+    }
     
     /**
      * Get the system locale with proper detection for different Android versions

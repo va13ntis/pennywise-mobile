@@ -45,18 +45,23 @@ import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.SplitPaymentInstallment
+import com.pennywise.app.domain.model.PaymentMethod
+import com.pennywise.app.domain.model.PaymentMethodConfig
 import com.pennywise.app.presentation.theme.income_green
 import com.pennywise.app.presentation.util.CategoryMapper
 import com.pennywise.app.presentation.util.CurrencyFormatter
 
 /**
  * Specialized section for recurring expenses that appears at the top of the home screen
- * Aligned with weekly summary card design for consistency
+ * Aligned with weekly summary card design for consistency.
+ * Groups by payment method when multiple methods present to avoid mixing.
  */
 @Composable
 fun RecurringExpensesSection(
     transactions: List<Transaction>,
     splitPaymentInstallments: List<SplitPaymentInstallment> = emptyList(),
+    transactionById: Map<Long, Transaction> = emptyMap(),
+    paymentMethodConfigs: List<PaymentMethodConfig> = emptyList(),
     currencyCode: String,
     convertedTransactionAmounts: Map<Long, Double>,
     convertedInstallmentAmounts: Map<Long, Double>,
@@ -67,6 +72,35 @@ fun RecurringExpensesSection(
     }
     
     var isExpanded by remember { mutableStateOf(false) }
+    
+    fun getPaymentMethodKey(t: Transaction): String = when {
+        t.paymentMethod == PaymentMethod.CREDIT_CARD && t.paymentMethodConfigId != null ->
+            "card_${t.paymentMethodConfigId}"
+        else -> t.paymentMethod.name
+    }
+    fun getDisplayName(key: String): String {
+        return when {
+            key == "unknown" -> "Other"
+            key.startsWith("card_") -> {
+                val id = key.removePrefix("card_").toLongOrNull()
+                if (id != null) {
+                    paymentMethodConfigs.find { it.id == id }?.alias?.trim()?.ifBlank { "Credit Card" }
+                        ?: "Credit Card"
+                } else {
+                    "Credit Card"
+                }
+            }
+            else -> try { PaymentMethod.valueOf(key).displayName } catch (_: Exception) { key }
+        }
+    }
+    
+    // Group by payment method when we have multiple
+    val recurringByMethod = transactions.groupBy { getPaymentMethodKey(it) }
+    val installmentsByMethod = splitPaymentInstallments.groupBy { installment ->
+        transactionById[installment.parentTransactionId]?.let { getPaymentMethodKey(it) } ?: "unknown"
+    }
+    val allMethodKeys = (recurringByMethod.keys + installmentsByMethod.keys).distinct()
+    val showGroupHeaders = allMethodKeys.size > 1
     
     // Calculate total
     val totalAmount = transactions.sumOf { transaction ->
@@ -128,7 +162,7 @@ fun RecurringExpensesSection(
                 }
             }
             
-            // Expanded content
+            // Expanded content - grouped by payment method when multiple
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically(
@@ -144,29 +178,52 @@ fun RecurringExpensesSection(
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Display recurring transactions
-                    transactions.sortedByDescending { it.date }.forEach { transaction ->
-                        RecurringTransactionItem(
-                            transaction = transaction,
-                            currencyCode = currencyCode,
-                            convertedAmount = convertedTransactionAmounts[transaction.id]
-                        )
-                        
-                        if (transaction != transactions.last() || splitPaymentInstallments.isNotEmpty()) {
+                    if (showGroupHeaders) {
+                        allMethodKeys.sorted().forEach { methodKey ->
+                            val methodRecurring = recurringByMethod[methodKey].orEmpty().sortedByDescending { it.date }
+                            val methodInstallments = installmentsByMethod[methodKey].orEmpty().sortedBy { it.dueDate }
+                            if (methodRecurring.isNotEmpty() || methodInstallments.isNotEmpty()) {
+                                Text(
+                                    text = getDisplayName(methodKey),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                methodRecurring.forEach { transaction ->
+                                    RecurringTransactionItem(
+                                        transaction = transaction,
+                                        currencyCode = currencyCode,
+                                        convertedAmount = convertedTransactionAmounts[transaction.id]
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                methodInstallments.forEach { installment ->
+                                    SplitPaymentInstallmentItem(
+                                        installment = installment,
+                                        currencyCode = currencyCode,
+                                        convertedAmount = convertedInstallmentAmounts[installment.id]
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    } else {
+                        transactions.sortedByDescending { it.date }.forEach { transaction ->
+                            RecurringTransactionItem(
+                                transaction = transaction,
+                                currencyCode = currencyCode,
+                                convertedAmount = convertedTransactionAmounts[transaction.id]
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
-                    }
-                    
-                    // Display split payment installments
-                    splitPaymentInstallments.sortedBy { it.dueDate }.forEach { installment ->
-                        SplitPaymentInstallmentItem(
-                            installment = installment,
-                            currencyCode = currencyCode,
-                            convertedAmount = convertedInstallmentAmounts[installment.id]
-                        )
-                        
-                        if (installment != splitPaymentInstallments.last()) {
+                        splitPaymentInstallments.sortedBy { it.dueDate }.forEach { installment ->
+                            SplitPaymentInstallmentItem(
+                                installment = installment,
+                                currencyCode = currencyCode,
+                                convertedAmount = convertedInstallmentAmounts[installment.id]
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
                     }

@@ -40,7 +40,6 @@ class PennyWiseApplication : Application() {
         if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             Timber.plant(Timber.DebugTree())
         }
-        
         Timber.d("PennyWise Application initialized")
     }
     

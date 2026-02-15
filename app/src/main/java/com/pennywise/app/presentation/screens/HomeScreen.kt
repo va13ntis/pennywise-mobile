@@ -90,6 +90,8 @@ import com.pennywise.app.domain.model.PaymentMethodConfig
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.HorizontalDivider
 import com.pennywise.app.domain.model.PaymentMethod
+import com.pennywise.app.domain.model.TransactionType
+import com.pennywise.app.domain.model.SplitPaymentInstallment
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -132,9 +134,11 @@ fun HomeScreen(
 ) {
     // State collection from real ViewModel
     val currentMonth by viewModel.currentMonth.collectAsState()
+    val transactions by viewModel.transactions.collectAsState()
     val transactionsByWeek by viewModel.transactionsByWeek.collectAsState()
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
     val splitPaymentInstallments by viewModel.splitPaymentInstallments.collectAsState()
+    val installmentParentTransactions by viewModel.installmentParentTransactions.collectAsState()
     val currencyCode by viewModel.currency.collectAsState()
     val convertedTransactionAmounts by viewModel.convertedTransactionAmounts.collectAsState()
     val convertedInstallmentAmounts by viewModel.convertedInstallmentAmounts.collectAsState()
@@ -150,27 +154,35 @@ fun HomeScreen(
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
     val layoutDirection = LocalLayoutDirection.current
+
     
     val cardAccentColor = MaterialTheme.colorScheme.secondary
-    // Compute payment method summaries with billing cycle info
+    // Compute payment method summaries with billing cycle info.
+    // Use raw transactions (not transactionsByWeek) so credit cards can be filtered by billing cycle.
     val paymentMethodSummaries = remember(
-        transactionsByWeek,
+        transactions,
         recurringTransactions,
+        splitPaymentInstallments,
+        installmentParentTransactions,
         currentMonth,
         paymentMethodConfigs,
         context,
         cardAccentColor,
         convertedTransactionAmounts,
+        convertedInstallmentAmounts,
         layoutDirection
     ) {
         computePaymentMethodSummaries(
-            transactions = transactionsByWeek.values.flatten(),
+            transactions = transactions,
             recurringTransactions = recurringTransactions,
+            splitPaymentInstallments = splitPaymentInstallments,
+            transactionById = (transactions + recurringTransactions + installmentParentTransactions.values).associateBy { it.id },
             paymentMethodConfigs = paymentMethodConfigs,
             currentMonth = currentMonth,
             context = context,
             creditCardAccent = cardAccentColor,
             convertedTransactionAmounts = convertedTransactionAmounts,
+            convertedInstallmentAmounts = convertedInstallmentAmounts,
             isRtl = layoutDirection == LayoutDirection.Rtl
         )
     }
@@ -187,10 +199,12 @@ fun HomeScreen(
     
     // UI state
     val lazyListState = rememberLazyListState()
+    // When pager hasn't fired yet, use first summary so we never show "all" when a card is displayed
+    val effectiveRecurringFilter = selectedPaymentMethodFilter ?: paymentMethodSummaries.firstOrNull()
     
-    // Show all transactions in week layout regardless of selected payment method.
-    val matchesSelectedSummary: (Transaction) -> Boolean = { transaction ->
-        selectedPaymentMethodFilter?.let { summary ->
+    // Show transactions that match selected payment method and billing cycle (if available).
+    val matchesPaymentMethodOnly: (Transaction) -> Boolean = { transaction ->
+        effectiveRecurringFilter?.let { summary ->
             if (summary.paymentMethod == PaymentMethod.CREDIT_CARD) {
                 transaction.paymentMethod == PaymentMethod.CREDIT_CARD &&
                     transaction.paymentMethodConfigId == summary.paymentMethodConfigId
@@ -199,23 +213,73 @@ fun HomeScreen(
             }
         } ?: true
     }
-    val filteredWeeks: Map<Int, List<Transaction>> = transactionsByWeek
-        .mapValues { entry ->
-            entry.value.filter(matchesSelectedSummary)
-        }
-        .filterValues { it.isNotEmpty() }
-    val filteredRecurringTransactions = recurringTransactions.filter(matchesSelectedSummary)
-    val transactionById = remember(transactionsByWeek, recurringTransactions) {
-        (transactionsByWeek.values.flatten() + recurringTransactions).associateBy { it.id }
+    val matchesSelectedSummary: (Transaction) -> Boolean = { transaction ->
+        selectedPaymentMethodFilter?.let { summary ->
+            if (!matchesPaymentMethodOnly(transaction)) {
+                return@let false
+            }
+            val cycleStart = summary.billingCycleStart?.time
+            val cycleEnd = summary.billingCycleEnd?.time
+            if (cycleStart != null && cycleEnd != null) {
+                val billingTime = transaction.getBillingDate().time
+                billingTime in cycleStart..cycleEnd
+            } else {
+                true
+            }
+        } ?: true
     }
+    val selectedCycleStart = selectedPaymentMethodFilter?.billingCycleStart
+    val selectedCycleEnd = selectedPaymentMethodFilter?.billingCycleEnd
+    // When a credit card with billing cycle is selected, use raw transactions (which include
+    // 4 months of data) so we capture the full billing cycle. transactionsByWeek filters by
+    // calendar month and would exclude e.g. Jan 15-31 when cycle is Jan 15-Feb 14.
+    val filteredWeeks: Map<Int, List<Transaction>> = if (selectedCycleStart != null && selectedCycleEnd != null) {
+        transactions
+            .filter { it.type == TransactionType.EXPENSE && !it.isRecurring && !it.hasDelayedBilling() }
+            .filter(matchesSelectedSummary)
+            .sortedByDescending { it.date }
+            .groupBy { transaction ->
+                getBillingCycleWeekNumber(transaction.getBillingDate(), selectedCycleStart)
+            }
+            .toSortedMap()
+            .filterValues { it.isNotEmpty() }
+    } else {
+        transactionsByWeek
+            .mapValues { entry ->
+                entry.value.filter(matchesSelectedSummary)
+            }
+            .filterValues { it.isNotEmpty() }
+    }
+    // Recurring: when credit card selected, filter by payment method only - recurring "appears"
+    // based on ViewModel's filterRecurringTransactionsForMonth; don't filter by billing date
+    // (getBillingDate=creation date would exclude most recurring)
+    val filteredRecurringTransactions = recurringTransactions.filter(matchesPaymentMethodOnly)
+    val transactionById = remember(transactions, recurringTransactions, installmentParentTransactions) {
+        (transactions + recurringTransactions + installmentParentTransactions.values).associateBy { it.id }
+    }
+    // Split installments: filter by installment.dueDate in cycle (not parent's billing date -
+    // parent's date is when first installment was billed; installments 2+ have their own dueDate).
+    // When parent is unknown and we have a filter, exclude - we can't verify payment method.
     val filteredSplitPaymentInstallments = splitPaymentInstallments.filter { installment ->
-        val parentTransaction = transactionById[installment.parentTransactionId]
-        if (parentTransaction != null) {
-            matchesSelectedSummary(parentTransaction)
+        val parent = transactionById[installment.parentTransactionId]
+        if (parent == null) return@filter (effectiveRecurringFilter == null)
+        if (!matchesPaymentMethodOnly(parent)) return@filter false
+        val cycleStart = effectiveRecurringFilter?.billingCycleStart?.time
+        val cycleEnd = effectiveRecurringFilter?.billingCycleEnd?.time
+        if (cycleStart != null && cycleEnd != null) {
+            installment.dueDate.time in cycleStart..cycleEnd
         } else {
             true
         }
     }
+    // When multiple payment methods exist but no filter yet (summaries not loaded), hide section
+    // to avoid showing mixed expenses from all cards
+    val distinctPmKeys = (recurringTransactions.map { "${it.paymentMethod.name}:${it.paymentMethodConfigId}" } +
+        splitPaymentInstallments.mapNotNull { transactionById[it.parentTransactionId]?.let { "${it.paymentMethod.name}:${it.paymentMethodConfigId}" } }).toSet()
+    val hideRecurringUntilFilterReady = distinctPmKeys.size > 1 && effectiveRecurringFilter == null
+    val displayRecurringTransactions = if (hideRecurringUntilFilterReady) emptyList() else filteredRecurringTransactions
+    val displaySplitPaymentInstallments = if (hideRecurringUntilFilterReady) emptyList() else filteredSplitPaymentInstallments
+
     
     if (isLoading) {
         Box(
@@ -387,11 +451,13 @@ fun HomeScreen(
             }
             
             // Recurring Expenses Section (appears after top summary)
-            if (filteredRecurringTransactions.isNotEmpty() || filteredSplitPaymentInstallments.isNotEmpty()) {
+            if (displayRecurringTransactions.isNotEmpty() || displaySplitPaymentInstallments.isNotEmpty()) {
                 item {
                     RecurringExpensesSection(
-                        transactions = filteredRecurringTransactions,
-                        splitPaymentInstallments = filteredSplitPaymentInstallments,
+                        transactions = displayRecurringTransactions,
+                        splitPaymentInstallments = displaySplitPaymentInstallments,
+                        transactionById = transactionById,
+                        paymentMethodConfigs = paymentMethodConfigs,
                         currencyCode = currencyCode,
                         convertedTransactionAmounts = convertedTransactionAmounts,
                         convertedInstallmentAmounts = convertedInstallmentAmounts
@@ -432,8 +498,17 @@ fun HomeScreen(
                 items = filteredWeeks.entries.sortedByDescending { it.key },
                 key = { it.key }
             ) { (weekNumber, transactions) ->
-            val weekRangeText = remember(weekNumber, transactions, locale) {
-                buildWeekRangeText(transactions, locale, context)
+            val weekRangeText = remember(weekNumber, transactions, locale, selectedCycleStart, selectedCycleEnd) {
+                if (selectedCycleStart != null && selectedCycleEnd != null) {
+                    buildBillingCycleWeekRangeText(
+                        weekNumber = weekNumber,
+                        cycleStart = selectedCycleStart,
+                        cycleEnd = selectedCycleEnd,
+                        context = context
+                    )
+                } else {
+                    buildWeekRangeText(transactions, locale, context)
+                }
             }
                 WeeklySummaryCard(
                     weekNumber = weekNumber,
@@ -712,6 +787,40 @@ private fun buildWeekRangeText(
         LocaleFormatter.formatTransactionDate(weekEndDate, context)
 }
 
+private fun getBillingCycleWeekNumber(
+    billingDate: Date,
+    cycleStart: Date
+): Int {
+    val startDate = cycleStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val billingLocalDate = billingDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val dayOffset = (billingLocalDate.toEpochDay() - startDate.toEpochDay()).coerceAtLeast(0)
+    return (dayOffset / 7).toInt() + 1
+}
+
+private fun buildBillingCycleWeekRangeText(
+    weekNumber: Int,
+    cycleStart: Date,
+    cycleEnd: Date,
+    context: Context
+): String? {
+    if (weekNumber < 1) {
+        return null
+    }
+    val startDate = cycleStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val endDate = cycleEnd.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val weekStart = startDate.plusDays(((weekNumber - 1) * 7L))
+    if (weekStart.isAfter(endDate)) {
+        return null
+    }
+    val weekEnd = weekStart.plusDays(6).let { candidate ->
+        if (candidate.isAfter(endDate)) endDate else candidate
+    }
+    val weekStartDate = Date.from(weekStart.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    val weekEndDate = Date.from(weekEnd.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    return "${LocaleFormatter.formatTransactionDate(weekStartDate, context)} - " +
+        LocaleFormatter.formatTransactionDate(weekEndDate, context)
+}
+
 /**
  * Individual transaction item in expanded weekly view
  * Uses real Transaction domain model
@@ -780,13 +889,11 @@ private fun TransactionItem(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                if (transaction.category.isNotEmpty()) {
-                    Text(
-                        text = CategoryMapper.getLocalizedCategory(transaction.category),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = LocaleFormatter.formatTransactionShortMonthDay(transaction.date, context),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 if (transaction.installments != null && transaction.installments > 1) {
                     Text(
                         text = "1 / ${transaction.installments}",
@@ -887,7 +994,7 @@ private fun BillingAwareSummaryCard(
     }
 
     val pagerState = rememberPagerState(initialPage = 0) { paymentMethodSummaries.size }
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(pagerState.currentPage, paymentMethodSummaries) {
         val summary = paymentMethodSummaries.getOrNull(pagerState.currentPage)
         summary?.let { onPagerPageSelected(it) }
     }
@@ -1216,66 +1323,82 @@ private fun BillingCycleProgressBar(
 }
 
 /**
- * Compute payment method summaries with billing cycle information
+ * Compute payment method summaries with billing cycle information.
+ * Credit cards: filter by billing cycle (previousMonth.withdrawDay .. currentMonth.withdrawDay-1).
+ * Cash/Cheque: filter by calendar month.
+ * Includes split payment installments (due in cycle) for credit card totals.
  */
 private fun computePaymentMethodSummaries(
     transactions: List<Transaction>,
     recurringTransactions: List<Transaction>,
+    splitPaymentInstallments: List<SplitPaymentInstallment>,
+    transactionById: Map<Long, Transaction>,
     paymentMethodConfigs: List<PaymentMethodConfig>,
     currentMonth: YearMonth,
     context: Context,
     creditCardAccent: Color,
     convertedTransactionAmounts: Map<Long, Double>,
+    convertedInstallmentAmounts: Map<Long, Double>,
     isRtl: Boolean
 ): List<PaymentMethodSummary> {
-    val allTransactions = transactions + recurringTransactions
+    val startOfMonth = currentMonth.atDay(1).atStartOfDay(ZoneId.systemDefault())
+    val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59).atZone(ZoneId.systemDefault())
     val summaries = mutableListOf<PaymentMethodSummary>()
     
-    // Handle CREDIT_CARD transactions - show separate entry for each card used
-    val creditCardTransactions = allTransactions.filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
-    
-    // Group credit card transactions by paymentMethodConfigId
+    // Handle CREDIT_CARD transactions - filter by billing cycle per card
+    val creditCardTransactions = transactions
+        .filter { it.type == TransactionType.EXPENSE && !it.isRecurring && !it.hasDelayedBilling() }
+        .filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
     val creditCardGroups = creditCardTransactions.groupBy { it.paymentMethodConfigId }
     
     creditCardGroups.forEach { (configId, transactionsForCard) ->
-        val total = transactionsForCard.sumOf { transaction ->
+        val cardConfig = configId?.let { id -> paymentMethodConfigs.find { it.id == id } }
+        val billingCycleRange = cardConfig?.withdrawDay?.let { withdrawDay ->
+            val previousMonth = currentMonth.minusMonths(1)
+            val validDayPrev = minOf(withdrawDay, previousMonth.lengthOfMonth())
+            val validDayCur = minOf(withdrawDay, currentMonth.lengthOfMonth())
+            val cycleStart = previousMonth.atDay(validDayPrev)
+            val cycleEnd = currentMonth.atDay(validDayCur).minusDays(1)
+            val cycleStartDate = Date.from(cycleStart.atStartOfDay(ZoneId.systemDefault()).toInstant())
+            val cycleEndDate = Date.from(cycleEnd.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant())
+            val startText = LocaleFormatter.formatTransactionDate(cycleStartDate, context)
+            val endText = LocaleFormatter.formatTransactionDate(cycleEndDate, context)
+            val cycleText = if (isRtl) "$endText \u2190 $startText" else "$startText \u2192 $endText"
+            Triple(cycleStartDate, cycleEndDate, cycleText)
+        }
+        val cycleStartTime = billingCycleRange?.first?.time
+        val cycleEndTime = billingCycleRange?.second?.time
+        val inCycle = { t: Transaction ->
+            if (cycleStartTime != null && cycleEndTime != null) {
+                val billingTime = t.getBillingDate().time
+                billingTime in cycleStartTime..cycleEndTime
+            } else true
+        }
+        val transactionsInCycle = transactionsForCard.filter(inCycle)
+        // Recurring: use ViewModel's filter (by currentMonth); don't filter by cycle - recurring
+        // has a single date and "appears" monthly, so currentMonth filter is sufficient
+        val recurringForCard = recurringTransactions
+            .filter { it.paymentMethod == PaymentMethod.CREDIT_CARD && it.paymentMethodConfigId == configId }
+        // Split installments: include those whose parent is for this card and dueDate is in cycle
+        val installmentsForCard = splitPaymentInstallments.filter { installment ->
+            val parent = transactionById[installment.parentTransactionId]
+            parent != null &&
+                parent.paymentMethod == PaymentMethod.CREDIT_CARD &&
+                parent.paymentMethodConfigId == configId &&
+                cycleStartTime != null && cycleEndTime != null &&
+                installment.dueDate.time in cycleStartTime..cycleEndTime
+        }
+        val total = (transactionsInCycle + recurringForCard).sumOf { transaction ->
             convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        } + installmentsForCard.sumOf { installment ->
+            convertedInstallmentAmounts[installment.id] ?: installment.amount
         }
         if (total > 0.0) {
-            // Find the specific card config
-            val cardConfig = configId?.let { id -> 
-                paymentMethodConfigs.find { it.id == id }
-            }
-            
             val displayName = cardConfig?.alias
                 ?.trim()
                 ?.replace("\\s+".toRegex(), " ")
                 ?.ifBlank { "Credit Card" }
                 ?: "Credit Card"
-            val billingCycleRange = cardConfig?.withdrawDay?.let { withdrawDay ->
-                // Billing cycle: withdrawDay of current month → (withdrawDay - 1) of next month
-                // Clamp withdrawDay to valid range for each month (handles Feb with 28/29 days, months with 30 days, etc.)
-                val validDayInCurrentMonth = minOf(withdrawDay, currentMonth.lengthOfMonth())
-                val nextMonth = currentMonth.plusMonths(1)
-                val validDayInNextMonth = minOf(withdrawDay, nextMonth.lengthOfMonth())
-                
-                val cycleStart = currentMonth.atDay(validDayInCurrentMonth)
-                val cycleEnd = nextMonth.atDay(validDayInNextMonth).minusDays(1)
-                
-                // Convert LocalDate to Date for formatting
-                val cycleStartDate = Date.from(cycleStart.atStartOfDay(ZoneId.systemDefault()).toInstant())
-                val cycleEndDate = Date.from(cycleEnd.atStartOfDay(ZoneId.systemDefault()).toInstant())
-                
-                val startText = LocaleFormatter.formatTransactionDate(cycleStartDate, context)
-                val endText = LocaleFormatter.formatTransactionDate(cycleEndDate, context)
-                val cycleText = if (isRtl) {
-                    "$endText \u2190 $startText"
-                } else {
-                    "$startText \u2192 $endText"
-                }
-                Triple(cycleStartDate, cycleEndDate, cycleText)
-            }
-            
             summaries.add(
                 PaymentMethodSummary(
                     paymentMethod = PaymentMethod.CREDIT_CARD,
@@ -1291,13 +1414,23 @@ private fun computePaymentMethodSummaries(
         }
     }
     
-    // Handle CASH transactions
-    val cashTotal = allTransactions
-        .filter { it.paymentMethod == PaymentMethod.CASH }
-        .sumOf { transaction ->
-            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+    // Handle CASH transactions - filter by calendar month
+    val cashInMonth = transactions
+        .filter { it.type == TransactionType.EXPENSE && !it.isRecurring && it.paymentMethod == PaymentMethod.CASH }
+        .filter { t ->
+            val billingInstant = t.getBillingDate().toInstant().atZone(ZoneId.systemDefault())
+            !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
         }
-    
+    val cashRecurring = recurringTransactions.filter { it.paymentMethod == PaymentMethod.CASH }
+    val cashInstallments = splitPaymentInstallments.filter { installment ->
+        val parent = transactionById[installment.parentTransactionId]
+        if (parent?.paymentMethod != PaymentMethod.CASH) return@filter false
+        val dueInstant = installment.dueDate.toInstant().atZone(ZoneId.systemDefault())
+        !dueInstant.isBefore(startOfMonth) && !dueInstant.isAfter(endOfMonth)
+    }
+    val cashTotal = (cashInMonth + cashRecurring).sumOf {
+        convertedTransactionAmounts[it.id] ?: it.amount
+    } + cashInstallments.sumOf { convertedInstallmentAmounts[it.id] ?: it.amount }
     if (cashTotal > 0.0) {
         summaries.add(
             PaymentMethodSummary(
@@ -1310,13 +1443,23 @@ private fun computePaymentMethodSummaries(
         )
     }
     
-    // Handle CHEQUE transactions
-    val chequeTotal = allTransactions
-        .filter { it.paymentMethod == PaymentMethod.CHEQUE }
-        .sumOf { transaction ->
-            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+    // Handle CHEQUE transactions - filter by calendar month
+    val chequeInMonth = transactions
+        .filter { it.type == TransactionType.EXPENSE && !it.isRecurring && it.paymentMethod == PaymentMethod.CHEQUE }
+        .filter { t ->
+            val billingInstant = t.getBillingDate().toInstant().atZone(ZoneId.systemDefault())
+            !billingInstant.isBefore(startOfMonth) && !billingInstant.isAfter(endOfMonth)
         }
-    
+    val chequeRecurring = recurringTransactions.filter { it.paymentMethod == PaymentMethod.CHEQUE }
+    val chequeInstallments = splitPaymentInstallments.filter { installment ->
+        val parent = transactionById[installment.parentTransactionId]
+        if (parent?.paymentMethod != PaymentMethod.CHEQUE) return@filter false
+        val dueInstant = installment.dueDate.toInstant().atZone(ZoneId.systemDefault())
+        !dueInstant.isBefore(startOfMonth) && !dueInstant.isAfter(endOfMonth)
+    }
+    val chequeTotal = (chequeInMonth + chequeRecurring).sumOf {
+        convertedTransactionAmounts[it.id] ?: it.amount
+    } + chequeInstallments.sumOf { convertedInstallmentAmounts[it.id] ?: it.amount }
     if (chequeTotal > 0.0) {
         summaries.add(
             PaymentMethodSummary(
@@ -1331,3 +1474,4 @@ private fun computePaymentMethodSummaries(
     
     return summaries
 }
+
