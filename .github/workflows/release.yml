@@ -56,9 +56,6 @@ jobs:
     - name: Generate test coverage for release
       run: ./gradlew jacocoTestReport
       
-    - name: Generate currency coverage for release
-      run: ./gradlew jacocoCurrencyCoverageReport
-      
     - name: Create release notes
       run: |
         echo "# 🚀 PennyWise Release ${{ steps.version.outputs.version }}" > release-notes.md
@@ -122,16 +119,6 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: app/build/reports/jacoco/jacocoTestReport/html/index.html
         asset_name: test-coverage-report-${{ steps.version.outputs.version }}.html
-        asset_content_type: text/html
-        
-    - name: Upload Currency Coverage Report
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: app/build/reports/jacoco/jacocoCurrencyCoverageReport/html/index.html
-        asset_name: currency-coverage-report-${{ steps.version.outputs.version }}.html
         asset_content_type: text/html
 
   # Notify release
