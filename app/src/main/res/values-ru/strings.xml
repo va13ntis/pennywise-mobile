@@ -120,6 +120,7 @@
     <string name="category">Категория</string>
     <string name="category_required">Категория обязательна</string>
     <string name="category_food">Еда и рестораны</string>
+    <string name="category_grocery">Продукты</string>
     <string name="category_transport">Транспорт</string>
     <string name="category_shopping">Покупки</string>
     <string name="category_entertainment">Развлечения</string>

@@ -17,6 +17,7 @@ object CategoryMapper {
     enum class CategoryKey(val key: String) {
         // Expense categories
         FOOD("food"),
+        GROCERY("grocery"),
         TRANSPORT("transport"),
         SHOPPING("shopping"),
         ENTERTAINMENT("entertainment"),
@@ -39,7 +40,8 @@ object CategoryMapper {
     fun getCategoryKey(localizedCategory: String): String {
         return when (localizedCategory.lowercase()) {
             // English
-            "food & dining", "food", "groceries", "restaurant" -> CategoryKey.FOOD.key
+            "food & dining", "food", "restaurant" -> CategoryKey.FOOD.key
+            "grocery", "groceries", "supermarket" -> CategoryKey.GROCERY.key
             "transportation", "transport", "gas", "parking", "uber" -> CategoryKey.TRANSPORT.key
             "shopping", "clothes", "electronics" -> CategoryKey.SHOPPING.key
             "entertainment", "movies", "games" -> CategoryKey.ENTERTAINMENT.key
@@ -50,6 +52,7 @@ object CategoryMapper {
             
             // Hebrew
             "אוכל וסעודות", "אוכל", "מזון" -> CategoryKey.FOOD.key
+            "מכולת", "סופרמרקט" -> CategoryKey.GROCERY.key
             "תחבורה", "נסיעות" -> CategoryKey.TRANSPORT.key
             "קניות", "קנייה" -> CategoryKey.SHOPPING.key
             "בידור", "הנאה" -> CategoryKey.ENTERTAINMENT.key
@@ -60,6 +63,7 @@ object CategoryMapper {
             
             // Russian
             "еда и рестораны", "еда", "рестораны" -> CategoryKey.FOOD.key
+            "продукты", "бакалея" -> CategoryKey.GROCERY.key
             "транспорт", "перевозки" -> CategoryKey.TRANSPORT.key
             "покупки", "шопинг" -> CategoryKey.SHOPPING.key
             "развлечения", "досуг" -> CategoryKey.ENTERTAINMENT.key
@@ -81,6 +85,7 @@ object CategoryMapper {
     fun getLocalizedCategory(categoryKey: String): String {
         return when (categoryKey.lowercase()) {
             CategoryKey.FOOD.key -> stringResource(R.string.category_food)
+            CategoryKey.GROCERY.key -> stringResource(R.string.category_grocery)
             CategoryKey.TRANSPORT.key -> stringResource(R.string.category_transport)
             CategoryKey.SHOPPING.key -> stringResource(R.string.category_shopping)
             CategoryKey.ENTERTAINMENT.key -> stringResource(R.string.category_entertainment)
@@ -99,6 +104,7 @@ object CategoryMapper {
     fun getLocalizedCategory(context: Context, categoryKey: String): String {
         return when (categoryKey.lowercase()) {
             CategoryKey.FOOD.key -> context.getString(R.string.category_food)
+            CategoryKey.GROCERY.key -> context.getString(R.string.category_grocery)
             CategoryKey.TRANSPORT.key -> context.getString(R.string.category_transport)
             CategoryKey.SHOPPING.key -> context.getString(R.string.category_shopping)
             CategoryKey.ENTERTAINMENT.key -> context.getString(R.string.category_entertainment)
@@ -118,6 +124,7 @@ object CategoryMapper {
     fun getAllCategoryOptions(): List<String> {
         return listOf(
             stringResource(R.string.category_food),
+            stringResource(R.string.category_grocery),
             stringResource(R.string.category_transport),
             stringResource(R.string.category_shopping),
             stringResource(R.string.category_entertainment),
@@ -134,6 +141,7 @@ object CategoryMapper {
     fun getCategoryEmoji(categoryKey: String): String {
         return when (categoryKey.lowercase()) {
             CategoryKey.FOOD.key -> "🍔"
+            CategoryKey.GROCERY.key -> "🛒"
             CategoryKey.TRANSPORT.key -> "🚗"
             CategoryKey.SHOPPING.key -> "🛍️"
             CategoryKey.ENTERTAINMENT.key -> "🎬"

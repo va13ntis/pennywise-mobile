@@ -120,6 +120,7 @@
     <string name="category">קטגוריה</string>
     <string name="category_required">הקטגוריה נדרשת</string>
     <string name="category_food">אוכל וסעודות</string>
+    <string name="category_grocery">מכולת</string>
     <string name="category_transport">תחבורה</string>
     <string name="category_shopping">קניות</string>
     <string name="category_entertainment">בידור</string>

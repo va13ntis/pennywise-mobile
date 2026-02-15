@@ -382,12 +382,7 @@ fun AddExpenseScreen(
     // Category options - use CategoryMapper for consistent handling
     val categories = CategoryMapper.getAllCategoryOptions()
     
-    // Set default category
-    LaunchedEffect(categories) {
-        if (category.isEmpty() && categories.isNotEmpty()) {
-            category = categories.first()
-        }
-    }
+    // No default category - user must actively select one to avoid mis-categorization
     
     // Currency adapter and lists
     val currencyAdapter = remember { CurrencyAdapter() }
@@ -918,7 +913,8 @@ fun AddExpenseScreen(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                             focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
+                            unfocusedIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent
                         )
                     )
                     
