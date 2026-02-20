@@ -934,7 +934,7 @@ class HomeViewModel @Inject constructor(
      * which covers any billing cycle. Totals are computed in HomeScreen by filtering raw
      * transactions by billing cycle in computePaymentMethodSummaries.
      */
-    private suspend fun loadTransactionsForBillingCycle(billingCycle: BillingCycle) {
+    private suspend fun loadTransactionsForBillingCycle(@Suppress("UNUSED_PARAMETER") billingCycle: BillingCycle) {
         try {
             // Do NOT overwrite _transactions - keep 4 months from startObservingTransactions
             // so totals and recurring can be computed correctly by filtering in the UI

@@ -112,6 +112,9 @@ class AddExpenseViewModel @Inject constructor(
                     
                     // Load default payment method
                     loadDefaultPaymentMethod()
+                    
+                    // Load overall top merchants (across all categories)
+                    loadTopMerchants()
                 }
             }
         }
@@ -200,7 +203,21 @@ class AddExpenseViewModel @Inject constructor(
     }
     
     /**
-     * Load merchant suggestions based on category
+     * Load overall top merchants across all categories (for quick-select chips)
+     */
+    private fun loadTopMerchants() {
+        viewModelScope.launch {
+            try {
+                val merchants = transactionRepository.getFrequentMerchants(limit = 5)
+                _topMerchants.value = merchants
+            } catch (e: Exception) {
+                _topMerchants.value = emptyList()
+            }
+        }
+    }
+    
+    /**
+     * Load merchant suggestions based on category (for autocomplete dropdown)
      */
     fun loadMerchantSuggestions(category: String) {
         viewModelScope.launch {
@@ -210,11 +227,9 @@ class AddExpenseViewModel @Inject constructor(
                     limit = 20
                 )
                 _merchantSuggestions.value = merchants
-                _topMerchants.value = merchants.take(5) // Top 5 for chips
             } catch (e: Exception) {
                 // Silently fail - suggestions are optional
                 _merchantSuggestions.value = emptyList()
-                _topMerchants.value = emptyList()
             }
         }
     }

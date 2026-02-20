@@ -132,6 +132,13 @@ class TransactionRepositoryImpl @Inject constructor(
                 .map { it.description.trim() }
                 .distinct()
         }
+    
+    override suspend fun getFrequentMerchants(limit: Int): List<String> = 
+        withAuthentication {
+            transactionDao.getFrequentMerchants(limit)
+                .map { it.description.trim() }
+                .distinct()
+        }
 }
 
 // Extension function to convert LocalDate to Date

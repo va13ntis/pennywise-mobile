@@ -38,11 +38,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Apply initial locale based on saved preference
-        applyInitialLocale()
-        
-        // Observe language changes and restart if needed
-        observeLanguageChanges()
+        initializeLocale()
         
         setContent {
             PennyWiseThemeWithManager(themeManager = themeManager) {
@@ -57,35 +53,27 @@ class MainActivity : FragmentActivity() {
         }
     }
     
-    
     /**
-     * Apply the initial locale based on saved preference
+     * Apply the initial locale and then observe for user-initiated changes.
+     * Runs sequentially in a single coroutine to avoid the race condition where
+     * the observer could see a stale DataStore value before the initial setup finishes.
      */
-    private fun applyInitialLocale() {
+    private fun initializeLocale() {
         lifecycleScope.launch {
             val languageCode = settingsDataStore.language.first()
             currentLanguageCode = languageCode
             if (languageCode.isNotEmpty()) {
                 applyLocaleChange(languageCode)
             } else {
-                // If no language is saved, detect and apply system locale
                 val detectedLanguage = localeManager.detectDeviceLocale(this@MainActivity)
                 if (detectedLanguage.isNotEmpty()) {
-                    currentLanguageCode = detectedLanguage
                     applyLocaleChange(detectedLanguage)
                 }
             }
-        }
-    }
-    
-    /**
-     * Observe language changes from DataStore and restart if needed
-     */
-    private fun observeLanguageChanges() {
-        lifecycleScope.launch {
-            settingsDataStore.language.collectLatest { languageCode ->
-                if (languageCode != currentLanguageCode && !isRestartingForLanguage) {
-                    currentLanguageCode = languageCode
+            
+            settingsDataStore.language.collectLatest { newLanguageCode ->
+                if (newLanguageCode != currentLanguageCode && !isRestartingForLanguage) {
+                    currentLanguageCode = newLanguageCode
                     restartForLanguageChange()
                 }
             }

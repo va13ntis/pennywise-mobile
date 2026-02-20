@@ -38,5 +38,6 @@ interface TransactionRepository {
     
     // Merchant suggestions
     suspend fun getFrequentMerchantsByCategory(category: String, limit: Int = 10): List<String>
+    suspend fun getFrequentMerchants(limit: Int = 10): List<String>
 }
 

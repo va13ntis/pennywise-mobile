@@ -66,16 +66,27 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT 10")
     suspend fun getRecentTransactions(): List<TransactionEntity>
     
-    // Get frequent merchants by category for suggestions
+    // Get frequent merchants by category for autocomplete suggestions
     @Query("""
-        SELECT description, COUNT(*) as usage_count 
+        SELECT TRIM(description) AS description, COUNT(*) as usage_count 
         FROM transactions 
-        WHERE type = 'EXPENSE' AND category = :category AND description != ''
+        WHERE type = 'EXPENSE' AND category = :category AND TRIM(description) != ''
         GROUP BY LOWER(TRIM(description))
         ORDER BY usage_count DESC, MAX(date) DESC
         LIMIT :limit
     """)
     suspend fun getFrequentMerchantsByCategory(category: String, limit: Int): List<MerchantSuggestion>
+    
+    // Get overall frequent merchants across all categories (for quick-select chips)
+    @Query("""
+        SELECT TRIM(description) AS description, COUNT(*) as usage_count 
+        FROM transactions 
+        WHERE type = 'EXPENSE' AND TRIM(description) != ''
+        GROUP BY LOWER(TRIM(description))
+        ORDER BY usage_count DESC, MAX(date) DESC
+        LIMIT :limit
+    """)
+    suspend fun getFrequentMerchants(limit: Int): List<MerchantSuggestion>
     
     /**
      * Data class for merchant suggestion query result
