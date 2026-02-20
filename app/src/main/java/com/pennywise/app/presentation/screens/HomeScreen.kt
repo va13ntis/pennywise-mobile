@@ -239,7 +239,7 @@ fun HomeScreen(
             .filter(matchesSelectedSummary)
             .sortedByDescending { it.date }
             .groupBy { transaction ->
-                getBillingCycleWeekNumber(transaction.getBillingDate(), selectedCycleStart)
+                getBillingCycleWeekNumber(transaction.getBillingDate(), selectedCycleStart, locale)
             }
             .toSortedMap()
             .filterValues { it.isNotEmpty() }
@@ -504,6 +504,7 @@ fun HomeScreen(
                         weekNumber = weekNumber,
                         cycleStart = selectedCycleStart,
                         cycleEnd = selectedCycleEnd,
+                        locale = locale,
                         context = context
                     )
                 } else {
@@ -789,34 +790,44 @@ private fun buildWeekRangeText(
 
 private fun getBillingCycleWeekNumber(
     billingDate: Date,
-    cycleStart: Date
+    cycleStart: Date,
+    locale: Locale
 ): Int {
-    val startDate = cycleStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-    val billingLocalDate = billingDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-    val dayOffset = (billingLocalDate.toEpochDay() - startDate.toEpochDay()).coerceAtLeast(0)
-    return (dayOffset / 7).toInt() + 1
+    val zoneId = ZoneId.systemDefault()
+    val startDate = cycleStart.toInstant().atZone(zoneId).toLocalDate()
+    val billingLocalDate = billingDate.toInstant().atZone(zoneId).toLocalDate()
+    val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
+    val cycleWeekStart = startDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+    val billingWeekStart = billingLocalDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+    val weekOffset = ((billingWeekStart.toEpochDay() - cycleWeekStart.toEpochDay()) / 7).coerceAtLeast(0)
+    return weekOffset.toInt() + 1
 }
 
 private fun buildBillingCycleWeekRangeText(
     weekNumber: Int,
     cycleStart: Date,
     cycleEnd: Date,
+    locale: Locale,
     context: Context
 ): String? {
     if (weekNumber < 1) {
         return null
     }
-    val startDate = cycleStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-    val endDate = cycleEnd.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-    val weekStart = startDate.plusDays(((weekNumber - 1) * 7L))
-    if (weekStart.isAfter(endDate)) {
+    val zoneId = ZoneId.systemDefault()
+    val startDate = cycleStart.toInstant().atZone(zoneId).toLocalDate()
+    val endDate = cycleEnd.toInstant().atZone(zoneId).toLocalDate()
+    val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
+    val cycleWeekStart = startDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+    val weekStart = cycleWeekStart.plusWeeks((weekNumber - 1).toLong())
+    val displayStart = if (weekStart.isBefore(startDate)) startDate else weekStart
+    if (displayStart.isAfter(endDate)) {
         return null
     }
     val weekEnd = weekStart.plusDays(6).let { candidate ->
         if (candidate.isAfter(endDate)) endDate else candidate
     }
-    val weekStartDate = Date.from(weekStart.atStartOfDay(ZoneId.systemDefault()).toInstant())
-    val weekEndDate = Date.from(weekEnd.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    val weekStartDate = Date.from(displayStart.atStartOfDay(zoneId).toInstant())
+    val weekEndDate = Date.from(weekEnd.atStartOfDay(zoneId).toInstant())
     return "${LocaleFormatter.formatTransactionDate(weekStartDate, context)} - " +
         LocaleFormatter.formatTransactionDate(weekEndDate, context)
 }
