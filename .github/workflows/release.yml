@@ -11,6 +11,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   # Create release
   create-release:
@@ -49,8 +52,16 @@ jobs:
         else
           echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         fi
-        
+
+    - name: Decode keystore
+      run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ runner.temp }}/release.keystore
+
     - name: Build release APK
+      env:
+        KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew assembleRelease
       
     - name: Generate test coverage for release
@@ -107,7 +118,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: app/build/outputs/apk/release/app-release-unsigned.apk
+        asset_path: app/build/outputs/apk/release/app-release.apk
         asset_name: pennywise-${{ steps.version.outputs.version }}.apk
         asset_content_type: application/vnd.android.package-archive
         

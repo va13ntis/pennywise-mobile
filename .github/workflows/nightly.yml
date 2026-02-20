@@ -223,11 +223,56 @@ jobs:
         path: app/build/reports/tests/testDebugUnitTest/
         retention-days: 30
 
+  # Build nightly debug APK (signed with debug keystore for direct installation)
+  nightly-build:
+    name: Build Nightly APK
+    runs-on: ubuntu-latest
+    needs: [nightly-tests]
+    timeout-minutes: 20
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+
+    - name: Build debug APK
+      run: ./gradlew assembleDebug
+
+    - name: Rename APK with date
+      run: |
+        DATE=$(date +%Y%m%d)
+        cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/pennywise-nightly-${DATE}.apk
+
+    - name: Upload nightly APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightly-apk-${{ github.run_number }}
+        path: app/build/outputs/apk/debug/pennywise-nightly-*.apk
+        retention-days: 14
+
   # Generate nightly report
   nightly-report:
     name: Generate Nightly Report
     runs-on: ubuntu-latest
-    needs: [nightly-tests, security-checks, performance-benchmark]
+    needs: [nightly-tests, security-checks, performance-benchmark, nightly-build]
     if: always()
     
     steps:
@@ -239,9 +284,10 @@ jobs:
         echo "- **Comprehensive Tests:** ${{ needs.nightly-tests.result }}" >> nightly-report.md
         echo "- **Security Checks:** ${{ needs.security-checks.result }}" >> nightly-report.md
         echo "- **Performance Benchmark:** ${{ needs.performance-benchmark.result }}" >> nightly-report.md
+        echo "- **Nightly APK Build:** ${{ needs.nightly-build.result }}" >> nightly-report.md
         echo "" >> nightly-report.md
         echo "## Summary" >> nightly-report.md
-        if [[ "${{ needs.nightly-tests.result }}" == "success" && "${{ needs.security-checks.result }}" == "success" && "${{ needs.performance-benchmark.result }}" == "success" ]]; then
+        if [[ "${{ needs.nightly-tests.result }}" == "success" && "${{ needs.security-checks.result }}" == "success" && "${{ needs.performance-benchmark.result }}" == "success" && "${{ needs.nightly-build.result }}" == "success" ]]; then
           echo "✅ All nightly checks passed successfully!" >> nightly-report.md
         else
           echo "❌ Some nightly checks failed. Please review the results." >> nightly-report.md
