@@ -9,6 +9,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.pennywise.app.presentation.util.AppLocaleSupport
 import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.presentation.util.SettingsManager
 import dagger.hilt.android.HiltAndroidApp
@@ -62,7 +63,7 @@ class PennyWiseApplication : Application() {
             val resources = resources
             val configuration = Configuration(resources.configuration)
             
-            val locale = resolveAppLocale(languageCode, this)
+            val locale = AppLocaleSupport.resolveSupportedLocale(languageCode, this)
             
             Locale.setDefault(locale)
             
@@ -93,7 +94,7 @@ class PennyWiseApplication : Application() {
             
             if (!languageCode.isNullOrEmpty()) {
                 // Apply the saved locale
-                val locale = resolveAppLocale(languageCode, context)
+                val locale = AppLocaleSupport.resolveSupportedLocale(languageCode, context)
                 
                 // Update the configuration
                 val configuration = Configuration(context.resources.configuration)
@@ -121,40 +122,4 @@ class PennyWiseApplication : Application() {
         }
     }
 
-    /**
-     * Resolves the app locale from a language code and guarantees we only use
-     * locales supported by the app to avoid accidental RTL layout flips.
-     */
-    private fun resolveAppLocale(languageCode: String?, context: Context? = null): Locale {
-        return when {
-            languageCode.equals("en", ignoreCase = true) -> Locale("en")
-            languageCode.equals("iw", ignoreCase = true) || languageCode.equals("he", ignoreCase = true) -> Locale("iw")
-            languageCode.equals("ru", ignoreCase = true) -> Locale("ru")
-            else -> mapSystemLocaleToSupportedLocale(context)
-        }
-    }
-
-    /**
-     * Maps the device locale to a supported app locale.
-     * App startup should not depend on device locale for layout direction.
-     * Unsupported or missing language settings default to English (LTR).
-     */
-    private fun mapSystemLocaleToSupportedLocale(context: Context?): Locale {
-        val systemLanguage = context?.let { safeContext ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                safeContext.resources.configuration.locales[0]?.language
-            } else {
-                @Suppress("DEPRECATION")
-                safeContext.resources.configuration.locale?.language
-            }
-        } ?: Locale.getDefault().language
-
-        return when {
-            systemLanguage.equals("ru", ignoreCase = true) -> Locale("ru")
-            systemLanguage.equals("he", ignoreCase = true) ||
-                systemLanguage.equals("iw", ignoreCase = true) -> Locale("iw")
-            systemLanguage.equals("en", ignoreCase = true) -> Locale("en")
-            else -> Locale("en")
-        }
-    }
 }

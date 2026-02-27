@@ -22,14 +22,7 @@ class LocaleManager @Inject constructor() {
      * @return The updated context with the new locale
      */
     fun updateLocale(context: Context, languageCode: String): Context {
-        val locale = when {
-            languageCode.equals("en", ignoreCase = true) -> Locale("en")
-            languageCode.equals("iw", ignoreCase = true) ||
-                languageCode.equals("he", ignoreCase = true) -> Locale("iw")
-            languageCode.equals("ru", ignoreCase = true) -> Locale("ru")
-            else -> mapSystemLocaleToSupportedLocale(context)
-        }
-        
+        val locale = AppLocaleSupport.resolveSupportedLocale(languageCode, context)
         return updateResources(context, locale)
     }
     
@@ -89,33 +82,12 @@ class LocaleManager @Inject constructor() {
     }
 
     /**
-     * Maps the device locale to a supported app locale.
-     * Unsupported system languages default to English (LTR).
-     */
-    private fun mapSystemLocaleToSupportedLocale(context: Context): Locale {
-        val systemLanguage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            context.resources.configuration.locales[0]?.language
-        } else {
-            @Suppress("DEPRECATION")
-            context.resources.configuration.locale?.language
-        } ?: Locale.getDefault().language
-
-        return when {
-            systemLanguage.equals("ru", ignoreCase = true) -> Locale("ru")
-            systemLanguage.equals("he", ignoreCase = true) ||
-                systemLanguage.equals("iw", ignoreCase = true) -> Locale("iw")
-            systemLanguage.equals("en", ignoreCase = true) -> Locale("en")
-            else -> Locale("en")
-        }
-    }
-    
-    /**
      * Check if the provided language code is supported
      * @param languageCode The language code to check
      * @return True if the language is supported, false otherwise
      */
     fun isLanguageSupported(languageCode: String): Boolean {
-        return languageCode in listOf("en", "iw", "ru")
+        return AppLocaleSupport.isLanguageSupported(languageCode)
     }
     
     /**
@@ -124,10 +96,10 @@ class LocaleManager @Inject constructor() {
      * @return The display name of the language
      */
     fun getLanguageDisplayName(languageCode: String): String {
-        return when (languageCode) {
-            "en" -> "English"
-            "iw" -> "עברית"
-            "ru" -> "Русский"
+        return when (AppLocaleSupport.canonicalLanguageCode(languageCode)) {
+            AppLocaleSupport.ENGLISH -> "English"
+            AppLocaleSupport.HEBREW -> "עברית"
+            AppLocaleSupport.RUSSIAN -> "Русский"
             else -> "System Default"
         }
     }
@@ -138,16 +110,7 @@ class LocaleManager @Inject constructor() {
      * @return The detected locale code that is supported by the app
      */
     fun detectDeviceLocale(context: Context): String {
-        val systemLocale = getCurrentLocale(context)
-        val systemLanguage = systemLocale.language
-        
-        return when {
-            isLanguageSupported(systemLanguage) -> systemLanguage
-            systemLanguage.startsWith("he") -> "iw" // Hebrew variants
-            systemLanguage.startsWith("ru") -> "ru" // Russian variants
-            systemLanguage.startsWith("en") -> "en" // English variants
-            else -> "en" // Default to English
-        }
+        return AppLocaleSupport.detectSupportedSystemLanguageCode(context)
     }
     
     /**
@@ -156,9 +119,9 @@ class LocaleManager @Inject constructor() {
      */
     fun getSupportedLocales(): Map<String, String> {
         return mapOf(
-            "en" to "English",
-            "iw" to "עברית",
-            "ru" to "Русский"
+            AppLocaleSupport.ENGLISH to "English",
+            AppLocaleSupport.HEBREW to "עברית",
+            AppLocaleSupport.RUSSIAN to "Русский"
         )
     }
 }

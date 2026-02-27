@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import com.pennywise.app.presentation.theme.PennyWiseThemeWithManager
 import com.pennywise.app.presentation.PennyWiseApp
 import com.pennywise.app.presentation.theme.ThemeManager
+import com.pennywise.app.presentation.util.AppLocaleSupport
 import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.data.util.SettingsDataStore
 import dagger.hilt.android.AndroidEntryPoint
@@ -51,10 +52,7 @@ class MainActivity : FragmentActivity() {
         setContent {
             PennyWiseThemeWithManager(themeManager = themeManager) {
                 val appLanguage by settingsDataStore.language.collectAsState(initial = initialLanguage)
-                val layoutDirection = if (
-                    appLanguage.equals("iw", ignoreCase = true) ||
-                    appLanguage.equals("he", ignoreCase = true)
-                ) {
+                val layoutDirection = if (AppLocaleSupport.isRtlLanguage(appLanguage)) {
                     LayoutDirection.Rtl
                 } else {
                     LayoutDirection.Ltr
