@@ -89,6 +89,10 @@ class MainActivity : FragmentActivity() {
             } else {
                 val detectedLanguage = localeManager.detectDeviceLocale(this@MainActivity)
                 if (detectedLanguage.isNotEmpty()) {
+                    // First-run bootstrap: persist detected locale so Compose can
+                    // derive layout direction from the same source of truth.
+                    settingsDataStore.setLanguage(detectedLanguage)
+                    currentLanguageCode = detectedLanguage
                     applyLocaleChange(detectedLanguage)
                 }
             }

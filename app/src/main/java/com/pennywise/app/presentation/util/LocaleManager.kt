@@ -27,7 +27,7 @@ class LocaleManager @Inject constructor() {
             languageCode.equals("iw", ignoreCase = true) ||
                 languageCode.equals("he", ignoreCase = true) -> Locale("iw")
             languageCode.equals("ru", ignoreCase = true) -> Locale("ru")
-            else -> Locale.getDefault()
+            else -> mapSystemLocaleToSupportedLocale(context)
         }
         
         return updateResources(context, locale)
@@ -86,6 +86,27 @@ class LocaleManager @Inject constructor() {
         context.resources.updateConfiguration(configuration, context.resources.displayMetrics)
         
         return updatedContext
+    }
+
+    /**
+     * Maps the device locale to a supported app locale.
+     * Unsupported system languages default to English (LTR).
+     */
+    private fun mapSystemLocaleToSupportedLocale(context: Context): Locale {
+        val systemLanguage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            context.resources.configuration.locales[0]?.language
+        } else {
+            @Suppress("DEPRECATION")
+            context.resources.configuration.locale?.language
+        } ?: Locale.getDefault().language
+
+        return when {
+            systemLanguage.equals("ru", ignoreCase = true) -> Locale("ru")
+            systemLanguage.equals("he", ignoreCase = true) ||
+                systemLanguage.equals("iw", ignoreCase = true) -> Locale("iw")
+            systemLanguage.equals("en", ignoreCase = true) -> Locale("en")
+            else -> Locale("en")
+        }
     }
     
     /**
