@@ -62,7 +62,7 @@ class PennyWiseApplication : Application() {
             val resources = resources
             val configuration = Configuration(resources.configuration)
             
-            val locale = resolveAppLocale(languageCode)
+            val locale = resolveAppLocale(languageCode, this)
             
             Locale.setDefault(locale)
             
@@ -93,7 +93,7 @@ class PennyWiseApplication : Application() {
             
             if (!languageCode.isNullOrEmpty()) {
                 // Apply the saved locale
-                val locale = resolveAppLocale(languageCode)
+                val locale = resolveAppLocale(languageCode, context)
                 
                 // Update the configuration
                 val configuration = Configuration(context.resources.configuration)
@@ -125,12 +125,12 @@ class PennyWiseApplication : Application() {
      * Resolves the app locale from a language code and guarantees we only use
      * locales supported by the app to avoid accidental RTL layout flips.
      */
-    private fun resolveAppLocale(languageCode: String?): Locale {
+    private fun resolveAppLocale(languageCode: String?, context: Context? = null): Locale {
         return when {
             languageCode.equals("en", ignoreCase = true) -> Locale("en")
             languageCode.equals("iw", ignoreCase = true) || languageCode.equals("he", ignoreCase = true) -> Locale("iw")
             languageCode.equals("ru", ignoreCase = true) -> Locale("ru")
-            else -> mapSystemLocaleToSupportedLocale()
+            else -> mapSystemLocaleToSupportedLocale(context)
         }
     }
 
@@ -139,13 +139,15 @@ class PennyWiseApplication : Application() {
      * App startup should not depend on device locale for layout direction.
      * Unsupported or missing language settings default to English (LTR).
      */
-    private fun mapSystemLocaleToSupportedLocale(): Locale {
-        val systemLanguage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            resources.configuration.locales[0]?.language
-        } else {
-            @Suppress("DEPRECATION")
-            resources.configuration.locale?.language
-        }
+    private fun mapSystemLocaleToSupportedLocale(context: Context?): Locale {
+        val systemLanguage = context?.let { safeContext ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                safeContext.resources.configuration.locales[0]?.language
+            } else {
+                @Suppress("DEPRECATION")
+                safeContext.resources.configuration.locale?.language
+            }
+        } ?: Locale.getDefault().language
 
         return when {
             systemLanguage.equals("ru", ignoreCase = true) -> Locale("ru")

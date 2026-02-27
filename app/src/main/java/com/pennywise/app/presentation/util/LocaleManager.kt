@@ -22,10 +22,11 @@ class LocaleManager @Inject constructor() {
      * @return The updated context with the new locale
      */
     fun updateLocale(context: Context, languageCode: String): Context {
-        val locale = when (languageCode) {
-            "en" -> Locale("en")
-            "iw" -> Locale("iw")
-            "ru" -> Locale("ru")
+        val locale = when {
+            languageCode.equals("en", ignoreCase = true) -> Locale("en")
+            languageCode.equals("iw", ignoreCase = true) ||
+                languageCode.equals("he", ignoreCase = true) -> Locale("iw")
+            languageCode.equals("ru", ignoreCase = true) -> Locale("ru")
             else -> Locale.getDefault()
         }
         
