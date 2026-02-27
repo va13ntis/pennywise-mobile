@@ -140,6 +140,19 @@ class PennyWiseApplication : Application() {
      * Unsupported or missing language settings default to English (LTR).
      */
     private fun mapSystemLocaleToSupportedLocale(): Locale {
-        return Locale("en")
+        val systemLanguage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            resources.configuration.locales[0]?.language
+        } else {
+            @Suppress("DEPRECATION")
+            resources.configuration.locale?.language
+        }
+
+        return when {
+            systemLanguage.equals("ru", ignoreCase = true) -> Locale("ru")
+            systemLanguage.equals("he", ignoreCase = true) ||
+                systemLanguage.equals("iw", ignoreCase = true) -> Locale("iw")
+            systemLanguage.equals("en", ignoreCase = true) -> Locale("en")
+            else -> Locale("en")
+        }
     }
 }
