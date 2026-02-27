@@ -62,12 +62,7 @@ class PennyWiseApplication : Application() {
             val resources = resources
             val configuration = Configuration(resources.configuration)
             
-            val locale = when (languageCode) {
-                "en" -> Locale("en")
-                "iw" -> Locale("iw")
-                "ru" -> Locale("ru")
-                else -> Locale.getDefault()
-            }
+            val locale = resolveAppLocale(languageCode)
             
             Locale.setDefault(locale)
             
@@ -98,12 +93,7 @@ class PennyWiseApplication : Application() {
             
             if (!languageCode.isNullOrEmpty()) {
                 // Apply the saved locale
-                val locale = when (languageCode) {
-                    "en" -> Locale("en")
-                    "iw" -> Locale("iw")
-                    "ru" -> Locale("ru")
-                    else -> Locale.getDefault()
-                }
+                val locale = resolveAppLocale(languageCode)
                 
                 // Update the configuration
                 val configuration = Configuration(context.resources.configuration)
@@ -129,5 +119,27 @@ class PennyWiseApplication : Application() {
             Timber.e(e, "Failed to apply saved locale: ${e.message}")
             context
         }
+    }
+
+    /**
+     * Resolves the app locale from a language code and guarantees we only use
+     * locales supported by the app to avoid accidental RTL layout flips.
+     */
+    private fun resolveAppLocale(languageCode: String?): Locale {
+        return when {
+            languageCode.equals("en", ignoreCase = true) -> Locale("en")
+            languageCode.equals("iw", ignoreCase = true) || languageCode.equals("he", ignoreCase = true) -> Locale("iw")
+            languageCode.equals("ru", ignoreCase = true) -> Locale("ru")
+            else -> mapSystemLocaleToSupportedLocale()
+        }
+    }
+
+    /**
+     * Maps the device locale to a supported app locale.
+     * App startup should not depend on device locale for layout direction.
+     * Unsupported or missing language settings default to English (LTR).
+     */
+    private fun mapSystemLocaleToSupportedLocale(): Locale {
+        return Locale("en")
     }
 }

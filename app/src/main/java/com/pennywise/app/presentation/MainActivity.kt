@@ -7,7 +7,12 @@ import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.lifecycleScope
 import com.pennywise.app.presentation.theme.PennyWiseThemeWithManager
 import com.pennywise.app.presentation.PennyWiseApp
@@ -42,12 +47,26 @@ class MainActivity : FragmentActivity() {
         
         setContent {
             PennyWiseThemeWithManager(themeManager = themeManager) {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                val appLanguage by settingsDataStore.language.collectAsState(initial = "")
+                val layoutDirection = if (
+                    appLanguage.equals("iw", ignoreCase = true) ||
+                    appLanguage.equals("he", ignoreCase = true)
                 ) {
-                    PennyWiseApp()
+                    LayoutDirection.Rtl
+                } else {
+                    LayoutDirection.Ltr
+                }
+
+                // Layout direction follows app language only:
+                // Hebrew => RTL, all other languages => LTR.
+                CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+                    // A surface container using the 'background' color from the theme
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        PennyWiseApp()
+                    }
                 }
             }
         }
