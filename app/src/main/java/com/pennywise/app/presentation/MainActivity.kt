@@ -44,10 +44,13 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         
         initializeLocale()
+        val initialLanguage = getSharedPreferences("app_preferences", MODE_PRIVATE)
+            .getString("language", "")
+            .orEmpty()
         
         setContent {
             PennyWiseThemeWithManager(themeManager = themeManager) {
-                val appLanguage by settingsDataStore.language.collectAsState(initial = "")
+                val appLanguage by settingsDataStore.language.collectAsState(initial = initialLanguage)
                 val layoutDirection = if (
                     appLanguage.equals("iw", ignoreCase = true) ||
                     appLanguage.equals("he", ignoreCase = true)
