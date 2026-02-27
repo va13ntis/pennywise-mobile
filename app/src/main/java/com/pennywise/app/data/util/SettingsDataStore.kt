@@ -148,6 +148,12 @@ class SettingsDataStore @Inject constructor(
         dataStore.edit { preferences ->
             preferences[languageKey] = languageCode
         }
+        // Keep startup locale source in sync with DataStore.
+        context
+            .getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+            .edit()
+            .putString("language", languageCode)
+            .apply()
     }
     
     /**
@@ -157,6 +163,12 @@ class SettingsDataStore @Inject constructor(
         dataStore.edit { preferences ->
             preferences[currencyKey] = currencyCode
         }
+        // Keep startup settings source in sync with DataStore.
+        context
+            .getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+            .edit()
+            .putString("currency", currencyCode)
+            .apply()
     }
 
     /**

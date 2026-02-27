@@ -7,11 +7,17 @@ import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.lifecycleScope
 import com.pennywise.app.presentation.theme.PennyWiseThemeWithManager
 import com.pennywise.app.presentation.PennyWiseApp
 import com.pennywise.app.presentation.theme.ThemeManager
+import com.pennywise.app.presentation.util.AppLocaleSupport
 import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.data.util.SettingsDataStore
 import dagger.hilt.android.AndroidEntryPoint
@@ -39,15 +45,29 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         
         initializeLocale()
+        val initialLanguage = getSharedPreferences("app_preferences", MODE_PRIVATE)
+            .getString("language", "")
+            .orEmpty()
         
         setContent {
             PennyWiseThemeWithManager(themeManager = themeManager) {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    PennyWiseApp()
+                val appLanguage by settingsDataStore.language.collectAsState(initial = initialLanguage)
+                val layoutDirection = if (AppLocaleSupport.isRtlLanguage(appLanguage)) {
+                    LayoutDirection.Rtl
+                } else {
+                    LayoutDirection.Ltr
+                }
+
+                // Layout direction follows app language only:
+                // Hebrew => RTL, all other languages => LTR.
+                CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+                    // A surface container using the 'background' color from the theme
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        PennyWiseApp()
+                    }
                 }
             }
         }
@@ -67,6 +87,10 @@ class MainActivity : FragmentActivity() {
             } else {
                 val detectedLanguage = localeManager.detectDeviceLocale(this@MainActivity)
                 if (detectedLanguage.isNotEmpty()) {
+                    // First-run bootstrap: persist detected locale so Compose can
+                    // derive layout direction from the same source of truth.
+                    settingsDataStore.setLanguage(detectedLanguage)
+                    currentLanguageCode = detectedLanguage
                     applyLocaleChange(detectedLanguage)
                 }
             }

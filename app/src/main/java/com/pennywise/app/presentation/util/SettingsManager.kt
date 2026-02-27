@@ -1,8 +1,6 @@
 package com.pennywise.app.presentation.util
 
-import android.content.Context
 import com.pennywise.app.data.util.SettingsDataStore
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,8 +11,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class SettingsManager @Inject constructor(
-    private val settingsDataStore: SettingsDataStore,
-    @ApplicationContext private val context: Context
+    private val settingsDataStore: SettingsDataStore
 ) {
     
     /**
@@ -22,12 +19,8 @@ class SettingsManager @Inject constructor(
      */
     suspend fun saveLanguagePreference(languageCode: String) {
         
-        // Save to DataStore via SettingsDataStore
+        // SettingsDataStore handles DataStore + startup SharedPreferences sync.
         settingsDataStore.setLanguage(languageCode)
-        
-        // Also save to SharedPreferences for app startup compatibility
-        val sharedPrefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
-        sharedPrefs.edit().putString("language", languageCode).apply()
     }
     
     /**
@@ -42,12 +35,8 @@ class SettingsManager @Inject constructor(
      */
     suspend fun saveCurrencyPreference(currencyCode: String) {
         
-        // Save to DataStore via SettingsDataStore
+        // SettingsDataStore handles DataStore + startup SharedPreferences sync.
         settingsDataStore.setCurrency(currencyCode)
-        
-        // Also save to SharedPreferences for app startup compatibility
-        val sharedPrefs = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
-        sharedPrefs.edit().putString("currency", currencyCode).apply()
     }
     
     /**

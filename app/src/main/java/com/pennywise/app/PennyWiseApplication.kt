@@ -9,6 +9,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.pennywise.app.presentation.util.AppLocaleSupport
 import com.pennywise.app.presentation.util.LocaleManager
 import com.pennywise.app.presentation.util.SettingsManager
 import dagger.hilt.android.HiltAndroidApp
@@ -62,12 +63,7 @@ class PennyWiseApplication : Application() {
             val resources = resources
             val configuration = Configuration(resources.configuration)
             
-            val locale = when (languageCode) {
-                "en" -> Locale("en")
-                "iw" -> Locale("iw")
-                "ru" -> Locale("ru")
-                else -> Locale.getDefault()
-            }
+            val locale = AppLocaleSupport.resolveSupportedLocale(languageCode, this)
             
             Locale.setDefault(locale)
             
@@ -98,12 +94,7 @@ class PennyWiseApplication : Application() {
             
             if (!languageCode.isNullOrEmpty()) {
                 // Apply the saved locale
-                val locale = when (languageCode) {
-                    "en" -> Locale("en")
-                    "iw" -> Locale("iw")
-                    "ru" -> Locale("ru")
-                    else -> Locale.getDefault()
-                }
+                val locale = AppLocaleSupport.resolveSupportedLocale(languageCode, context)
                 
                 // Update the configuration
                 val configuration = Configuration(context.resources.configuration)
@@ -130,4 +121,5 @@ class PennyWiseApplication : Application() {
             context
         }
     }
+
 }
