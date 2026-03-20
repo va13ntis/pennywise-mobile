@@ -127,6 +127,7 @@
     <string name="category_utilities">Коммунальные услуги</string>
     <string name="category_health">Здравоохранение</string>
     <string name="category_education">Образование</string>
+    <string name="category_beauty">Красота и уход</string>
     <string name="category_other">Другое</string>
     
     <!-- Bank Cards -->

@@ -140,6 +140,7 @@
     <string name="category_utilities">Utilities</string>
     <string name="category_health">Healthcare</string>
     <string name="category_education">Education</string>
+    <string name="category_beauty">Beauty &amp; Grooming</string>
     <string name="category_other">Other</string>
     
     <!-- Authentication -->

@@ -24,6 +24,7 @@ object CategoryMapper {
         UTILITIES("utilities"),
         HEALTH("health"),
         EDUCATION("education"),
+        BEAUTY("beauty"),
         OTHER("other"),
         
         // Income categories
@@ -48,6 +49,7 @@ object CategoryMapper {
             "utilities", "bills", "rent", "electric" -> CategoryKey.UTILITIES.key
             "healthcare", "health", "medical", "pharmacy" -> CategoryKey.HEALTH.key
             "education", "books", "courses" -> CategoryKey.EDUCATION.key
+            "beauty & grooming", "beauty", "personal care", "cosmetics", "salon", "spa" -> CategoryKey.BEAUTY.key
             "other", "notes" -> CategoryKey.OTHER.key
             
             // Hebrew
@@ -59,6 +61,7 @@ object CategoryMapper {
             "חשבונות", "שירותים" -> CategoryKey.UTILITIES.key
             "בריאות", "רפואה" -> CategoryKey.HEALTH.key
             "חינוך", "לימודים" -> CategoryKey.EDUCATION.key
+            "טיפוח ויופי", "טיפוח", "יופי" -> CategoryKey.BEAUTY.key
             "אחר", "שונות" -> CategoryKey.OTHER.key
             
             // Russian
@@ -70,6 +73,7 @@ object CategoryMapper {
             "коммунальные услуги", "услуги" -> CategoryKey.UTILITIES.key
             "здравоохранение", "здоровье", "медицина" -> CategoryKey.HEALTH.key
             "образование", "учеба" -> CategoryKey.EDUCATION.key
+            "красота и уход", "красота", "уход", "косметика" -> CategoryKey.BEAUTY.key
             "другое", "прочее" -> CategoryKey.OTHER.key
             
             // Default case - assume it's already a canonical key
@@ -92,6 +96,7 @@ object CategoryMapper {
             CategoryKey.UTILITIES.key -> stringResource(R.string.category_utilities)
             CategoryKey.HEALTH.key -> stringResource(R.string.category_health)
             CategoryKey.EDUCATION.key -> stringResource(R.string.category_education)
+            CategoryKey.BEAUTY.key -> stringResource(R.string.category_beauty)
             CategoryKey.OTHER.key -> stringResource(R.string.category_other)
             else -> categoryKey // Return original if no mapping found
         }
@@ -111,6 +116,7 @@ object CategoryMapper {
             CategoryKey.UTILITIES.key -> context.getString(R.string.category_utilities)
             CategoryKey.HEALTH.key -> context.getString(R.string.category_health)
             CategoryKey.EDUCATION.key -> context.getString(R.string.category_education)
+            CategoryKey.BEAUTY.key -> context.getString(R.string.category_beauty)
             CategoryKey.OTHER.key -> context.getString(R.string.category_other)
             else -> categoryKey
         }
@@ -131,6 +137,7 @@ object CategoryMapper {
             stringResource(R.string.category_utilities),
             stringResource(R.string.category_health),
             stringResource(R.string.category_education),
+            stringResource(R.string.category_beauty),
             stringResource(R.string.category_other)
         )
     }
@@ -148,6 +155,7 @@ object CategoryMapper {
             CategoryKey.UTILITIES.key -> "🧾"
             CategoryKey.HEALTH.key -> "🏥"
             CategoryKey.EDUCATION.key -> "📚"
+            CategoryKey.BEAUTY.key -> "💄"
             CategoryKey.OTHER.key -> "🗒️"
             else -> "💰"
         }
