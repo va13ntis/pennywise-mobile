@@ -1336,8 +1336,10 @@ private fun BillingCycleProgressBar(
 /**
  * Compute payment method summaries with billing cycle information.
  * Credit cards: filter by billing cycle (previousMonth.withdrawDay .. currentMonth.withdrawDay-1).
- * Cash/Cheque: filter by calendar month.
- * Includes split payment installments (due in cycle) for credit card totals.
+ * Only payment methods with usage in that period are listed: regular (in-cycle), recurring, and
+ * installments due in the cycle. Card rows are derived from activity (including recurring-only /
+ * installment-only cards), not from configuration alone.
+ * Cash/cheque use the calendar month for the selected [currentMonth].
  */
 private fun computePaymentMethodSummaries(
     transactions: List<Transaction>,
@@ -1362,7 +1364,23 @@ private fun computePaymentMethodSummaries(
         .filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
     val creditCardGroups = creditCardTransactions.groupBy { it.paymentMethodConfigId }
     
-    creditCardGroups.forEach { (configId, transactionsForCard) ->
+    val cardIdsFromActivity = buildSet {
+        addAll(creditCardGroups.keys.filterNotNull())
+        recurringTransactions
+            .filter { it.paymentMethod == PaymentMethod.CREDIT_CARD }
+            .mapNotNullTo(this) { it.paymentMethodConfigId }
+        splitPaymentInstallments.forEach { installment ->
+            val parent = transactionById[installment.parentTransactionId]
+            val id = parent?.takeIf { it.paymentMethod == PaymentMethod.CREDIT_CARD }?.paymentMethodConfigId
+            if (id != null) add(id)
+        }
+    }
+    val allCardConfigIds = cardIdsFromActivity.sorted()
+    
+    fun addCreditCardSummary(
+        configId: Long?,
+        transactionsForCard: List<Transaction>
+    ) {
         val cardConfig = configId?.let { id -> paymentMethodConfigs.find { it.id == id } }
         val billingCycleRange = cardConfig?.withdrawDay?.let { withdrawDay ->
             val previousMonth = currentMonth.minusMonths(1)
@@ -1423,6 +1441,20 @@ private fun computePaymentMethodSummaries(
                 )
             )
         }
+    }
+
+    allCardConfigIds.forEach { id ->
+        addCreditCardSummary(id, creditCardGroups[id] ?: emptyList())
+    }
+    val hasUnassignedCardActivity =
+        creditCardGroups.containsKey(null) ||
+            recurringTransactions.any { it.paymentMethod == PaymentMethod.CREDIT_CARD && it.paymentMethodConfigId == null } ||
+            splitPaymentInstallments.any { installment ->
+                val parent = transactionById[installment.parentTransactionId]
+                parent?.paymentMethod == PaymentMethod.CREDIT_CARD && parent.paymentMethodConfigId == null
+            }
+    if (hasUnassignedCardActivity) {
+        addCreditCardSummary(null, creditCardGroups[null] ?: emptyList())
     }
     
     // Handle CASH transactions - filter by calendar month

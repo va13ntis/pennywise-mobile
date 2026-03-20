@@ -2,15 +2,18 @@ package com.pennywise.app.presentation
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.activity.compose.setContent
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.lifecycleScope
@@ -51,8 +54,12 @@ class MainActivity : FragmentActivity() {
         
         setContent {
             PennyWiseThemeWithManager(themeManager = themeManager) {
+                val context = LocalContext.current
                 val appLanguage by settingsDataStore.language.collectAsState(initial = initialLanguage)
-                val layoutDirection = if (AppLocaleSupport.isRtlLanguage(appLanguage)) {
+                // When the flow has not emitted yet, infer from device locale (same as bootstrap).
+                val effectiveLanguage =
+                    appLanguage.ifEmpty { AppLocaleSupport.detectSupportedSystemLanguageCode(context) }
+                val layoutDirection = if (AppLocaleSupport.isRtlLanguage(effectiveLanguage)) {
                     LayoutDirection.Rtl
                 } else {
                     LayoutDirection.Ltr
@@ -60,6 +67,14 @@ class MainActivity : FragmentActivity() {
 
                 // Layout direction follows app language only:
                 // Hebrew => RTL, all other languages => LTR.
+                SideEffect {
+                    window.decorView.layoutDirection =
+                        if (layoutDirection == LayoutDirection.Rtl) {
+                            View.LAYOUT_DIRECTION_RTL
+                        } else {
+                            View.LAYOUT_DIRECTION_LTR
+                        }
+                }
                 CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                     // A surface container using the 'background' color from the theme
                     Surface(
