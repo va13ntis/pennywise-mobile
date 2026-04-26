@@ -2,6 +2,7 @@ package com.pennywise.app.data.local.migration
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import java.time.YearMonth
 
 /**
  * Database migrations for PennyWise app
@@ -127,6 +128,54 @@ object DatabaseMigrations {
             db.execSQL("ALTER TABLE transactions ADD COLUMN billingDelayDays INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+    /**
+     * Migration from version 5 to 6
+     * Adds recurring schedule fields: stop-after month and pending amount change (effective next calendar month).
+     */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE transactions ADD COLUMN recurringEndsAfterYearMonth TEXT")
+            db.execSQL("ALTER TABLE transactions ADD COLUMN recurringAmountPending REAL")
+            db.execSQL("ALTER TABLE transactions ADD COLUMN recurringAmountEffectiveYearMonth TEXT")
+        }
+    }
+
+    /**
+     * Migration from version 6 to 7
+     * Replaces calendar-month fields with ISO date fields aligned to card billing cycles.
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE transactions ADD COLUMN recurringEndsInclusiveDate TEXT")
+            db.execSQL("ALTER TABLE transactions ADD COLUMN recurringAmountEffectiveOn TEXT")
+
+            val cursor = db.query("SELECT id, recurringEndsAfterYearMonth, recurringAmountEffectiveYearMonth FROM transactions")
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(0)
+                val endsYm = if (cursor.isNull(1)) null else cursor.getString(1)
+                val effYm = if (cursor.isNull(2)) null else cursor.getString(2)
+                val endsDate = endsYm?.let { YearMonth.parse(it).atEndOfMonth().toString() }
+                val effDate = effYm?.let { YearMonth.parse(it).atDay(1).toString() }
+                db.execSQL(
+                    "UPDATE transactions SET recurringEndsInclusiveDate = ? WHERE id = ?",
+                    arrayOf(endsDate, id)
+                )
+                db.execSQL(
+                    "UPDATE transactions SET recurringAmountEffectiveOn = ? WHERE id = ?",
+                    arrayOf(effDate, id)
+                )
+            }
+            cursor.close()
+
+            try {
+                db.execSQL("ALTER TABLE transactions DROP COLUMN recurringEndsAfterYearMonth")
+                db.execSQL("ALTER TABLE transactions DROP COLUMN recurringAmountEffectiveYearMonth")
+            } catch (_: Throwable) {
+                // SQLite < 3.35: leave unused columns
+            }
+        }
+    }
     
     /**
      * Get all available migrations
@@ -135,7 +184,9 @@ object DatabaseMigrations {
         return arrayOf(
             MIGRATION_2_3,
             MIGRATION_3_4,
-            MIGRATION_4_5
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7
         )
     }
 }

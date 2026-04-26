@@ -22,13 +22,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
+import java.time.YearMonth
 import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.domain.model.PaymentMethod
 import com.pennywise.app.domain.model.PaymentMethodConfig
@@ -65,6 +70,10 @@ fun RecurringExpensesSection(
     currencyCode: String,
     convertedTransactionAmounts: Map<Long, Double>,
     convertedInstallmentAmounts: Map<Long, Double>,
+    /** Calendar month used for recurring display amount (scheduled amount changes apply from next month). */
+    recurringDisplayMonth: YearMonth,
+    onEditRecurring: ((Long) -> Unit)? = null,
+    onCancelRecurring: ((Transaction) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     if (transactions.isEmpty() && splitPaymentInstallments.isEmpty()) {
@@ -72,6 +81,7 @@ fun RecurringExpensesSection(
     }
     
     var isExpanded by remember { mutableStateOf(false) }
+    var pendingCancelRecurring by remember { mutableStateOf<Transaction?>(null) }
     
     fun getPaymentMethodKey(t: Transaction): String = when {
         t.paymentMethod == PaymentMethod.CREDIT_CARD && t.paymentMethodConfigId != null ->
@@ -104,11 +114,42 @@ fun RecurringExpensesSection(
     
     // Calculate total
     val totalAmount = transactions.sumOf { transaction ->
-        convertedTransactionAmounts[transaction.id] ?: transaction.amount
+        convertedTransactionAmounts[transaction.id]
+            ?: transaction.recurringDisplayAmount(recurringDisplayMonth)
     } + splitPaymentInstallments.sumOf { installment ->
         convertedInstallmentAmounts[installment.id] ?: installment.amount
     }
     val totalFormatted = CurrencyFormatter.formatAmount(totalAmount, currencyCode, LocalContext.current)
+
+    pendingCancelRecurring?.let { toCancel ->
+        AlertDialog(
+            onDismissRequest = { pendingCancelRecurring = null },
+            title = { Text(stringResource(R.string.cancel_recurring_subscription_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.cancel_recurring_subscription_message,
+                        toCancel.description
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onCancelRecurring?.invoke(toCancel)
+                        pendingCancelRecurring = null
+                    }
+                ) {
+                    Text(stringResource(R.string.cancel_recurring_subscription_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCancelRecurring = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -193,8 +234,15 @@ fun RecurringExpensesSection(
                                 methodRecurring.forEach { transaction ->
                                     RecurringTransactionItem(
                                         transaction = transaction,
+                                        displayAmount = transaction.recurringDisplayAmount(recurringDisplayMonth),
                                         currencyCode = currencyCode,
-                                        convertedAmount = convertedTransactionAmounts[transaction.id]
+                                        convertedAmount = convertedTransactionAmounts[transaction.id],
+                                        onUpdateAmount = onEditRecurring?.let { edit ->
+                                            { edit(transaction.id) }
+                                        },
+                                        onCancelPayment = if (onCancelRecurring != null) {
+                                            { pendingCancelRecurring = transaction }
+                                        } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
@@ -213,8 +261,15 @@ fun RecurringExpensesSection(
                         transactions.sortedByDescending { it.date }.forEach { transaction ->
                             RecurringTransactionItem(
                                 transaction = transaction,
+                                displayAmount = transaction.recurringDisplayAmount(recurringDisplayMonth),
                                 currencyCode = currencyCode,
-                                convertedAmount = convertedTransactionAmounts[transaction.id]
+                                convertedAmount = convertedTransactionAmounts[transaction.id],
+                                onUpdateAmount = onEditRecurring?.let { edit ->
+                                    { edit(transaction.id) }
+                                },
+                                onCancelPayment = if (onCancelRecurring != null) {
+                                    { pendingCancelRecurring = transaction }
+                                } else null
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -241,30 +296,38 @@ fun RecurringExpensesSection(
 @Composable
 private fun RecurringTransactionItem(
     transaction: Transaction,
+    displayAmount: Double,
     currencyCode: String,
     convertedAmount: Double?,
+    onUpdateAmount: (() -> Unit)? = null,
+    onCancelPayment: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val formattedAmount = if (transaction.currency != currencyCode && convertedAmount != null) {
         CurrencyFormatter.formatAmountWithConversion(
-            originalAmount = transaction.amount,
+            originalAmount = displayAmount,
             convertedAmount = convertedAmount,
             originalCurrency = transaction.currency,
             targetCurrency = currencyCode,
             context = context
         )
     } else {
-        CurrencyFormatter.formatAmount(transaction.amount, transaction.currency, context)
+        CurrencyFormatter.formatAmount(displayAmount, transaction.currency, context)
     }
+
+    var menuExpanded by remember { mutableStateOf(false) }
+    val showOverflowMenu = onUpdateAmount != null || onCancelPayment != null
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Category emoji and description
+        // Left: Category emoji and description (takes remaining width so menu stays on panel edge)
         Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -303,14 +366,58 @@ private fun RecurringTransactionItem(
                 }
             }
         }
-        
-        // Right: Amount
-        Text(
-            text = formattedAmount,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+
+        // Amount then overflow menu — menu sits on the trailing edge of the panel
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = formattedAmount,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(end = 4.dp)
+            )
+            if (showOverflowMenu) {
+                Box {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.recurring_overflow_menu_cd),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        onUpdateAmount?.let { update ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.recurring_menu_update_amount)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    update()
+                                }
+                            )
+                        }
+                        onCancelPayment?.let { cancel ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.recurring_menu_cancel_payment)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    cancel()
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

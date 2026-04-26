@@ -88,6 +88,12 @@
     <string name="transaction_actions_title">Действия с расходом</string>
     <string name="delete_expense_title">Удалить расход?</string>
     <string name="delete_expense_confirmation">Вы уверены, что хотите удалить этот расход?</string>
+    <string name="cancel_recurring_subscription_title">Отменить повторяющийся расход?</string>
+    <string name="cancel_recurring_subscription_message">«%1$s» перестанет повторяться после окончания текущего расчётного периода карты (для наличных — после текущего календарного месяца). До этого сумма остаётся в итогах и в списке.</string>
+    <string name="cancel_recurring_subscription_confirm">Прекратить повтор</string>
+    <string name="recurring_menu_update_amount">Изменить сумму</string>
+    <string name="recurring_menu_cancel_payment">Отменить платёж</string>
+    <string name="recurring_overflow_menu_cd">Дополнительно</string>
     <string name="date_label">Дата</string>
     <string name="installments_label">Рассрочка</string>
     <string name="default_payment_type">Тип платежа по умолчанию</string>

@@ -31,7 +31,7 @@ import com.pennywise.app.data.local.migration.DatabaseMigrations
  */
 @Database(
     entities = [UserEntity::class, TransactionEntity::class, CurrencyUsageEntity::class, BankCardEntity::class, SplitPaymentInstallmentEntity::class, PaymentMethodConfigEntity::class],
-    version = 5,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(

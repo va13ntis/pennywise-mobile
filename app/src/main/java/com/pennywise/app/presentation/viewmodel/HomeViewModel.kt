@@ -9,6 +9,8 @@ import com.pennywise.app.domain.repository.TransactionRepository
 import com.pennywise.app.domain.repository.SplitPaymentInstallmentRepository
 import com.pennywise.app.domain.repository.PaymentMethodConfigRepository
 import com.pennywise.app.domain.model.BillingCycle
+import com.pennywise.app.domain.model.PaymentMethod
+import com.pennywise.app.domain.model.billingCycleContaining
 import com.pennywise.app.domain.model.getBillingCycles
 import com.pennywise.app.data.service.CurrencyConversionService
 import com.pennywise.app.data.util.MerchantIconRepository
@@ -253,7 +255,8 @@ class HomeViewModel @Inject constructor(
                 } ?: true // Show all if no filter selected
             }
             .sumOf { transaction ->
-                convertedAmounts[transaction.id] ?: transaction.amount
+                convertedAmounts[transaction.id]
+                    ?: transaction.recurringDisplayAmount(inputs.currentMonth)
             }
 
         // Add split payment installments (they're already filtered by month)
@@ -300,7 +303,8 @@ class HomeViewModel @Inject constructor(
                 convertedAmounts[transaction.id] ?: transaction.amount
             }
         val recurringExpenses = inputs.recurringTransactions.sumOf { transaction ->
-            convertedAmounts[transaction.id] ?: transaction.amount
+            convertedAmounts[transaction.id]
+                ?: transaction.recurringDisplayAmount(inputs.currentMonth)
         }
         val splitPaymentExpenses = inputs.splitInstallments.sumOf { installment ->
             convertedInstallments[installment.id] ?: installment.amount
@@ -391,15 +395,23 @@ class HomeViewModel @Inject constructor(
                 _transactions.asStateFlow(),
                 _allRecurringTransactions.asStateFlow(),
                 _splitPaymentInstallments.asStateFlow(),
-                currency
-            ) { transactions, recurringTransactions, splitInstallments, targetCurrency ->
-                ConversionPayload(transactions, recurringTransactions, splitInstallments, targetCurrency)
+                currency,
+                _currentMonth.asStateFlow()
+            ) { transactions, recurringTransactions, splitInstallments, targetCurrency, currentMonth ->
+                ConversionPayload(
+                    transactions,
+                    recurringTransactions,
+                    splitInstallments,
+                    targetCurrency,
+                    currentMonth
+                )
             }.collectLatest { payload ->
                 updateConvertedAmounts(
                     transactions = payload.transactions,
                     recurringTransactions = payload.recurringTransactions,
                     splitInstallments = payload.splitInstallments,
-                    targetCurrency = payload.targetCurrency
+                    targetCurrency = payload.targetCurrency,
+                    currentMonth = payload.currentMonth
                 )
             }
         }
@@ -409,7 +421,8 @@ class HomeViewModel @Inject constructor(
         transactions: List<Transaction>,
         recurringTransactions: List<Transaction>,
         splitInstallments: List<SplitPaymentInstallment>,
-        targetCurrency: String
+        targetCurrency: String,
+        currentMonth: YearMonth
     ) {
         val conversionRates = mutableMapOf<String, Double?>()
         val combinedTransactions = (transactions + recurringTransactions)
@@ -422,7 +435,12 @@ class HomeViewModel @Inject constructor(
             val rate = conversionRates.getOrPut(rateKey) {
                 currencyConversionService.convertCurrency(1.0, transaction.currency, targetCurrency)
             }
-            rate?.let { transactionAmounts[transaction.id] = transaction.amount * it }
+            val baseAmount = if (transaction.isRecurring) {
+                transaction.recurringDisplayAmount(currentMonth)
+            } else {
+                transaction.amount
+            }
+            rate?.let { transactionAmounts[transaction.id] = baseAmount * it }
         }
 
         val installmentAmounts = mutableMapOf<Long, Double>()
@@ -450,7 +468,8 @@ class HomeViewModel @Inject constructor(
         val transactions: List<Transaction>,
         val recurringTransactions: List<Transaction>,
         val splitInstallments: List<SplitPaymentInstallment>,
-        val targetCurrency: String
+        val targetCurrency: String,
+        val currentMonth: YearMonth
     )
     
     /**
@@ -499,7 +518,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
             
-            shouldAppear
+            shouldAppear && transaction.isRecurringActiveInMonth(currentMonth)
         }
         
         return filtered
@@ -813,6 +832,43 @@ class HomeViewModel @Inject constructor(
             transactionRepository.deleteTransaction(transaction)
             refreshData()
         }
+    }
+
+    /**
+     * Schedules recurring to stop after the current **card billing cycle** (or end of home calendar month for cash/cheque).
+     */
+    fun cancelRecurringSubscription(transaction: Transaction) {
+        viewModelScope.launch {
+            try {
+                if (!transaction.isRecurring || transaction.id == 0L) return@launch
+                val endInclusive = recurringStopEndInclusiveDate(transaction)
+                val updated = transaction.copy(
+                    isRecurring = true,
+                    recurringEndsInclusiveDate = endInclusive.toString(),
+                    recurringAmountPending = null,
+                    recurringAmountEffectiveOn = null,
+                    updatedAt = Date()
+                )
+                transactionRepository.updateTransaction(updated)
+                refreshData()
+            } catch (e: Exception) {
+                if (e !is CancellationException) {
+                    _error.value = "Failed to cancel subscription: ${e.message}"
+                }
+            }
+        }
+    }
+
+    private suspend fun recurringStopEndInclusiveDate(transaction: Transaction): LocalDate {
+        if (transaction.paymentMethod == PaymentMethod.CREDIT_CARD && transaction.paymentMethodConfigId != null) {
+            val configs = paymentMethodConfigRepository.getPaymentMethodConfigs().first()
+            val config = configs.find { it.id == transaction.paymentMethodConfigId }
+            if (config != null && config.isCreditCard()) {
+                val cycle = config.billingCycleContaining(LocalDate.now())
+                if (cycle != null) return cycle.endDate
+            }
+        }
+        return _currentMonth.value.atEndOfMonth()
     }
 
     fun refreshMerchantIcons(

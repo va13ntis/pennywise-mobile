@@ -58,6 +58,7 @@ import com.pennywise.app.presentation.viewmodel.AddExpenseUiState
 import com.pennywise.app.presentation.viewmodel.AddExpenseViewModel
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.*
 
 /**
@@ -471,7 +472,7 @@ fun AddExpenseScreen(
             ) {
                 transaction.installmentAmount * transaction.installments
             } else {
-                transaction.amount
+                transaction.recurringDisplayAmount(LocalDate.now())
             }
             merchant = transaction.description
             amount = totalAmount.toString()

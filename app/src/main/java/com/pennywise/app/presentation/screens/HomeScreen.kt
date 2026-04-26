@@ -10,8 +10,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -37,11 +38,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -75,14 +74,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywise.app.R
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.presentation.components.RecurringExpensesSection
 import com.pennywise.app.presentation.util.CurrencyFormatter
-import com.pennywise.app.presentation.util.CategoryMapper
-import com.pennywise.app.presentation.util.PaymentMethodMapper
 import com.pennywise.app.presentation.util.LocaleFormatter
 import com.pennywise.app.presentation.viewmodel.HomeViewModel
 import com.pennywise.app.presentation.viewmodel.SettingsViewModel
@@ -194,7 +190,6 @@ fun HomeScreen(
     // Local state for week expansion (not in ViewModel)
     var expandedWeeks by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var transactionActionTarget by remember { mutableStateOf<Transaction?>(null) }
-    var showTransactionActions by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     
     // UI state
@@ -289,70 +284,6 @@ fun HomeScreen(
             CircularProgressIndicator()
         }
         return
-    }
-
-    if (showTransactionActions && transactionActionTarget != null) {
-        val closeAlignment = if (layoutDirection == LayoutDirection.Rtl) {
-            Alignment.TopStart
-        } else {
-            Alignment.TopEnd
-        }
-        Dialog(onDismissRequest = { showTransactionActions = false }) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .width(140.dp)
-                ) {
-                    IconButton(
-                        onClick = { showTransactionActions = false },
-                        modifier = Modifier
-                            .align(closeAlignment)
-                            .offset(x = 6.dp, y = (-6).dp)
-                            .size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(R.string.cancel),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(top = 18.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {
-                            showTransactionActions = false
-                            onEditExpense(transactionActionTarget?.id ?: return@IconButton)
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.edit),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(onClick = {
-                            showTransactionActions = false
-                            showDeleteConfirm = true
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.delete),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 
     if (showDeleteConfirm && transactionActionTarget != null) {
@@ -460,7 +391,10 @@ fun HomeScreen(
                         paymentMethodConfigs = paymentMethodConfigs,
                         currencyCode = currencyCode,
                         convertedTransactionAmounts = convertedTransactionAmounts,
-                        convertedInstallmentAmounts = convertedInstallmentAmounts
+                        convertedInstallmentAmounts = convertedInstallmentAmounts,
+                        recurringDisplayMonth = currentMonth,
+                        onEditRecurring = onEditExpense,
+                        onCancelRecurring = viewModel::cancelRecurringSubscription
                     )
                 }
             }
@@ -528,9 +462,10 @@ fun HomeScreen(
                             expandedWeeks + weekNumber
                         }
                     },
-                    onTransactionLongPress = { transaction ->
-                        transactionActionTarget = transaction
-                        showTransactionActions = true
+                    onEditExpense = onEditExpense,
+                    onDeleteTransaction = { transactionId ->
+                        transactionActionTarget = transactions.find { it.id == transactionId }
+                        showDeleteConfirm = true
                     }
                 )
             }
@@ -682,8 +617,9 @@ private fun WeeklySummaryCard(
     weekTotal: Double,
     isExpanded: Boolean,
     onToggleExpansion: () -> Unit,
-    onTransactionLongPress: (Transaction) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEditExpense: (Long) -> Unit,
+    onDeleteTransaction: (Long) -> Unit
 ) {
     val context = LocalContext.current
     Card(
@@ -757,7 +693,8 @@ private fun WeeklySummaryCard(
                         transaction = transaction,
                         currencyCode = currencyCode,
                         convertedAmount = convertedTransactionAmounts[transaction.id],
-                        onLongPress = onTransactionLongPress
+                        onEditTransaction = { onEditExpense(it.id) },
+                        onDeleteTransaction = { onDeleteTransaction(it.id) }
                     )
                     
                     if (transaction != transactions.last()) {
@@ -836,13 +773,13 @@ private fun buildBillingCycleWeekRangeText(
  * Individual transaction item in expanded weekly view
  * Uses real Transaction domain model
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionItem(
     transaction: Transaction,
     currencyCode: String,
     convertedAmount: Double?,
-    onLongPress: (Transaction) -> Unit,
+    onEditTransaction: (Transaction) -> Unit,
+    onDeleteTransaction: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -857,18 +794,18 @@ private fun TransactionItem(
     } else {
         CurrencyFormatter.formatAmount(transaction.amount, transaction.currency, context)
     }
+
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Row(
         modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { onLongPress(transaction) }
-            ),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Left: Payment method and description
         Row(
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -892,9 +829,11 @@ private fun TransactionItem(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            
+
             // Description
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = transaction.description,
                     style = MaterialTheme.typography.bodyMedium,
@@ -914,14 +853,52 @@ private fun TransactionItem(
                 }
             }
         }
-        
-        // Right: Amount
-        Text(
-            text = formattedAmount,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+
+        // Right: Amount and actions menu
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = formattedAmount,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // Three dots menu icon
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.transaction_actions_title),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.edit)) },
+                        onClick = {
+                            menuExpanded = false
+                            onEditTransaction(transaction)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.delete)) },
+                        onClick = {
+                            menuExpanded = false
+                            onDeleteTransaction(transaction)
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1418,7 +1395,7 @@ private fun computePaymentMethodSummaries(
                 installment.dueDate.time in cycleStartTime..cycleEndTime
         }
         val total = (transactionsInCycle + recurringForCard).sumOf { transaction ->
-            convertedTransactionAmounts[transaction.id] ?: transaction.amount
+            convertedTransactionAmounts[transaction.id] ?: transaction.recurringDisplayAmount(currentMonth)
         } + installmentsForCard.sumOf { installment ->
             convertedInstallmentAmounts[installment.id] ?: installment.amount
         }
@@ -1472,7 +1449,7 @@ private fun computePaymentMethodSummaries(
         !dueInstant.isBefore(startOfMonth) && !dueInstant.isAfter(endOfMonth)
     }
     val cashTotal = (cashInMonth + cashRecurring).sumOf {
-        convertedTransactionAmounts[it.id] ?: it.amount
+        convertedTransactionAmounts[it.id] ?: it.recurringDisplayAmount(currentMonth)
     } + cashInstallments.sumOf { convertedInstallmentAmounts[it.id] ?: it.amount }
     if (cashTotal > 0.0) {
         summaries.add(
@@ -1501,7 +1478,7 @@ private fun computePaymentMethodSummaries(
         !dueInstant.isBefore(startOfMonth) && !dueInstant.isAfter(endOfMonth)
     }
     val chequeTotal = (chequeInMonth + chequeRecurring).sumOf {
-        convertedTransactionAmounts[it.id] ?: it.amount
+        convertedTransactionAmounts[it.id] ?: it.recurringDisplayAmount(currentMonth)
     } + chequeInstallments.sumOf { convertedInstallmentAmounts[it.id] ?: it.amount }
     if (chequeTotal > 0.0) {
         summaries.add(

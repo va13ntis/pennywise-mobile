@@ -88,6 +88,12 @@
     <string name="transaction_actions_title">פעולות הוצאה</string>
     <string name="delete_expense_title">למחוק הוצאה?</string>
     <string name="delete_expense_confirmation">האם למחוק את ההוצאה הזו?</string>
+    <string name="cancel_recurring_subscription_title">לבטל הוצאה חוזרת?</string>
+    <string name="cancel_recurring_subscription_message">פעולה זו תעצור את &quot;%1$s&quot; אחרי סיום מחזור החיוב הנוכחי של הכרטיס (או אחרי החודש הקלנדרי לתשלום במזומן). עד אז הוא נשאר בסיכומים וברשימה.</string>
+    <string name="cancel_recurring_subscription_confirm">הפסק חזרה</string>
+    <string name="recurring_menu_update_amount">עדכן סכום</string>
+    <string name="recurring_menu_cancel_payment">בטל תשלום</string>
+    <string name="recurring_overflow_menu_cd">אפשרויות נוספות</string>
     <string name="date_label">תאריך</string>
     <string name="installments_label">תשלומים</string>
     <string name="default_payment_type">סוג תשלום ברירת מחדל</string>

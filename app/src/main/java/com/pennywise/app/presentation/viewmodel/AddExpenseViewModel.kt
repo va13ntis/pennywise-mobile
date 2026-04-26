@@ -6,6 +6,7 @@ import com.pennywise.app.domain.model.Currency
 import com.pennywise.app.domain.model.RecurringPeriod
 import com.pennywise.app.domain.model.Transaction
 import com.pennywise.app.domain.model.TransactionType
+import com.pennywise.app.domain.model.firstDayOfNextBillingCycleAfter
 import com.pennywise.app.domain.model.BankCard
 import com.pennywise.app.domain.model.SplitPaymentInstallment
 import com.pennywise.app.domain.repository.TransactionRepository
@@ -20,7 +21,10 @@ import com.pennywise.app.presentation.util.SoundManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.YearMonth
 import java.util.Date
 import java.util.Calendar
 import javax.inject.Inject
@@ -399,9 +403,50 @@ class AddExpenseViewModel @Inject constructor(
                 }
 
                 val existingTransaction = _editingTransaction.value
+                    ?: run {
+                        _uiState.value = AddExpenseUiState.Error("Transaction not loaded")
+                        return@launch
+                    }
+
+                var merged = existingTransaction
+                if (merged.recurringAmountPending != null && merged.recurringAmountEffectiveOn != null) {
+                    val eff = runCatching { LocalDate.parse(merged.recurringAmountEffectiveOn!!) }.getOrNull()
+                    if (eff != null && !LocalDate.now().isBefore(eff)) {
+                        merged = merged.copy(
+                            amount = merged.recurringAmountPending!!,
+                            recurringAmountPending = null,
+                            recurringAmountEffectiveOn = null
+                        )
+                    }
+                }
+
+                var amountPending: Double? = merged.recurringAmountPending
+                var amountEffectiveOn: String? = merged.recurringAmountEffectiveOn
+                var endsInclusive: String? = merged.recurringEndsInclusiveDate
+
+                if (!expenseData.isRecurring) {
+                    amountPending = null
+                    amountEffectiveOn = null
+                    endsInclusive = null
+                } else if (!isSplitPayment && merged.isRecurring && expenseData.isRecurring) {
+                    val displayNow = merged.recurringDisplayAmount(LocalDate.now())
+                    if (mainTransactionAmount != displayNow) {
+                        amountPending = mainTransactionAmount
+                        amountEffectiveOn = resolveRecurringAmountEffectiveOn(
+                            expenseData.selectedPaymentMethodConfigId
+                        ).toString()
+                    }
+                }
+
+                val resolvedAmount = if (!isSplitPayment && expenseData.isRecurring && amountPending != null) {
+                    merged.amount
+                } else {
+                    mainTransactionAmount
+                }
+
                 val transaction = Transaction(
                     id = transactionId,
-                    amount = mainTransactionAmount,
+                    amount = resolvedAmount,
                     currency = currency.code,
                     description = expenseData.merchant,
                     category = expenseData.category,
@@ -409,12 +454,15 @@ class AddExpenseViewModel @Inject constructor(
                     date = expenseData.date,
                     isRecurring = expenseData.isRecurring,
                     recurringPeriod = expenseData.recurringPeriod,
+                    recurringEndsInclusiveDate = endsInclusive,
+                    recurringAmountPending = amountPending,
+                    recurringAmountEffectiveOn = amountEffectiveOn,
                     paymentMethod = expenseData.paymentMethod,
                     paymentMethodConfigId = expenseData.selectedPaymentMethodConfigId,
                     installments = expenseData.installments,
                     installmentAmount = expenseData.installmentAmount,
                     billingDelayDays = expenseData.billingDelayDays,
-                    createdAt = existingTransaction?.createdAt ?: Date(),
+                    createdAt = merged.createdAt,
                     updatedAt = Date()
                 )
 
@@ -443,6 +491,17 @@ class AddExpenseViewModel @Inject constructor(
                 _needsAuthentication.value = false
             }
         }
+    }
+
+    private suspend fun resolveRecurringAmountEffectiveOn(paymentMethodConfigId: Long?): LocalDate {
+        if (paymentMethodConfigId != null) {
+            val configs = paymentMethodConfigRepository.getPaymentMethodConfigs().first()
+            val config = configs.find { it.id == paymentMethodConfigId }
+            if (config != null && config.isCreditCard()) {
+                return config.firstDayOfNextBillingCycleAfter(LocalDate.now())
+            }
+        }
+        return YearMonth.now().plusMonths(1).atDay(1)
     }
     
     /**
